@@ -1,0 +1,18 @@
+[gd_scene load_steps=4 format=3 uid="uid://4pam0hesbas4"]
+
+[ext_resource type="Script" uid="uid://ctp00nwakxtgv" path="res://Scenes/player.gd" id="1_cvnsp"]
+[ext_resource type="Texture2D" uid="uid://bvxffpi0ecbj8" path="res://Sprites/urizen_onebit_tileset__v2d0.png" id="2_6t5aa"]
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_3dryh"]
+size = Vector2(7, 9)
+
+[node name="Player" type="CharacterBody2D"]
+script = ExtResource("1_cvnsp")
+
+[node name="Sprite2D" type="Sprite2D" parent="."]
+texture = ExtResource("2_6t5aa")
+region_enabled = true
+region_rect = Rect2(1353, 1, 12, 12)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="."]
+shape = SubResource("RectangleShape2D_3dryh")
