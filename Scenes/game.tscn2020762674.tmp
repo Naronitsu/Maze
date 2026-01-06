@@ -6709,17 +6709,6 @@ sources/0 = SubResource("TileSetAtlasSource_3dryh")
 script = ExtResource("1_3dryh")
 max_levels_before_reset = 1
 
-[node name="Overlay" type="CanvasLayer" parent="."]
-
-[node name="Blackout" type="ColorRect" parent="Overlay"]
-visible = false
-anchors_preset = 15
-anchor_right = 1.0
-anchor_bottom = 1.0
-grow_horizontal = 2
-grow_vertical = 2
-color = Color(0, 0, 0, 1)
-
 [node name="CanvasModulate" type="CanvasModulate" parent="."]
 
 [node name="FogOfWar" type="Node2D" parent="."]
@@ -6751,10 +6740,6 @@ presence_path = NodePath("../Presence")
 [node name="Camera" type="Camera2D" parent="Player"]
 zoom = Vector2(5, 5)
 position_smoothing_enabled = true
-drag_left_margin = 0.0
-drag_top_margin = 0.0
-drag_right_margin = 0.0
-drag_bottom_margin = 0.0
 
 [node name="PresenceAudio" type="AudioStreamPlayer2D" parent="."]
 stream = ExtResource("7_u5sy4")

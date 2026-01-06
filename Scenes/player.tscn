@@ -1,7 +1,7 @@
 [gd_scene load_steps=6 format=3 uid="uid://4pam0hesbas4"]
 
-[ext_resource type="Script" uid="uid://ctp00nwakxtgv" path="res://Scenes/player.gd" id="1_cvnsp"]
-[ext_resource type="Texture2D" uid="uid://bvxffpi0ecbj8" path="res://Sprites/urizen_onebit_tileset__v2d0.png" id="2_6t5aa"]
+[ext_resource type="Script" uid="uid://ctp00nwakxtgv" path="res://scripts/player.gd" id="1_cvnsp"]
+[ext_resource type="Texture2D" uid="uid://bvxffpi0ecbj8" path="res://sprites/urizen_onebit_tileset__v2d0.png" id="2_6t5aa"]
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_3dryh"]
 size = Vector2(7, 9)

@@ -13,6 +13,17 @@ class_name MazeLayer
 @export var source_id: int = 0
 @export var wall_atlas: Vector2i = Vector2i(52, 0)
 @export var floor_atlas: Vector2i = Vector2i(63, 0)
+@export var door_atlas: Vector2i = Vector2i(69, 0) # EXIT DOOR TILE
+
+# ---- Shaping knobs (optional features requested) ----
+@export var blob_chance_min: float = 0.03   # at low difficulty
+@export var blob_chance_max: float = 0.10   # at high difficulty
+@export var blob_radius_min: int = 1
+@export var blob_radius_max: int = 2
+
+@export var enable_thinning: bool = true
+@export var thinning_passes_min: int = 0
+@export var thinning_passes_max: int = 250  # scales with difficulty; also scaled by area
 
 # ---- State ----
 var level: int = 1
@@ -46,27 +57,40 @@ func generate() -> Dictionary:
 	_grid = PackedByteArray()
 	_grid.resize(w * h) # default walls (0)
 
-	# Doors on border, not corners (clear to player)
-	start_cell = Vector2i(0, 1)        # left edge
-	exit_cell  = Vector2i(w - 1, h - 2)# right edge
+	# Doors on border, not corners
+	var start_y: int = rng.randi_range(1, h - 2)
+	var exit_y: int = rng.randi_range(1, h - 2)
 
-	# Carve the guaranteed main path between the inside-adjacent cells
+	start_cell = Vector2i(0, start_y)
+	exit_cell  = Vector2i(w - 1, exit_y)
+
+	# Carve the guaranteed main path between inside-adjacent cells
 	var start_in: Vector2i = _step_inside(start_cell, w, h)
 	var exit_in: Vector2i = _step_inside(exit_cell, w, h)
 
 	# d=0: almost straight; d=1: curvier
 	var wiggle: float = lerpf(0.0, 0.55, d)
-	_carve_main_path_monotone(_grid, w, h, start_in, exit_in, wiggle, rng)
+	_carve_main_path_monotone(_grid, w, h, start_in, exit_in, wiggle, d, rng)
 
-	# Add dead ends later
-	var branch_density: float = clamp((d - 0.35) / 0.65, 0.0, 1.0)
-	if branch_density > 0.0:
-		var branch_attempts: int = int(lerpf(0.0, float(w * h) * 0.06, branch_density))
-		var max_branch_len: int = int(lerpf(2.0, 10.0, branch_density))
-		_add_dead_end_branches(_grid, w, h, branch_attempts, max_branch_len, rng)
+	# Add dead ends earlier (shaped from the start)
+	var branch_density: float = clamp((d - 0.05) / 0.95, 0.0, 1.0)
+	var area: float = float(w * h)
+	var branch_attempts: int = int(lerpf(area * 0.01, area * 0.06, branch_density))
+	var max_branch_len: int = int(lerpf(3.0, 12.0, branch_density))
+	var turn_chance: float = lerpf(0.15, 0.55, branch_density)
+
+	if branch_attempts > 0:
+		_add_dead_end_branches(_grid, w, h, branch_attempts, max_branch_len, turn_chance, rng)
 
 	# Border rule: ONLY the entrance/exit touch the outside
 	_enforce_two_border_doors(_grid, w, h, start_cell, exit_cell)
+
+	# Optional: thin out "fat" areas (prevents wide slabs / accidental wide halls)
+	if enable_thinning:
+		var passes: int = int(lerpf(float(thinning_passes_min), float(thinning_passes_max), d))
+		# scale passes with area a bit, so big maps thin more
+		passes = int(float(passes) * clamp(area / 625.0, 0.8, 2.5)) # 25*25=625 baseline
+		_thin_floors_preserve_path(_grid, w, h, rng, start_in, exit_in, passes)
 
 	_render_grid(_grid, w, h)
 
@@ -99,40 +123,42 @@ func is_floor(cell: Vector2i) -> bool:
 
 # ---------------- Guaranteed main path ----------------
 
-func _carve_main_path_monotone(grid: PackedByteArray, w: int, h: int, start: Vector2i, goal: Vector2i, wiggle: float, rng: RandomNumberGenerator) -> void:
+func _carve_main_path_monotone(grid: PackedByteArray, w: int, h: int, start: Vector2i, goal: Vector2i, wiggle: float, difficulty: float, rng: RandomNumberGenerator) -> void:
 	# Guarantees reach: every step reduces Manhattan distance.
 	# wiggle lets it choose between the two “good” directions more randomly, making curves.
+	# Optional shaping: occasional small blobs (tiny rooms/bulges) while carving.
 
 	var p: Vector2i = start
 	_set_floor(grid, p.x, p.y, w)
+
+	# blob chance scales with difficulty (more shape later)
+	var blob_chance: float = lerpf(blob_chance_min, blob_chance_max, difficulty)
 
 	while p != goal:
 		var dx: int = goal.x - p.x
 		var dy: int = goal.y - p.y
 
 		var options: Array[Vector2i] = []
-		if dx > 0: options.append(Vector2i(1, 0))
-		elif dx < 0: options.append(Vector2i(-1, 0))
-		if dy > 0: options.append(Vector2i(0, 1))
-		elif dy < 0: options.append(Vector2i(0, -1))
+		if dx > 0:
+			options.append(Vector2i(1, 0))
+		elif dx < 0:
+			options.append(Vector2i(-1, 0))
+		if dy > 0:
+			options.append(Vector2i(0, 1))
+		elif dy < 0:
+			options.append(Vector2i(0, -1))
 
-		# options will be 1 or 2 dirs that move closer
 		var step: Vector2i
 		if options.size() == 1:
 			step = options[0]
 		else:
-			# wiggle=0 -> prefer a consistent axis (more straight)
-			# wiggle=1 -> very random between axes (more curvy)
 			if rng.randf() < wiggle:
 				step = options[rng.randi_range(0, 1)]
 			else:
-				# bias toward horizontal first (gives “line then turn” feel early)
-				step = options[0]
+				step = options[0] # consistent axis bias
 
 		var next: Vector2i = p + step
-		# extra safety; should always be in-bounds if start/goal are interior
 		if not _in_bounds(next, w, h):
-			# fallback: pick the other option if possible
 			if options.size() == 2:
 				var alt: Vector2i = options[1] if step == options[0] else options[0]
 				next = p + alt
@@ -144,9 +170,14 @@ func _carve_main_path_monotone(grid: PackedByteArray, w: int, h: int, start: Vec
 		p = next
 		_set_floor(grid, p.x, p.y, w)
 
+		# Optional shaping: occasional tiny "rooms" on the main path
+		if rng.randf() < blob_chance:
+			var r: int = rng.randi_range(blob_radius_min, blob_radius_max)
+			_carve_blob(grid, w, h, p, r)
+
 # ---------------- Dead-end branches ----------------
 
-func _add_dead_end_branches(grid: PackedByteArray, w: int, h: int, attempts: int, max_len: int, rng: RandomNumberGenerator) -> void:
+func _add_dead_end_branches(grid: PackedByteArray, w: int, h: int, attempts: int, max_len: int, turn_chance: float, rng: RandomNumberGenerator) -> void:
 	var dirs: Array[Vector2i] = [Vector2i(1,0), Vector2i(-1,0), Vector2i(0,1), Vector2i(0,-1)]
 
 	var start_in: Vector2i = _step_inside(start_cell, w, h)
@@ -183,8 +214,20 @@ func _add_dead_end_branches(grid: PackedByteArray, w: int, h: int, attempts: int
 			_set_floor(grid, next.x, next.y, w)
 			p = next
 
-			if rng.randf() < 0.30:
+			if rng.randf() < turn_chance:
 				dir = _turn_dir(dir, rng)
+
+# ---------------- Optional shaping: blobs ----------------
+
+func _carve_blob(grid: PackedByteArray, w: int, h: int, center: Vector2i, radius: int) -> void:
+	# Diamond-shaped blob: cheap, grid-friendly, creates "shape" without making everything wide.
+	for y in range(center.y - radius, center.y + radius + 1):
+		for x in range(center.x - radius, center.x + radius + 1):
+			var p: Vector2i = Vector2i(x, y)
+			if not _in_bounds(p, w, h):
+				continue
+			if abs(x - center.x) + abs(y - center.y) <= radius:
+				_set_floor(grid, x, y, w)
 
 # ---------------- Border rule: only entrance/exit touch outside ----------------
 
@@ -208,9 +251,12 @@ func _enforce_two_border_doors(grid: PackedByteArray, w: int, h: int, entrance: 
 	_set_floor(grid, x_in.x, x_in.y, w)
 
 func _step_inside(p: Vector2i, w: int, h: int) -> Vector2i:
-	if p.x == 0: return Vector2i(1, p.y)
-	if p.x == w - 1: return Vector2i(w - 2, p.y)
-	if p.y == 0: return Vector2i(p.x, 1)
+	if p.x == 0:
+		return Vector2i(1, p.y)
+	if p.x == w - 1:
+		return Vector2i(w - 2, p.y)
+	if p.y == 0:
+		return Vector2i(p.x, 1)
 	return Vector2i(p.x, h - 2)
 
 func _set_wall(grid: PackedByteArray, x: int, y: int, w: int) -> void:
@@ -224,6 +270,9 @@ func _render_grid(grid: PackedByteArray, w: int, h: int) -> void:
 		for x in range(w):
 			var floor_here: bool = _is_floor(grid, x, y, w)
 			set_cell(Vector2i(x, y), source_id, floor_atlas if floor_here else wall_atlas)
+
+	# Draw the exit door tile on top of the exit location
+	set_cell(exit_cell, source_id, door_atlas)
 
 # ---------------- Helpers ----------------
 
@@ -248,9 +297,145 @@ func _turn_dir(dir: Vector2i, rng: RandomNumberGenerator) -> Vector2i:
 	return Vector2i(1, 0) if rng.randf() < 0.5 else Vector2i(-1, 0)
 
 func _random_floor_cell(grid: PackedByteArray, w: int, h: int, rng: RandomNumberGenerator) -> Vector2i:
-	for _i in range(100):
+	for _i in range(120):
 		var x: int = rng.randi_range(1, w - 2) # interior only
 		var y: int = rng.randi_range(1, h - 2)
 		if _is_floor(grid, x, y, w):
 			return Vector2i(x, y)
 	return Vector2i(-1, -1)
+
+# ---------------- Public helpers for Presence / editing ----------------
+
+func in_bounds(cell: Vector2i) -> bool:
+	return cell.x >= 0 and cell.y >= 0 and cell.x < _grid_w and cell.y < _grid_h
+
+func set_floor_cell(cell: Vector2i) -> void:
+	if not in_bounds(cell):
+		return
+	_grid[_idx(cell.x, cell.y, _grid_w)] = 1
+	set_cell(cell, source_id, floor_atlas)
+	set_cell(exit_cell, source_id, door_atlas)
+
+func set_wall_cell(cell: Vector2i) -> void:
+	if not in_bounds(cell):
+		return
+	if cell == start_cell or cell == exit_cell:
+		return
+	_grid[_idx(cell.x, cell.y, _grid_w)] = 0
+	set_cell(cell, source_id, wall_atlas)
+	set_cell(exit_cell, source_id, door_atlas)
+
+func toggle_cell(cell: Vector2i) -> void:
+	if not in_bounds(cell):
+		return
+	if cell == start_cell or cell == exit_cell:
+		return
+	var i: int = _idx(cell.x, cell.y, _grid_w)
+	if int(_grid[i]) == 1:
+		set_wall_cell(cell)
+	else:
+		set_floor_cell(cell)
+
+func has_path(from_cell: Vector2i, to_cell: Vector2i) -> bool:
+	return _grid_has_path(_grid, _grid_w, _grid_h, from_cell, to_cell)
+
+# ---------------- Optional thinning (prevents wide slabs/halls) ----------------
+
+func _degree_floor(grid: PackedByteArray, w: int, h: int, p: Vector2i) -> int:
+	var deg: int = 0
+	var dirs: Array[Vector2i] = [Vector2i(1,0), Vector2i(-1,0), Vector2i(0,1), Vector2i(0,-1)]
+	for d: Vector2i in dirs:
+		var n: Vector2i = p + d
+		if _in_bounds(n, w, h) and _is_floor(grid, n.x, n.y, w):
+			deg += 1
+	return deg
+
+func _thin_floors_preserve_path(grid: PackedByteArray, w: int, h: int, rng: RandomNumberGenerator, keep_from: Vector2i, keep_to: Vector2i, passes: int) -> void:
+	if passes <= 0:
+		return
+
+	for _p in range(passes):
+		var x: int = rng.randi_range(1, w - 2)
+		var y: int = rng.randi_range(1, h - 2)
+		var c: Vector2i = Vector2i(x, y)
+
+		if not _is_floor(grid, x, y, w):
+			continue
+		if c == keep_from or c == keep_to:
+			continue
+
+		# don't delete near doors (keeps start/end readable)
+		if c.distance_to(keep_from) <= 1 or c.distance_to(keep_to) <= 1:
+			continue
+
+		# only consider removing "fat" cells (degree >= 3 tends to be in blobs/slabs)
+		if _degree_floor(grid, w, h, c) < 3:
+			continue
+
+		# try removing
+		_set_wall(grid, x, y, w)
+
+		# must keep the guaranteed route connected
+		var ok: bool = _grid_has_path(grid, w, h, keep_from, keep_to)
+		if not ok:
+			# revert if it breaks connectivity
+			_set_floor(grid, x, y, w)
+
+# ---------------- Grid BFS used by both generation + runtime checks ----------------
+
+func _grid_has_path(grid: PackedByteArray, w: int, h: int, from_cell: Vector2i, to_cell: Vector2i) -> bool:
+	if not _in_bounds(from_cell, w, h) or not _in_bounds(to_cell, w, h):
+		return false
+	if not _is_floor(grid, from_cell.x, from_cell.y, w) or not _is_floor(grid, to_cell.x, to_cell.y, w):
+		return false
+
+	var visited: PackedByteArray = PackedByteArray()
+	visited.resize(w * h)
+
+	var q: Array[Vector2i] = []
+	q.append(from_cell)
+	visited[_idx(from_cell.x, from_cell.y, w)] = 1
+
+	var dirs: Array[Vector2i] = [
+		Vector2i(1, 0),
+		Vector2i(-1, 0),
+		Vector2i(0, 1),
+		Vector2i(0, -1)
+	]
+
+	while not q.is_empty():
+		var c: Vector2i = q.pop_front()
+		if c == to_cell:
+			return true
+
+		for d: Vector2i in dirs:
+			var n: Vector2i = c + d
+			if not _in_bounds(n, w, h):
+				continue
+
+			var ni: int = _idx(n.x, n.y, w)
+			if visited[ni] == 1:
+				continue
+
+			if int(grid[ni]) != 1:
+				continue
+
+			visited[ni] = 1
+			q.append(n)
+
+	return false
+
+func get_world_bounds() -> Rect2:
+	var cell_size: Vector2 = tile_set.tile_size
+
+	# Top-left corner of cell (0,0) in LOCAL space.
+	# Using 0,0 avoids tile-origin/center surprises from map_to_local().
+	var top_left_local: Vector2 = Vector2.ZERO
+
+	# Bottom-right corner (exclusive) in LOCAL space
+	var bottom_right_local: Vector2 = Vector2(_grid_w, _grid_h) * cell_size
+
+	var top_left_global: Vector2 = to_global(top_left_local)
+	var bottom_right_global: Vector2 = to_global(bottom_right_local)
+
+	return Rect2(top_left_global, bottom_right_global - top_left_global)

@@ -3,15 +3,15 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://bvxffpi0ecbj8"
-path="res://.godot/imported/urizen_onebit_tileset__v2d0.png-5bb0b89e06bbf6065164584ca2d434a7.ctex"
+path="res://.godot/imported/urizen_onebit_tileset__v2d0.png-181a3fca384c02eb482e64eb3aec4f32.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://Sprites/urizen_onebit_tileset__v2d0.png"
-dest_files=["res://.godot/imported/urizen_onebit_tileset__v2d0.png-5bb0b89e06bbf6065164584ca2d434a7.ctex"]
+source_file="res://sprites/urizen_onebit_tileset__v2d0.png"
+dest_files=["res://.godot/imported/urizen_onebit_tileset__v2d0.png-181a3fca384c02eb482e64eb3aec4f32.ctex"]
 
 [params]
 

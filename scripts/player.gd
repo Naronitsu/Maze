@@ -5,9 +5,11 @@ extends CharacterBody2D
 @export var maze_path: NodePath            # assign: TileMap/MazeLayer
 @export var fog_path: NodePath             # assign: FogOfWar
 @export var allow_hold_to_repeat: bool = false
+@export var presence_path: NodePath
 
 @onready var maze: MazeLayer = get_node(maze_path) as MazeLayer
 @onready var fog: FogOfWar = get_node(fog_path) as FogOfWar
+@onready var presence: Node = get_node(presence_path)
 
 var cell: Vector2i
 
@@ -78,6 +80,8 @@ func _try_step(dir: Vector2i) -> void:
 	_to = target_pos
 	_t = 0.0
 	_moving = true
+	
+	presence.on_player_step(cell)
 
 func reset_to_cell(new_cell: Vector2i) -> void:
 	cell = new_cell
