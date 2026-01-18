@@ -11,6 +11,9 @@ class_name FogOfWar
 @export var unseen_alpha: float = 1.0      # unseen veil
 @export var update_every_frame: bool = false
 
+# If true, the fog will not reveal (used for "close eyes" mechanics).
+var _suspended: bool = false
+
 var _maze: MazeLayer
 var _player: Node
 var _cm: CanvasModulate
@@ -90,6 +93,8 @@ func _process(_delta: float) -> void:
 		reveal_now()
 
 func reveal_now() -> void:
+	if _suspended:
+		return
 	if _maze == null or _player == null:
 		return
 	if _w <= 0 or _h <= 0:
@@ -126,6 +131,9 @@ func reveal_now() -> void:
 			_img.set_pixel(x, y, Color(0, 0, 0, 0.0))
 
 	_tex.update(_img)
+
+func set_suspended(v: bool) -> void:
+	_suspended = v
 
 func _idx(x: int, y: int) -> int:
 	return y * _w + x

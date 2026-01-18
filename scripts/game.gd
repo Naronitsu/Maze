@@ -13,6 +13,7 @@ var _transitioning: bool = false
 
 func _ready() -> void:
 	_start_new_level(maze.generate())
+	_clamp_camera_to_maze()
 	presence.setup(player,maze)
 
 
@@ -41,7 +42,8 @@ func _advance_and_restart() -> void:
 	_transitioning = false
 
 func _start_new_level(info: Dictionary) -> void:
-	var start: Vector2i = info["start"] as Vector2i
+	await show_level_intro()
+	var spawn: Vector2i = maze.get_spawn_cell()
 
 	# If your player script uses a TileMap reference, keep it synced
 	if "maze_path" in player:
@@ -49,12 +51,11 @@ func _start_new_level(info: Dictionary) -> void:
 
 	# Prefer calling player's reset method (cancels in-progress movement)
 	if player.has_method("reset_to_cell"):
-		player.reset_to_cell(start)
+		player.reset_to_cell(spawn)
 	else:
-		# fallback
-		player.global_position = maze.cell_to_global(start)
+		player.global_position = maze.cell_to_global(spawn)
 		if "cell" in player:
-			player.cell = start
+			player.cell = spawn
 	# Fog should match new maze size and reset per level
 	if fog and fog.has_method("rebuild_for_current_maze"):
 		fog.call_deferred("rebuild_for_current_maze")
@@ -126,6 +127,40 @@ func presence_blackout(duration: float = 0.45, fade: float = 0.08) -> void:
 	_blackout_running = false
 
 func _after_maze_generated() -> void:
+	var bounds: Rect2 = maze.get_world_bounds()
+
+	cam.limit_left   = int(bounds.position.x)
+	cam.limit_top    = int(bounds.position.y)
+	cam.limit_right  = int(bounds.position.x + bounds.size.x)
+	cam.limit_bottom = int(bounds.position.y + bounds.size.y)
+
+var _intro_running: bool = false
+
+func show_level_intro(msg: String = "there is a monster behind you, run", duration: float = 1.6) -> void:
+	if _intro_running:
+		return
+	_intro_running = true
+
+	var panel: CanvasItem = $UI/LevelIntro
+	var label: Label = $UI/LevelIntro/Text
+
+	label.text = msg
+	panel.visible = true
+
+	# Optional: freeze player input while intro is up
+	if has_method("set_player_input_enabled"):
+		call("set_player_input_enabled", false)
+
+	await get_tree().create_timer(duration).timeout
+
+	panel.visible = false
+
+	if has_method("set_player_input_enabled"):
+		call("set_player_input_enabled", true)
+
+	_intro_running = false
+	
+func _clamp_camera_to_maze() -> void:
 	var bounds: Rect2 = maze.get_world_bounds()
 
 	cam.limit_left   = int(bounds.position.x)

@@ -10,6 +10,13 @@ var calm_decay_per_sec: float = 6.0
 var spike_on_step: float = 0.8
 var spike_on_backtrack: float = 3.0
 
+# "Close eyes" tuning. When eyes are closed, step spikes are reduced and
+# attention can be forced down immediately.
+@export var eyes_closed_step_multiplier: float = 0.25 # 0..1
+@export var attention_drop_on_close: float = 25.0     # 0..100
+
+var _eyes_closed: bool = false
+
 var event_cooldown: float = 0.0
 var min_cooldown: float = 0.8
 var max_cooldown: float = 2.2
@@ -55,11 +62,12 @@ func on_player_step(cell: Vector2i) -> void:
 		_last_dir = cell - _last_cell
 	_last_cell = cell
 
-	attention = clamp(attention + spike_on_step, 0.0, 100.0)
+	var mult: float = eyes_closed_step_multiplier if _eyes_closed else 1.0
+	attention = clamp(attention + (spike_on_step * mult), 0.0, 100.0)
 
 	# Backtracking spike
 	if _last_cells.has(cell):
-		attention = clamp(attention + spike_on_backtrack, 0.0, 100.0)
+		attention = clamp(attention + (spike_on_backtrack * mult), 0.0, 100.0)
 
 	_last_cells.append(cell)
 	if _last_cells.size() > 30:
@@ -67,6 +75,12 @@ func on_player_step(cell: Vector2i) -> void:
 
 	if debug_enabled:
 		print("[Presence] step=", cell, " dir=", _last_dir, " attention=", attention)
+
+func set_eyes_closed(v: bool) -> void:
+	# Only apply the drop on the transition to closed.
+	if v and not _eyes_closed:
+		attention = max(attention - attention_drop_on_close, 0.0)
+	_eyes_closed = v
 
 # --------------------
 # MAIN LOOP
