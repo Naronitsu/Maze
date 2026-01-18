@@ -7174,6 +7174,7 @@ vision_radius_tiles = 1
 
 [node name="Presence" type="Node" parent="."]
 script = ExtResource("3_u5sy4")
+debug_enabled = false
 
 [node name="TileMap" type="TileMap" parent="."]
 tile_set = SubResource("TileSet_wowpa")

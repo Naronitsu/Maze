@@ -142,7 +142,6 @@ func _play_heartbeat() -> void:
 	if heartbeat_audio == null or heartbeat_audio.stream == null:
 		return
 	heartbeat_audio.stop()
-	print("HB play", heartbeat_audio, " stream=", heartbeat_audio.stream, " bus=", heartbeat_audio.bus)
 	heartbeat_audio.play()
 	
 	

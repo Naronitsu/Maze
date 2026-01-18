@@ -2,20 +2,25 @@ extends Node2D
 
 @export var max_levels_before_reset: int = 10
 
+# Door transition tuning
+@export var door_pause_time: float = 0.25
+@export var door_fade_time: float = 0.20
+@export var door_message_time: float = 1.2
+@export var door_message: String = "there is a monster behind you, run"
+
 @onready var maze: MazeLayer = $TileMap/MazeLayer
 @onready var player: CharacterBody2D = $Player
 @onready var presence: Node = $Presence
 @onready var cam: Camera2D = $Player/Camera
-
 @onready var fog := $FogOfWar
 
 var _transitioning: bool = false
+var _intro_running: bool = false
 
 func _ready() -> void:
 	_start_new_level(maze.generate())
-	_clamp_camera_to_maze()
-	presence.setup(player,maze)
-
+	_after_maze_generated()
+	presence.setup(player, maze)
 
 func _physics_process(_delta: float) -> void:
 	if _transitioning:
@@ -25,24 +30,42 @@ func _physics_process(_delta: float) -> void:
 	if not ("cell" in player):
 		return
 
+	# Exit only (entrance door does nothing)
 	if (player.cell as Vector2i) == maze.exit_cell:
 		_transitioning = true
-		call_deferred("_advance_and_restart")
+		call_deferred("_door_transition_and_advance")
 
-func _advance_and_restart() -> void:
+func _door_transition_and_advance() -> void:
+	# Freeze player in place (prevents extra input during transition)
+	if player != null and player.has_method("reset_to_cell") and ("cell" in player):
+		player.reset_to_cell(player.cell)
+
+	# Pause Presence events during transition
+	if presence != null:
+		presence.set_process(false)
+
+	# Small dramatic pause at the door
+	await get_tree().create_timer(door_pause_time).timeout
+
+	# Fade in message, hold, fade out
+	await _show_level_intro_fade(door_message, door_message_time, door_fade_time)
+
+	# Advance maze
 	var info: Dictionary
 	if maze.level >= max_levels_before_reset:
 		info = maze.advance_run()
 	else:
 		info = maze.advance_level()
 
-	_start_new_level(info)
+	await _start_new_level(info)
 
-	# allow future transitions after we’ve moved off the exit
+	# Resume Presence
+	if presence != null:
+		presence.set_process(true)
+
 	_transitioning = false
 
-func _start_new_level(info: Dictionary) -> void:
-	await show_level_intro()
+func _start_new_level(_info: Dictionary) -> void:
 	var spawn: Vector2i = maze.get_spawn_cell()
 
 	# If your player script uses a TileMap reference, keep it synced
@@ -56,22 +79,19 @@ func _start_new_level(info: Dictionary) -> void:
 		player.global_position = maze.cell_to_global(spawn)
 		if "cell" in player:
 			player.cell = spawn
+
 	# Fog should match new maze size and reset per level
 	if fog and fog.has_method("rebuild_for_current_maze"):
 		fog.call_deferred("rebuild_for_current_maze")
 	if fog and fog.has_method("reveal_now"):
 		fog.call_deferred("reveal_now")
-	
+
 	_after_maze_generated()
-	
+
 func play_presence_sound(pos: Vector2) -> void:
 	var a: AudioStreamPlayer2D = $PresenceAudio
 	a.global_position = pos
-
-	# tiny variation so it feels alive
 	a.pitch_scale = randf_range(0.92, 1.08)
-
-	# restart cleanly even if it was already playing
 	a.stop()
 	a.play()
 
@@ -88,21 +108,14 @@ func presence_flicker() -> void:
 	var cm: CanvasModulate = $CanvasModulate
 	var old: Color = cm.color
 
-	# Fade to near-black
-	var blackout: Color = Color(
-		old.r * 0.05,
-		old.g * 0.05,
-		old.b * 0.05,
-		1.0
-	)
+	var blackout: Color = Color(old.r * 0.05, old.g * 0.05, old.b * 0.05, 1.0)
 
 	cm.color = blackout
 	await get_tree().create_timer(0.45).timeout
 
-	# Come back abruptly (scarier than a smooth fade)
 	cm.color = old
 	_is_flickering = false
-	
+
 var _blackout_running: bool = false
 
 func presence_blackout(duration: float = 0.45, fade: float = 0.08) -> void:
@@ -129,14 +142,12 @@ func presence_blackout(duration: float = 0.45, fade: float = 0.08) -> void:
 func _after_maze_generated() -> void:
 	var bounds: Rect2 = maze.get_world_bounds()
 
-	cam.limit_left   = int(bounds.position.x)
-	cam.limit_top    = int(bounds.position.y)
-	cam.limit_right  = int(bounds.position.x + bounds.size.x)
-	cam.limit_bottom = int(bounds.position.y + bounds.size.y)
+	cam.limit_left   = int(floor(bounds.position.x))
+	cam.limit_top    = int(floor(bounds.position.y))
+	cam.limit_right  = int(ceil(bounds.position.x + bounds.size.x))
+	cam.limit_bottom = int(ceil(bounds.position.y + bounds.size.y))
 
-var _intro_running: bool = false
-
-func show_level_intro(msg: String = "there is a monster behind you, run", duration: float = 1.6) -> void:
+func _show_level_intro_fade(msg: String, hold_time: float, fade_time: float) -> void:
 	if _intro_running:
 		return
 	_intro_running = true
@@ -146,12 +157,24 @@ func show_level_intro(msg: String = "there is a monster behind you, run", durati
 
 	label.text = msg
 	panel.visible = true
+	panel.modulate.a = 0.0
 
 	# Optional: freeze player input while intro is up
 	if has_method("set_player_input_enabled"):
 		call("set_player_input_enabled", false)
 
-	await get_tree().create_timer(duration).timeout
+	# Fade in
+	var t := create_tween()
+	t.tween_property(panel, "modulate:a", 1.0, fade_time)
+	await t.finished
+
+	# Hold
+	await get_tree().create_timer(max(0.0, hold_time)).timeout
+
+	# Fade out
+	t = create_tween()
+	t.tween_property(panel, "modulate:a", 0.0, fade_time)
+	await t.finished
 
 	panel.visible = false
 
@@ -159,11 +182,3 @@ func show_level_intro(msg: String = "there is a monster behind you, run", durati
 		call("set_player_input_enabled", true)
 
 	_intro_running = false
-	
-func _clamp_camera_to_maze() -> void:
-	var bounds: Rect2 = maze.get_world_bounds()
-
-	cam.limit_left   = int(bounds.position.x)
-	cam.limit_top    = int(bounds.position.y)
-	cam.limit_right  = int(bounds.position.x + bounds.size.x)
-	cam.limit_bottom = int(bounds.position.y + bounds.size.y)
