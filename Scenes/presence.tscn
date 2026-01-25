@@ -1,0 +1,7 @@
+[gd_scene load_steps=2 format=3 uid="uid://b0e4c32qus1kq"]
+
+[ext_resource type="Script" uid="uid://c5njvpq248lqb" path="res://scripts/Presence.gd" id="1_8bdwb"]
+
+[node name="Presence" type="Node"]
+script = ExtResource("1_8bdwb")
+debug_enabled = false
