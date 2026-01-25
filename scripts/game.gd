@@ -15,7 +15,7 @@ extends Node2D
 @export var presence_min_history_steps: int = 8
 @export var presence_wait_history_max_seconds: float = 6.0
 
-@onready var maze: MazeLayer = $TileMap/MazeLayer
+@onready var maze: TileMapLayer = $TileMap/MazeLayer
 @onready var player: CharacterBody2D = $Player
 @onready var presence: PresenceRW = $PresenceRW
 @onready var controller: Node = $GameController
@@ -76,12 +76,14 @@ func _door_transition_and_advance() -> void:
 	await _level_intro_fade_in(door_message, door_fade_time)
 	await get_tree().create_timer(door_text_hold_time).timeout
 
-	var info: Dictionary
+	# Advance difficulty
 	if maze.level >= max_levels_before_reset:
-		info = maze.advance_run()
+		maze.advance_run()
 	else:
-		info = maze.advance_level()
+		maze.advance_level()
 
+	# ✅ ACTUALLY REGENERATE THE MAZE
+	var info: Dictionary = maze.generate()
 	_start_new_level(info)
 
 	await get_tree().process_frame
@@ -100,9 +102,7 @@ func _door_transition_and_advance() -> void:
 	)
 
 	_spawn_presence_behind_or_fallback()
-
 	_transitioning = false
-
 
 # -----------------------------
 # Presence spawn helpers
