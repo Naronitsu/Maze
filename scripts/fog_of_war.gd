@@ -14,7 +14,7 @@ class_name FogOfWar
 # If true, the fog will not reveal (used for "close eyes" mechanics).
 var _suspended: bool = false
 
-var _maze: MazeLayer
+var _maze: DungeonMazeLayer
 var _player: Node
 var _cm: CanvasModulate
 
@@ -32,7 +32,7 @@ var _origin_global: Vector2
 var _tile_px: Vector2
 
 func _ready() -> void:
-	_maze = get_node_or_null(maze_path) as MazeLayer
+	_maze = get_node_or_null(maze_path) as DungeonMazeLayer
 	_player = get_node_or_null(player_path)
 	_cm = get_node_or_null(canvas_modulate_path) as CanvasModulate
 

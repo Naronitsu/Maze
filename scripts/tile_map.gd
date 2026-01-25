@@ -1,6 +1,6 @@
 # MazeLayer.gd
 extends TileMapLayer
-class_name MazeLayer
+class_name DungeonMazeLayer
 
 # ---- Progression / tuning ----
 @export var base_width: int = 25
@@ -9,40 +9,26 @@ class_name MazeLayer
 @export var run_growth: float = 0.12
 @export var rng_seed: int = 0
 
+# Optional cap behavior for advance_run()
+@export var runs_per_level: int = 0 # 0 = never shows level progression, just increments run
+
 # ---- TileSet atlas info ----
 @export var source_id: int = 0
 
 # ---- FLOOR terrain (set in editor) ----
-# terrain_set_id = Terrain Set index that contains your "Floor" terrain
-# floor_terrain_id = terrain index inside that set
 @export var terrain_set_id: int = 0
 @export var floor_terrain_id: int = 0
 
 # ---- Single atlas tiles (NOT in any terrain) ----
-# Walls are a single atlas tile
 @export var wall_atlas: Vector2i = Vector2i(1, 0)
 
-# Door tile
-@export var door_atlas: Vector2i = Vector2i(3, 0)
+# Doors (NOT in terrain) - these MUST be non-colliding tiles
+@export var door_open_atlas: Vector2i = Vector2i(3, 7)
+@export var door_closed_atlas: Vector2i = Vector2i(4, 7)
 
-# ---- Shaping knobs ----
-@export var blob_chance_min: float = 0.03
-@export var blob_chance_max: float = 0.10
-@export var blob_radius_min: int = 1
-@export var blob_radius_max: int = 2
-
-# Main path shaping (prevents "highway" straight lines later)
-@export var main_path_waypoints_max: int = 3 # increases with difficulty (0..this)
-@export var main_path_side_step_max: float = 0.18 # chance of perpendicular step when aligned
-
-# Thinning: this used to erase junctions and make corridors.
-# Now it becomes a gentle "de-blobber" that gets WEAKER as difficulty rises.
-@export var enable_thinning: bool = true
-@export var thinning_passes_min: int = 0
-@export var thinning_passes_max: int = 250
-@export var thinning_area_scale_min: float = 0.6
-@export var thinning_area_scale_max: float = 1.2
-@export var thinning_hard_cap: int = 120
+# ---- Constants ----
+const DIR4: Array[Vector2i] = [Vector2i.LEFT, Vector2i.RIGHT, Vector2i.UP, Vector2i.DOWN]
+const INVALID: Vector2i = Vector2i(-999999, -999999)
 
 # ---- State ----
 var level: int = 1
@@ -53,19 +39,41 @@ var exit_cell: Vector2i = Vector2i.ZERO
 
 var _grid_w: int = 0
 var _grid_h: int = 0
+
+# 0 = wall, 1 = floor
 var _grid: PackedByteArray = PackedByteArray()
 
-# ---------------- Public API ----------------
+# 0 = not room, 1 = room tile (used to prevent overlaps + corridor thickening rules)
+var _room_mask: PackedByteArray = PackedByteArray()
+
+# Doors (visual overlay; doors do NOT change walkability)
+var _doors_open: Array[Vector2i] = []
+var _doors_closed: Array[Vector2i] = []
+
+
+# --------------------------------------------------------------------
+# Public API
+# --------------------------------------------------------------------
+
+func set_level_and_run(p_level: int, p_run: int) -> void:
+	level = max(1, p_level)
+	run = max(1, p_run)
+
+func build() -> void:
+	generate()
 
 func generate() -> Dictionary:
-	var rng := RandomNumberGenerator.new()
+	return generate_with_retries(12)
+
+func _generate_once() -> Dictionary:
+	var rng: RandomNumberGenerator = RandomNumberGenerator.new()
 	if rng_seed == 0:
 		rng.randomize()
 	else:
 		rng.seed = int(rng_seed + level * 1009 + run * 7919)
 
-	var raw :float= clamp((float(level - 1) * 0.06) + (float(run - 1) * run_growth), 0.0, 1.0)
-	var d := pow(raw, 0.65)
+	var raw: float = clamp((float(level - 1) * 0.06) + (float(run - 1) * run_growth), 0.0, 1.0)
+	var difficulty: float = pow(raw, 0.65)
 
 	var w: int = _odd(base_width + (level - 1) * size_growth_per_level + (run - 1) * 2)
 	var h: int = _odd(base_height + (level - 1) * size_growth_per_level + (run - 1) * 2)
@@ -73,361 +81,207 @@ func generate() -> Dictionary:
 	_grid_h = h
 
 	_grid = PackedByteArray()
-	_grid.resize(w * h) # default walls (0)
+	_grid.resize(w * h) # defaults to 0 (walls)
 
+	_room_mask = PackedByteArray()
+	_room_mask.resize(w * h) # defaults to 0
+
+	_doors_open.clear()
+	_doors_closed.clear()
+
+	# Entrance/Exit are always on the left/right border.
 	var start_y: int = rng.randi_range(1, h - 2)
 	var exit_y: int = rng.randi_range(1, h - 2)
+	if difficulty < 0.12:
+		exit_y = start_y
+
 	start_cell = Vector2i(0, start_y)
 	exit_cell = Vector2i(w - 1, exit_y)
 
 	var start_in: Vector2i = _step_inside(start_cell, w, h)
 	var exit_in: Vector2i = _step_inside(exit_cell, w, h)
 
-	# --- Main path ---
-	# Straight-ish at the start, but gets more "planned meander" as difficulty rises.
-	var wiggle: float = lerpf(0.0, 0.55, d)
+	_enforce_two_border_doors_and_floors(_grid, w, h, start_cell, exit_cell)
 
-	# Waypoints: the path must touch these, which prevents it from becoming a boring highway.
-	var waypoint_count: int = int(lerpf(0.0, float(main_path_waypoints_max), d))
-	var waypoints: Array[Vector2i] = []
-	for i in range(waypoint_count):
-		waypoints.append(Vector2i(
-			rng.randi_range(2, w - 3),
-			rng.randi_range(1, h - 2)
-		))
-	waypoints.sort_custom(func(a: Vector2i, b: Vector2i) -> bool: return a.x < b.x)
+	# --- Main corridor spine (rectilinear; width-1 enforced) ---
+	var spine: Array[Vector2i] = []
+	if difficulty < 0.12:
+		spine = _carve_corridor_path(_grid, w, h, start_in, exit_in, rng, false)
+	else:
+		var waypoint_count: int = roundi(lerpf(0.0, 4.0, difficulty))
+		var waypoints: Array[Vector2i] = []
+		for i: int in range(waypoint_count):
+			waypoints.append(Vector2i(rng.randi_range(2, w - 3), rng.randi_range(1, h - 2)))
+		waypoints.sort_custom(func(a: Vector2i, b: Vector2i) -> bool: return a.x < b.x)
 
-	var p0 := start_in
-	for wp in waypoints:
-		_carve_main_path_monotone(_grid, w, h, p0, wp, wiggle, d, rng)
-		p0 = wp
-	_carve_main_path_monotone(_grid, w, h, p0, exit_in, wiggle, d, rng)
+		var p: Vector2i = start_in
+		for wp: Vector2i in waypoints:
+			spine.append_array(_carve_corridor_path(_grid, w, h, p, wp, rng, true))
+			p = wp
+		spine.append_array(_carve_corridor_path(_grid, w, h, p, exit_in, rng, true))
 
-	# --- Branches (dead ends) ---
-	var branch_density: float = clamp((d - 0.05) / 0.95, 0.0, 1.0)
-	var area: float = float(w * h)
-	var branch_attempts: int = int(lerpf(area * 0.01, area * 0.06, branch_density))
-	var size_mult :float= clamp(pow(area / 625.0, 0.35), 1.0, 2.2)
-	branch_attempts = int(branch_attempts * size_mult)
+	_set_corridor_floor(start_in, w)
+	_set_corridor_floor(exit_in, w)
 
-	var max_branch_len: int = int(lerpf(3.0, 12.0, branch_density))
-	var turn_chance: float = lerpf(0.15, 0.55, branch_density)
+	# --- Rooms ---
+	var area: int = w * h
+	var rooms_target: int = roundi(lerpf(0.0, clamp(float(area) / 260.0, 2.0, 10.0), difficulty))
+	rooms_target = clamp(rooms_target, 0, 12)
 
-	if branch_attempts > 0:
-		_add_dead_end_branches(_grid, w, h, branch_attempts, max_branch_len, turn_chance, rng)
+	var carved_rooms: int = 0
+	var max_room_attempts: int = rooms_target * 18
 
-	_enforce_two_border_doors(_grid, w, h, start_cell, exit_cell)
+	for _i: int in range(max_room_attempts):
+		if carved_rooms >= rooms_target:
+			break
+		if spine.is_empty():
+			break
 
-	# --- Thinning (now: gentle cleanup, weaker later) ---
-	if enable_thinning:
-		# More thinning early, less thinning later (prevents "maze turns back into corridor")
-		var t := 1.0 - d
-		var passes: int = int(lerpf(float(thinning_passes_min), float(thinning_passes_max), t))
+		var anchor: Vector2i = spine[rng.randi_range(0, spine.size() - 1)]
 
-		# much gentler scaling with area
-		passes = int(float(passes) * clamp(area / 625.0, thinning_area_scale_min, thinning_area_scale_max))
+		var rw: int = rng.randi_range(5, clamp(roundi(lerpf(7.0, 11.0, difficulty)), 7, 13))
+		var rh: int = rng.randi_range(5, clamp(roundi(lerpf(7.0, 11.0, difficulty)), 7, 13))
+		rw = _odd(rw)
+		rh = _odd(rh)
 
-		# hard cap so big maps don't get over-thinned
-		passes = min(passes, thinning_hard_cap)
+		var offset: Vector2i = Vector2i(rng.randi_range(-rw, rw), rng.randi_range(-rh, rh))
+		var center: Vector2i = anchor + offset
 
-		_thin_floors_preserve_path(_grid, w, h, rng, start_in, exit_in, passes)
+		var half_rw: int = rw >> 1
+		var half_rh: int = rh >> 1
+		var top_left: Vector2i = Vector2i(center.x - half_rw, center.y - half_rh)
+		var rect: Rect2i = Rect2i(top_left, Vector2i(rw, rh))
 
-	_render_grid(_grid, w, h)
+		if not _rect_in_bounds(rect, w, h, 1):
+			continue
+		if _rect_touches_border(rect, w, h, 1):
+			continue
+		if _rect_overlaps_rooms(rect, w, 1):
+			continue
+
+		# Reject rooms that would swallow the corridor anchor (prevents failed door direction).
+		if rect.has_point(anchor):
+			continue
+
+		_carve_room_rect(rect, w)
+
+		var pick: Dictionary = _pick_room_edge_and_door_outside(anchor, rect)
+		var room_edge: Vector2i = pick["room_edge"]
+		var door_outside: Vector2i = pick["door_outside"]
+
+		if not _in_bounds(door_outside.x, door_outside.y, w, h):
+			_fill_rect_walls(rect, w)
+			continue
+		if _is_room(door_outside, w):
+			_fill_rect_walls(rect, w)
+			continue
+
+		# Carve corridor to outside doorway tile. Final tile may touch exactly the chosen room edge.
+		var path_to_door: Array[Vector2i] = _carve_corridor_path(_grid, w, h, anchor, door_outside, rng, true, room_edge)
+		if path_to_door.is_empty() or path_to_door[path_to_door.size() - 1] != door_outside:
+			_fill_rect_walls(rect, w)
+			continue
+
+		# IMPORTANT: do NOT place doors here. We'll auto-place doors by adjacency scan.
+		carved_rooms += 1
+
+	# --- Branch corridors / dead ends ---
+	var branch_density: float = clamp((difficulty - 0.10) / 0.90, 0.0, 1.0)
+	var branches_target: int = clamp(roundi(lerpf(0.0, clamp(float(area) / 150.0, 1.0, 14.0), branch_density)), 0, 18)
+
+	for _b: int in range(branches_target):
+		if spine.is_empty():
+			break
+
+		var start_branch: Vector2i = spine[rng.randi_range(0, spine.size() - 1)]
+		var dirs: Array[Vector2i] = DIR4.duplicate()
+		dirs.shuffle()
+
+		var dir: Vector2i = Vector2i.ZERO
+		for d0: Vector2i in dirs:
+			var n: Vector2i = start_branch + d0
+			if _in_bounds(n.x, n.y, w, h) and not _is_floor(_grid, n.x, n.y, w):
+				dir = d0
+				break
+		if dir == Vector2i.ZERO:
+			continue
+
+		var max_branch_len: int = clamp(roundi(lerpf(3.0, 10.0, branch_density)), 3, 12)
+		var branch_len: int = rng.randi_range(3, max_branch_len)
+
+		var cur: Vector2i = start_branch
+		var first: Vector2i = cur + dir
+		if not _can_carve_corridor_cell(first, dir, w, h, false, INVALID):
+			continue
+
+		for _j: int in range(branch_len):
+			var nxt: Vector2i = cur + dir
+			if not _in_bounds(nxt.x, nxt.y, w, h):
+				break
+			if not _can_carve_corridor_cell(nxt, dir, w, h, false, INVALID):
+				break
+			_set_corridor_floor(nxt, w)
+			cur = nxt
+
+	# Rebuild doors:
+	#  - keep border doors (entrance/exit)
+	#  - add open doors on corridor tiles adjacent to rooms
+	_rebuild_room_doors()
+
+	_render_grid()
 
 	return {
-		"start": start_cell,
-		"exit": exit_cell,
-		"spawn": get_spawn_cell(), # spawn inside, not on the border door
-		"width": w,
-		"height": h,
-		"difficulty": d,
-		"level": level,
-		"run": run
+		"w": w,
+		"h": h,
+		"start_cell": start_cell,
+		"exit_cell": exit_cell,
+		"doors_open": _doors_open,
+		"doors_closed": _doors_closed
 	}
 
-func advance_level() -> Dictionary:
-	level += 1
-	return generate()
 
-func advance_run() -> Dictionary:
-	run += 1
-	level = 1
-	return generate()
+# --------------------------------------------------------------------
+# Rendering
+# --------------------------------------------------------------------
 
-func cell_to_global(cell: Vector2i) -> Vector2:
-	return to_global(map_to_local(cell))
-
-func is_floor(cell: Vector2i) -> bool:
-	if cell.x < 0 or cell.y < 0 or cell.x >= _grid_w or cell.y >= _grid_h:
-		return false
-	return _grid[_idx(cell.x, cell.y, _grid_w)] == 1
-
-# Entrance should NOT trigger next level; only exit does.
-func is_exit_cell(cell: Vector2i) -> bool:
-	return cell == exit_cell
-
-func is_entrance_cell(cell: Vector2i) -> bool:
-	return cell == start_cell
-
-func get_spawn_cell() -> Vector2i:
-	return _step_inside(start_cell, _grid_w, _grid_h)
-
-# ---------------- Rendering (floor autotile) ----------------
-
-func _render_grid(grid: PackedByteArray, w: int, h: int) -> void:
+func _render_grid() -> void:
 	clear()
 
+	# Floors via terrain
 	var floor_cells: Array[Vector2i] = []
-	var wall_cells: Array[Vector2i] = []
-	for y in range(h):
-		for x in range(w):
-			var c := Vector2i(x, y)
-			if _is_floor(grid, x, y, w):
-				floor_cells.append(c)
-			else:
-				wall_cells.append(c)
+	for y: int in range(_grid_h):
+		for x: int in range(_grid_w):
+			if _is_floor(_grid, x, y, _grid_w):
+				floor_cells.append(Vector2i(x, y))
+	if not floor_cells.is_empty():
+		set_cells_terrain_connect(floor_cells, terrain_set_id, floor_terrain_id, true)
 
-	# 1) Autotile FLOOR (terrain)
-	_apply_floor_terrain(floor_cells)
+	# Walls via atlas
+	for y: int in range(_grid_h):
+		for x: int in range(_grid_w):
+			if not _is_floor(_grid, x, y, _grid_w):
+				set_cell(Vector2i(x, y), source_id, wall_atlas, 0)
 
-	# 2) Paint WALLS as a single atlas tile
-	for c in wall_cells:
-		set_cell(c, source_id, wall_atlas)
-
-	# 3) Doors last (doors are NOT in terrain)
 	_place_doors()
 
-# ---------------- Floor terrain application ----------------
-
-func _apply_floor_terrain(floor_cells: Array[Vector2i]) -> void:
-	if floor_cells.is_empty():
-		return
-
-	if has_method("set_cells_terrain_connect"):
-		set_cells_terrain_connect(floor_cells, terrain_set_id, floor_terrain_id)
-	else:
-		push_warning("TileMapLayer.set_cells_terrain_connect() not available. Floor autotiling cannot run.")
-
-	update_internals()
-
-func _apply_floor_terrain_local(center: Vector2i, radius: int = 2) -> void:
-	var cells: Array[Vector2i] = []
-	for y in range(center.y - radius, center.y + radius + 1):
-		for x in range(center.x - radius, center.x + radius + 1):
-			var c := Vector2i(x, y)
-			if not in_bounds(c):
-				continue
-			if c == start_cell or c == exit_cell:
-				continue
-			if _grid[_idx(c.x, c.y, _grid_w)] == 1:
-				cells.append(c)
-
-	_apply_floor_terrain(cells)
-
-# ---------------- Doors ----------------
-
 func _place_doors() -> void:
-	# Doors must be walkable in the grid
-	if in_bounds(start_cell):
-		_grid[_idx(start_cell.x, start_cell.y, _grid_w)] = 1
-	if in_bounds(exit_cell):
-		_grid[_idx(exit_cell.x, exit_cell.y, _grid_w)] = 1
+	for c: Vector2i in _doors_open:
+		if _in_bounds(c.x, c.y, _grid_w, _grid_h):
+			set_cell(c, source_id, door_open_atlas, 0)
+	for c: Vector2i in _doors_closed:
+		if _in_bounds(c.x, c.y, _grid_w, _grid_h):
+			set_cell(c, source_id, door_closed_atlas, 0)
 
-	# Overwrite visuals with door sprite (terrain adjacency remains correct)
-	set_cell(start_cell, source_id, door_atlas)
-	set_cell(exit_cell, source_id, door_atlas)
 
-# ---------------- Public helpers for runtime edits ----------------
-
-func in_bounds(cell: Vector2i) -> bool:
-	return cell.x >= 0 and cell.y >= 0 and cell.x < _grid_w and cell.y < _grid_h
-
-func set_wall_cell(cell: Vector2i) -> void:
-	if not in_bounds(cell):
-		return
-	if cell == start_cell or cell == exit_cell:
-		return
-
-	_grid[_idx(cell.x, cell.y, _grid_w)] = 0
-	_rebuild_patch(cell, 4)
-
-func set_floor_cell(cell: Vector2i) -> void:
-	if not in_bounds(cell):
-		return
-
-	_grid[_idx(cell.x, cell.y, _grid_w)] = 1
-	_rebuild_patch(cell, 4)
-
-func toggle_cell(cell: Vector2i) -> void:
-	if not in_bounds(cell):
-		return
-	if cell == start_cell or cell == exit_cell:
-		return
-	var i := _idx(cell.x, cell.y, _grid_w)
-	if int(_grid[i]) == 1:
-		set_wall_cell(cell)
-	else:
-		set_floor_cell(cell)
-
-func has_path(from_cell: Vector2i, to_cell: Vector2i) -> bool:
-	return _grid_has_path(_grid, _grid_w, _grid_h, from_cell, to_cell)
-
-# ---------------- Guaranteed main path ----------------
-
-func _carve_main_path_monotone(
-		grid: PackedByteArray,
-		w: int,
-		h: int,
-		start: Vector2i,
-		goal: Vector2i,
-		wiggle: float,
-		difficulty: float,
-		rng: RandomNumberGenerator
-	) -> void:
-	var p: Vector2i = start
-	_set_floor(grid, p.x, p.y, w)
-
-	var blob_chance: float = lerpf(blob_chance_min, blob_chance_max, difficulty)
-	var side_step_chance: float = lerpf(0.0, main_path_side_step_max, difficulty)
-
-	while p != goal:
-		var dx: int = goal.x - p.x
-		var dy: int = goal.y - p.y
-
-		var options: Array[Vector2i] = []
-
-		# "Monotone" options (always progress toward the goal)
-		if dx > 0: options.append(Vector2i(1, 0))
-		elif dx < 0: options.append(Vector2i(-1, 0))
-		if dy > 0: options.append(Vector2i(0, 1))
-		elif dy < 0: options.append(Vector2i(0, -1))
-
-		# When aligned on one axis, occasionally allow perpendicular drift.
-		# This prevents long straight highways without breaking guarantee too much.
-		if dy == 0 and rng.randf() < side_step_chance:
-			options.append(Vector2i(0, 1))
-			options.append(Vector2i(0, -1))
-		if dx == 0 and rng.randf() < side_step_chance:
-			options.append(Vector2i(1, 0))
-			options.append(Vector2i(-1, 0))
-
-		# Choose step: wiggle makes it less deterministic
-		var step: Vector2i = options[0]
-		if options.size() > 1:
-			if rng.randf() < wiggle:
-				step = options[rng.randi_range(0, options.size() - 1)]
-
-		var next := p + step
-
-		# If we wandered, keep it safe: refuse out-of-bounds
-		if not _in_bounds(next, w, h):
-			# fallback: try the first monotone option if available
-			var fallback_found := false
-			for opt in options:
-				var cand := p + opt
-				if _in_bounds(cand, w, h):
-					next = cand
-					fallback_found = true
-					break
-			if not fallback_found:
-				break
-
-		p = next
-		_set_floor(grid, p.x, p.y, w)
-
-		if rng.randf() < blob_chance:
-			var r: int = rng.randi_range(blob_radius_min, blob_radius_max)
-			_carve_blob(grid, w, h, p, r)
-
-# ---------------- Dead-end branches ----------------
-
-func _add_dead_end_branches(grid: PackedByteArray, w: int, h: int, attempts: int, max_len: int, turn_chance: float, rng: RandomNumberGenerator) -> void:
-	var dirs: Array[Vector2i] = [Vector2i(1,0), Vector2i(-1,0), Vector2i(0,1), Vector2i(0,-1)]
-
-	var start_in: Vector2i = _step_inside(start_cell, w, h)
-	var exit_in: Vector2i = _step_inside(exit_cell, w, h)
-
-	for _i in range(attempts):
-		var seed: Vector2i = _random_floor_cell(grid, w, h, rng)
-		if seed == Vector2i(-1, -1):
-			return
-
-		if seed == start_in or seed == exit_in:
-			continue
-
-		var wall_dirs: Array[Vector2i] = []
-		for d in dirs:
-			var n: Vector2i = seed + d
-			if _in_bounds(n, w, h) and not _is_floor(grid, n.x, n.y, w):
-				wall_dirs.append(d)
-		if wall_dirs.is_empty():
-			continue
-
-		var dir: Vector2i = wall_dirs[rng.randi_range(0, wall_dirs.size() - 1)]
-		var length: int = rng.randi_range(1, max_len)
-
-		var p: Vector2i = seed
-		for _k in range(length):
-			var next: Vector2i = p + dir
-			if not _in_bounds(next, w, h):
-				break
-			if _is_floor(grid, next.x, next.y, w):
-				break
-
-			_set_floor(grid, next.x, next.y, w)
-			p = next
-
-			if rng.randf() < turn_chance:
-				dir = _turn_dir(dir, rng)
-
-# ---------------- Optional shaping: blobs ----------------
-
-func _carve_blob(grid: PackedByteArray, w: int, h: int, center: Vector2i, radius: int) -> void:
-	for y in range(center.y - radius, center.y + radius + 1):
-		for x in range(center.x - radius, center.x + radius + 1):
-			var p := Vector2i(x, y)
-			if not _in_bounds(p, w, h):
-				continue
-			if abs(x - center.x) + abs(y - center.y) <= radius:
-				_set_floor(grid, x, y, w)
-
-# ---------------- Border rule: only entrance/exit touch outside ----------------
-
-func _enforce_two_border_doors(grid: PackedByteArray, w: int, h: int, entrance: Vector2i, exit: Vector2i) -> void:
-	for x in range(w):
-		_set_wall(grid, x, 0, w)
-		_set_wall(grid, x, h - 1, w)
-	for y in range(h):
-		_set_wall(grid, 0, y, w)
-		_set_wall(grid, w - 1, y, w)
-
-	_set_floor(grid, entrance.x, entrance.y, w)
-	_set_floor(grid, exit.x, exit.y, w)
-
-	var e_in: Vector2i = _step_inside(entrance, w, h)
-	var x_in: Vector2i = _step_inside(exit, w, h)
-	_set_floor(grid, e_in.x, e_in.y, w)
-	_set_floor(grid, x_in.x, x_in.y, w)
-
-func _step_inside(p: Vector2i, w: int, h: int) -> Vector2i:
-	if p.x == 0: return Vector2i(1, p.y)
-	if p.x == w - 1: return Vector2i(w - 2, p.y)
-	if p.y == 0: return Vector2i(p.x, 1)
-	return Vector2i(p.x, h - 2)
-
-func _set_wall(grid: PackedByteArray, x: int, y: int, w: int) -> void:
-	grid[_idx(x, y, w)] = 0
-
-# ---------------- Helpers ----------------
-
-func _odd(n: int) -> int:
-	return n if (n % 2) == 1 else n + 1
+# --------------------------------------------------------------------
+# Grid helpers
+# --------------------------------------------------------------------
 
 func _idx(x: int, y: int, w: int) -> int:
 	return y * w + x
 
-func _in_bounds(p: Vector2i, w: int, h: int) -> bool:
-	return p.x >= 0 and p.y >= 0 and p.x < w and p.y < h
+func _in_bounds(x: int, y: int, w: int, h: int) -> bool:
+	return x >= 0 and x < w and y >= 0 and y < h
 
 func _is_floor(grid: PackedByteArray, x: int, y: int, w: int) -> bool:
 	return grid[_idx(x, y, w)] == 1
@@ -435,178 +289,389 @@ func _is_floor(grid: PackedByteArray, x: int, y: int, w: int) -> bool:
 func _set_floor(grid: PackedByteArray, x: int, y: int, w: int) -> void:
 	grid[_idx(x, y, w)] = 1
 
-func _turn_dir(dir: Vector2i, rng: RandomNumberGenerator) -> Vector2i:
-	if dir == Vector2i(1,0) or dir == Vector2i(-1,0):
-		return Vector2i(0, 1) if rng.randf() < 0.5 else Vector2i(0, -1)
-	return Vector2i(1, 0) if rng.randf() < 0.5 else Vector2i(-1, 0)
+func _is_room(c: Vector2i, w: int) -> bool:
+	return _room_mask[_idx(c.x, c.y, w)] == 1
 
-func _random_floor_cell(grid: PackedByteArray, w: int, h: int, rng: RandomNumberGenerator) -> Vector2i:
-	for _i in range(120):
-		var x: int = rng.randi_range(1, w - 2)
-		var y: int = rng.randi_range(1, h - 2)
-		if _is_floor(grid, x, y, w):
-			return Vector2i(x, y)
-	return Vector2i(-1, -1)
+func _set_room(c: Vector2i, w: int) -> void:
+	_room_mask[_idx(c.x, c.y, w)] = 1
 
-# ---------------- Grid BFS ----------------
+func _is_corridor_floor(c: Vector2i, w: int) -> bool:
+	return _grid[_idx(c.x, c.y, w)] == 1 and _room_mask[_idx(c.x, c.y, w)] == 0
 
-func _grid_has_path(grid: PackedByteArray, w: int, h: int, from_cell: Vector2i, to_cell: Vector2i) -> bool:
-	if not _in_bounds(from_cell, w, h) or not _in_bounds(to_cell, w, h):
+func _set_corridor_floor(c: Vector2i, w: int) -> void:
+	_grid[_idx(c.x, c.y, w)] = 1
+	_room_mask[_idx(c.x, c.y, w)] = 0
+
+
+# --------------------------------------------------------------------
+# Geometry helpers
+# --------------------------------------------------------------------
+
+func _odd(v: int) -> int:
+	return v | 1
+
+func _rect_in_bounds(rect: Rect2i, w: int, h: int, pad: int) -> bool:
+	return rect.position.x >= pad and rect.position.y >= pad and rect.end.x <= (w - pad) and rect.end.y <= (h - pad)
+
+func _rect_touches_border(rect: Rect2i, w: int, h: int, pad: int) -> bool:
+	return rect.position.x <= pad or rect.position.y <= pad or rect.end.x >= (w - pad) or rect.end.y >= (h - pad)
+
+func _rect_overlaps_rooms(rect: Rect2i, w: int, buffer: int) -> bool:
+	var expanded: Rect2i = rect.grow(buffer)
+	for y: int in range(expanded.position.y, expanded.end.y):
+		for x: int in range(expanded.position.x, expanded.end.x):
+			if _in_bounds(x, y, _grid_w, _grid_h) and _room_mask[_idx(x, y, w)] == 1:
+				return true
+	return false
+
+func _fill_rect_walls(rect: Rect2i, w: int) -> void:
+	for y: int in range(rect.position.y, rect.end.y):
+		for x: int in range(rect.position.x, rect.end.x):
+			if _in_bounds(x, y, _grid_w, _grid_h):
+				_grid[_idx(x, y, w)] = 0
+				_room_mask[_idx(x, y, w)] = 0
+
+func _carve_room_rect(rect: Rect2i, w: int) -> void:
+	for y: int in range(rect.position.y, rect.end.y):
+		for x: int in range(rect.position.x, rect.end.x):
+			_set_floor(_grid, x, y, w)
+			_set_room(Vector2i(x, y), w)
+
+func _step_inside(border_cell: Vector2i, w: int, h: int) -> Vector2i:
+	if border_cell.x == 0:
+		return Vector2i(1, border_cell.y)
+	if border_cell.x == w - 1:
+		return Vector2i(w - 2, border_cell.y)
+	if border_cell.y == 0:
+		return Vector2i(border_cell.x, 1)
+	return Vector2i(border_cell.x, h - 2)
+
+
+# --------------------------------------------------------------------
+# Border doors + floors
+# --------------------------------------------------------------------
+
+func _add_open_door(cell: Vector2i) -> void:
+	if not _doors_open.has(cell):
+		_doors_open.append(cell)
+
+func _enforce_two_border_doors_and_floors(grid: PackedByteArray, w: int, h: int, start: Vector2i, exit: Vector2i) -> void:
+	var s_in := _step_inside(start, w, h)
+	var e_in := _step_inside(exit, w, h)
+
+	# Make both border and inside tiles walkable.
+	_set_floor(grid, start.x, start.y, w)
+	_set_floor(grid, exit.x, exit.y, w)
+	_set_floor(grid, s_in.x, s_in.y, w)
+	_set_floor(grid, e_in.x, e_in.y, w)
+
+	# Keep your existing progression logic: doors on the border cells.
+	_add_open_door(start)
+	_add_open_door(exit)
+
+
+# --------------------------------------------------------------------
+# Room doorway selection
+# --------------------------------------------------------------------
+
+func _pick_room_edge_and_door_outside(anchor: Vector2i, rect: Rect2i) -> Dictionary:
+	var best_edge: Vector2i = rect.position
+	var best_dist: int = 1 << 30
+
+	for x: int in range(rect.position.x, rect.end.x):
+		var t: Vector2i = Vector2i(x, rect.position.y)
+		var b: Vector2i = Vector2i(x, rect.end.y - 1)
+		var dt: int = abs(anchor.x - t.x) + abs(anchor.y - t.y)
+		var db: int = abs(anchor.x - b.x) + abs(anchor.y - b.y)
+		if dt < best_dist:
+			best_dist = dt
+			best_edge = t
+		if db < best_dist:
+			best_dist = db
+			best_edge = b
+
+	for y: int in range(rect.position.y, rect.end.y):
+		var l: Vector2i = Vector2i(rect.position.x, y)
+		var r: Vector2i = Vector2i(rect.end.x - 1, y)
+		var dl: int = abs(anchor.x - l.x) + abs(anchor.y - l.y)
+		var dr: int = abs(anchor.x - r.x) + abs(anchor.y - r.y)
+		if dl < best_dist:
+			best_dist = dl
+			best_edge = l
+		if dr < best_dist:
+			best_dist = dr
+			best_edge = r
+
+	var out_dir: Vector2i = _cardinal_dir_towards(best_edge, anchor)
+	var door_outside: Vector2i = best_edge + out_dir
+
+	return {"room_edge": best_edge, "door_outside": door_outside}
+
+func _cardinal_dir_towards(from_cell: Vector2i, to_cell: Vector2i) -> Vector2i:
+	var dx: int = to_cell.x - from_cell.x
+	var dy: int = to_cell.y - from_cell.y
+	if abs(dx) > abs(dy):
+		return Vector2i(signi(dx), 0)
+	return Vector2i(0, signi(dy))
+
+
+# --------------------------------------------------------------------
+# Corridor carving
+# --------------------------------------------------------------------
+
+func _carve_corridor_path(
+	grid: PackedByteArray,
+	w: int,
+	h: int,
+	a: Vector2i,
+	b: Vector2i,
+	rng: RandomNumberGenerator,
+	allow_bend: bool,
+	required_room_neighbor: Vector2i = INVALID
+) -> Array[Vector2i]:
+
+	var carved: Array[Vector2i] = []
+	if a == b:
+		return carved
+
+	var horiz_first: bool = true
+	if allow_bend:
+		horiz_first = rng.randi() % 2 == 0
+
+	var mid: Vector2i = (Vector2i(b.x, a.y) if horiz_first else Vector2i(a.x, b.y))
+
+	carved.append_array(_carve_line_corridor(grid, w, h, a, mid))
+	carved.append_array(_carve_line_corridor(grid, w, h, mid, b, required_room_neighbor))
+	return carved
+
+func _carve_line_corridor(
+	grid: PackedByteArray,
+	w: int,
+	h: int,
+	a: Vector2i,
+	b: Vector2i,
+	required_room_neighbor: Vector2i = INVALID
+) -> Array[Vector2i]:
+
+	var carved: Array[Vector2i] = []
+	if a.x != b.x and a.y != b.y:
+		return carved
+
+	var dx: int = signi(b.x - a.x)
+	var dy: int = signi(b.y - a.y)
+	var dir: Vector2i = Vector2i(dx, dy)
+	var p: Vector2i = a
+
+	while p != b:
+		var nxt: Vector2i = Vector2i(p.x + dx, p.y + dy)
+		if not _in_bounds(nxt.x, nxt.y, w, h):
+			break
+
+		# Allow routing over existing corridor floor tiles.
+		if _is_corridor_floor(nxt, w):
+			carved.append(nxt)
+			p = nxt
+			continue
+
+		var is_final: bool = (nxt == b)
+		var allow_room_touch: bool = is_final and (required_room_neighbor != INVALID)
+
+		if not _can_carve_corridor_cell(nxt, dir, w, h, allow_room_touch, required_room_neighbor):
+			break
+
+		_set_corridor_floor(nxt, w)
+		carved.append(nxt)
+		p = nxt
+
+	return carved
+
+func _can_carve_corridor_cell(
+	c: Vector2i,
+	dir: Vector2i,
+	w: int,
+	h: int,
+	allow_room_touch: bool,
+	required_room_neighbor: Vector2i
+) -> bool:
+
+	if not _in_bounds(c.x, c.y, w, h):
 		return false
-	if not _is_floor(grid, from_cell.x, from_cell.y, w) or not _is_floor(grid, to_cell.x, to_cell.y, w):
+	if _is_room(c, w):
+		return false
+	if _is_corridor_floor(c, w):
+		return false
+
+	var side_dirs: Array[Vector2i] = []
+
+	if dir.x != 0:
+		side_dirs.append(Vector2i.UP)
+		side_dirs.append(Vector2i.DOWN)
+	else:
+		side_dirs.append(Vector2i.LEFT)
+		side_dirs.append(Vector2i.RIGHT)
+
+	# Prevent 2-wide corridors
+	for sd: Vector2i in side_dirs:
+		var n: Vector2i = c + sd
+		if _in_bounds(n.x, n.y, w, h) and _is_corridor_floor(n, w):
+			return false
+
+	# Prevent corridors hugging room walls, unless final doorway tile
+	for sd: Vector2i in side_dirs:
+		var n2: Vector2i = c + sd
+		if not _in_bounds(n2.x, n2.y, w, h):
+			continue
+		if _is_room(n2, w) and not allow_room_touch:
+			return false
+
+	# If final tile is allowed to touch room: exactly 1 room neighbor, must be required_room_neighbor
+	if allow_room_touch:
+		var room_neighbors: int = 0
+		var matches_required: bool = false
+		for d: Vector2i in DIR4:
+			var n3: Vector2i = c + d
+			if _in_bounds(n3.x, n3.y, w, h) and _is_room(n3, w):
+				room_neighbors += 1
+				if n3 == required_room_neighbor:
+					matches_required = true
+		if room_neighbors != 1:
+			return false
+		if not matches_required:
+			return false
+
+	return true
+
+
+# --------------------------------------------------------------------
+# Door rebuild: corridor-adjacent-to-room => door on corridor tile
+# --------------------------------------------------------------------
+
+func _rebuild_room_doors() -> void:
+	# Keep only border doors already added (entrance/exit).
+	var keep: Array[Vector2i] = []
+	for d in _doors_open:
+		if d.x == 0 or d.x == _grid_w - 1 or d.y == 0 or d.y == _grid_h - 1:
+			keep.append(d)
+	_doors_open = keep
+
+	# Add an open door on every corridor tile that touches any room tile.
+	for y in range(_grid_h):
+		for x in range(_grid_w):
+			var c := Vector2i(x, y)
+			if not _is_corridor_floor(c, _grid_w):
+				continue
+
+			for d in DIR4:
+				var n := c + d
+				if _in_bounds(n.x, n.y, _grid_w, _grid_h) and _is_room(n, _grid_w):
+					_add_open_door(c)
+					break
+
+
+# --------------------------------------------------------------------
+# Compatibility helpers for your existing game/player scripts
+# --------------------------------------------------------------------
+func get_world_bounds() -> Rect2:
+	# Bounds of the generated grid in WORLD coordinates, aligned to tile edges.
+	# Works by taking the world-space center of (0,0) and (w-1,h-1),
+	# then expanding by half a cell in each direction.
+
+	if _grid_w <= 0 or _grid_h <= 0:
+		return Rect2()
+
+	var tl_cell := Vector2i(0, 0)
+	var br_cell := Vector2i(_grid_w - 1, _grid_h - 1)
+
+	var tl_center := to_global(map_to_local(tl_cell))
+	var br_center := to_global(map_to_local(br_cell))
+
+	# Cell size in local space; use TileMapLayer's tile_set tile size if available.
+	var ts := tile_set
+	var cell_size := Vector2(12, 12)
+	if ts != null:
+		cell_size = Vector2(ts.tile_size)
+
+	# Expand from centers to edges
+	var min_x :float= min(tl_center.x, br_center.x) - cell_size.x * 0.5
+	var min_y :float= min(tl_center.y, br_center.y) - cell_size.y * 0.5
+	var max_x :float= max(tl_center.x, br_center.x) + cell_size.x * 0.5
+	var max_y :float= max(tl_center.y, br_center.y) + cell_size.y * 0.5
+
+	# Include the full width/height across all tiles
+	max_x += cell_size.x * float(_grid_w - 1) * 0.0 # (kept explicit; centers already account for br_cell)
+	max_y += cell_size.y * float(_grid_h - 1) * 0.0
+
+	return Rect2(Vector2(min_x, min_y), Vector2(max_x - min_x, max_y - min_y))
+
+func get_spawn_cell() -> Vector2i:
+	# Your game can spawn just inside the entrance...
+	return _step_inside(start_cell, _grid_w, _grid_h)
+
+func get_exit_cell() -> Vector2i:
+	# ...but progression logic can still use the border exit_cell if it wants.
+	return _step_inside(exit_cell, _grid_w, _grid_h)
+
+func is_floor(cell: Vector2i) -> bool:
+	if _grid_w <= 0 or _grid_h <= 0:
+		return false
+	if not _in_bounds(cell.x, cell.y, _grid_w, _grid_h):
+		return false
+	return _grid[_idx(cell.x, cell.y, _grid_w)] == 1
+
+func is_wall(cell: Vector2i) -> bool:
+	return not is_floor(cell)
+
+func advance_run() -> Dictionary:
+	run += 1
+	if runs_per_level > 0 and run > runs_per_level:
+		run = 1
+		level += 1
+	return generate()
+
+func generate_with_retries(max_attempts: int = 12) -> Dictionary:
+	for i in range(max_attempts):
+		var data := _generate_once()
+		if _has_path_from_start_to_exit():
+			_render_grid()
+			return data
+	# last attempt (shows something rather than nothing)
+	_render_grid()
+	return {
+		"w": _grid_w,
+		"h": _grid_h,
+		"start_cell": start_cell,
+		"exit_cell": exit_cell,
+		"doors_open": _doors_open,
+		"doors_closed": _doors_closed
+	}
+	
+func _has_path_from_start_to_exit() -> bool:
+	var s := _step_inside(start_cell, _grid_w, _grid_h)
+	var e := _step_inside(exit_cell, _grid_w, _grid_h)
+
+	if not is_floor(s) or not is_floor(e):
 		return false
 
 	var visited := PackedByteArray()
-	visited.resize(w * h)
+	visited.resize(_grid_w * _grid_h)
 
-	var q: Array[Vector2i] = []
-	q.append(from_cell)
-	visited[_idx(from_cell.x, from_cell.y, w)] = 1
-
-	var dirs: Array[Vector2i] = [Vector2i(1,0), Vector2i(-1,0), Vector2i(0,1), Vector2i(0,-1)]
+	var q: Array[Vector2i] = [s]
+	visited[_idx(s.x, s.y, _grid_w)] = 1
 
 	while not q.is_empty():
-		var c: Vector2i = q.pop_front()
-		if c == to_cell:
+		var c : Vector2i = q.pop_front()
+		if c == e:
 			return true
-
-		for d in dirs:
-			var n: Vector2i = c + d
-			if not _in_bounds(n, w, h):
+		for d in DIR4:
+			var n := c + d
+			if not _in_bounds(n.x, n.y, _grid_w, _grid_h):
 				continue
-			var ni: int = _idx(n.x, n.y, w)
-			if visited[ni] == 1:
+			var ii := _idx(n.x, n.y, _grid_w)
+			if visited[ii] == 1:
 				continue
-			if int(grid[ni]) != 1:
+			if _grid[ii] != 1:
 				continue
-			visited[ni] = 1
+			visited[ii] = 1
 			q.append(n)
 
 	return false
-
-# ---------------- Optional thinning ----------------
-
-func _degree_floor(grid: PackedByteArray, w: int, h: int, p: Vector2i) -> int:
-	var deg: int = 0
-	var dirs: Array[Vector2i] = [Vector2i(1,0), Vector2i(-1,0), Vector2i(0,1), Vector2i(0,-1)]
-	for d: Vector2i in dirs:
-		var n: Vector2i = p + d
-		if _in_bounds(n, w, h) and _is_floor(grid, n.x, n.y, w):
-			deg += 1
-	return deg
-
-func _thin_floors_preserve_path(
-		grid: PackedByteArray,
-		w: int,
-		h: int,
-		rng: RandomNumberGenerator,
-		keep_from: Vector2i,
-		keep_to: Vector2i,
-		passes: int
-	) -> void:
-	if passes <= 0:
-		return
-
-	for _p in range(passes):
-		var x: int = rng.randi_range(1, w - 2)
-		var y: int = rng.randi_range(1, h - 2)
-		var c: Vector2i = Vector2i(x, y)
-
-		if not _is_floor(grid, x, y, w):
-			continue
-		if c == keep_from or c == keep_to:
-			continue
-		if c.distance_to(keep_from) <= 1 or c.distance_to(keep_to) <= 1:
-			continue
-
-		# IMPORTANT CHANGE:
-		# Only remove "degree 4" cells (open blobs), not junctions (degree 3),
-		# otherwise the maze collapses into corridors.
-		var deg := _degree_floor(grid, w, h, c)
-		if deg < 4:
-			continue
-
-		_set_wall(grid, x, y, w)
-
-		var ok: bool = _grid_has_path(grid, w, h, keep_from, keep_to)
-		if not ok:
-			_set_floor(grid, x, y, w)
-
-func get_world_bounds() -> Rect2:
-	# Tile size in pixels
-	var ts: Vector2 = tile_set.tile_size
-
-	# In TileMapLayer, map_to_local(Vector2i(0,0)) is typically the CENTER of cell (0,0)
-	# So the top-left corner of the grid is center - half tile.
-	var origin_center: Vector2 = map_to_local(Vector2i(0, 0))
-	var top_left_local: Vector2 = origin_center - ts * 0.5
-
-	var size_local: Vector2 = Vector2(_grid_w, _grid_h) * ts
-
-	var top_left_global: Vector2 = to_global(top_left_local)
-	return Rect2(top_left_global, size_local)
-
-func _refresh_after_edit(center: Vector2i) -> void:
-	# Recompute floor terrain in a local area and redraw walls in that same area
-	_apply_floor_terrain_local(center, 2)
-	_redraw_walls_local(center, 2)
-	_place_doors()
-	update_internals()
-
-func _redraw_walls_local(center: Vector2i, radius: int = 2) -> void:
-	for y in range(center.y - radius, center.y + radius + 1):
-		for x in range(center.x - radius, center.x + radius + 1):
-			var c := Vector2i(x, y)
-			if not in_bounds(c):
-				continue
-			if c == start_cell or c == exit_cell:
-				continue
-			var i := _idx(c.x, c.y, _grid_w)
-			if _grid[i] == 0:
-				set_cell(c, source_id, wall_atlas)
-
-func _rebuild_patch(center: Vector2i, radius: int = 4) -> void:
-	# 1) wipe all cells in patch so old terrain info can't linger
-	for y in range(center.y - radius, center.y + radius + 1):
-		for x in range(center.x - radius, center.x + radius + 1):
-			var c := Vector2i(x, y)
-			if not in_bounds(c):
-				continue
-			erase_cell(c)
-
-	# 2) repaint walls (atlas) and collect floors for terrain
-	var floor_cells: Array[Vector2i] = []
-	for y in range(center.y - radius, center.y + radius + 1):
-		for x in range(center.x - radius, center.x + radius + 1):
-			var c := Vector2i(x, y)
-			if not in_bounds(c):
-				continue
-			if c == start_cell or c == exit_cell:
-				continue
-
-			var i := _idx(c.x, c.y, _grid_w)
-			if _grid[i] == 0:
-				set_cell(c, source_id, wall_atlas)
-			else:
-				floor_cells.append(c)
-
-	# 3) apply floor terrain over floors in this patch
-	if not floor_cells.is_empty() and has_method("set_cells_terrain_connect"):
-		set_cells_terrain_connect(floor_cells, terrain_set_id, floor_terrain_id)
-
-	# 4) doors on top
-	_place_doors()
-	update_internals()
-
-# -----------------------------------------------------------------------------
-# Public read-only accessors (keeps other scripts from reaching into internals)
-# -----------------------------------------------------------------------------
-
-func get_grid_size() -> Vector2i:
-	return Vector2i(_grid_w, _grid_h)
-
-func get_grid_width() -> int:
-	return _grid_w
-
-func get_grid_height() -> int:
-	return _grid_h

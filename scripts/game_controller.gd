@@ -14,7 +14,7 @@ class_name GameController
 
 @export var history_max: int = 250
 
-@onready var maze_layer: MazeLayer = get_node_or_null(maze_layer_path) as MazeLayer
+@onready var maze_layer: TileMapLayer = $"../TileMap/MazeLayer"
 
 # --- State ---
 var trail: Dictionary = {}               # Vector2i -> float
@@ -34,7 +34,7 @@ func reset_for_new_level() -> void:
 
 func _refresh_refs() -> void:
 	if maze_layer == null and maze_layer_path != NodePath():
-		maze_layer = get_node_or_null(maze_layer_path) as MazeLayer
+		maze_layer = get_node_or_null(maze_layer_path) as DungeonMazeLayer
 
 # --- conversions ---
 func cell_to_world_center(c: Vector2i) -> Vector2:
