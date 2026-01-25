@@ -5,12 +5,20 @@ extends Node2D
 # Door transition tuning
 @export var door_pause_time: float = 0.25
 @export var door_fade_time: float = 0.20
+@export var door_text_hold_time: float = 0.8
 @export var door_message_time: float = 1.2
 @export var door_message: String = "there is a monster behind you, run"
 
+# Presence pacing / spawning
+@export var presence_head_start_time: float = 2.5
+@export var presence_min_spawn_dist_cells: int = 12
+@export var presence_min_history_steps: int = 8
+@export var presence_wait_history_max_seconds: float = 6.0
+
 @onready var maze: MazeLayer = $TileMap/MazeLayer
 @onready var player: CharacterBody2D = $Player
-@onready var presence: Node = $Presence
+@onready var presence: PresenceRW = $PresenceRW
+@onready var controller: Node = $GameController
 @onready var cam: Camera2D = $Player/Camera
 @onready var fog := $FogOfWar
 
@@ -18,19 +26,38 @@ var _transitioning: bool = false
 var _intro_running: bool = false
 
 func _ready() -> void:
+	# Generate + spawn first level
 	_start_new_level(maze.generate())
 	_after_maze_generated()
-	presence.setup(player, maze)
+
+	# Wire refs for systems that expect them.
+	if controller is GameController:
+		(controller as GameController).player = player
+
+	# Pause presence through intro + head start (no spawn yet)
+	if presence != null:
+		presence.set_process(false)
+
+	# Show intro at game start
+	_level_intro_show_instant(door_message)
+	await get_tree().create_timer(door_text_hold_time).timeout
+	await _level_intro_fade_out(door_fade_time)
+
+	# Head start time
+	await get_tree().create_timer(presence_head_start_time).timeout
+
+	# Also wait until history exists (player actually moved)
+	await _wait_for_player_history(presence_min_history_steps, presence_wait_history_max_seconds)
+
+	# Spawn monster behind if possible, else fallback far
+	_spawn_presence_behind_or_fallback()
 
 func _physics_process(_delta: float) -> void:
 	if _transitioning:
 		return
-
-	# Only works if player has `cell: Vector2i`
 	if not ("cell" in player):
 		return
 
-	# Exit only (entrance door does nothing)
 	if (player.cell as Vector2i) == maze.exit_cell:
 		_transitioning = true
 		call_deferred("_door_transition_and_advance")
@@ -40,45 +67,108 @@ func _door_transition_and_advance() -> void:
 	if player != null and player.has_method("reset_to_cell") and ("cell" in player):
 		player.reset_to_cell(player.cell)
 
-	# Pause Presence events during transition
+	# Pause PresenceRW during transition
 	if presence != null:
 		presence.set_process(false)
 
-	# Small dramatic pause at the door
 	await get_tree().create_timer(door_pause_time).timeout
 
-	# Fade in message, hold, fade out
-	await _show_level_intro_fade(door_message, door_message_time, door_fade_time)
+	await _level_intro_fade_in(door_message, door_fade_time)
+	await get_tree().create_timer(door_text_hold_time).timeout
 
-	# Advance maze
 	var info: Dictionary
 	if maze.level >= max_levels_before_reset:
 		info = maze.advance_run()
 	else:
 		info = maze.advance_level()
 
-	await _start_new_level(info)
+	_start_new_level(info)
 
-	# Resume Presence
-	if presence != null:
-		presence.set_process(true)
+	await get_tree().process_frame
+	await _level_intro_fade_out(door_fade_time)
+
+	# Wait one frame for player/fog/camera to settle and for history to contain new-cell entries
+	await get_tree().process_frame
+
+	# Head start again on every new level
+	await get_tree().create_timer(presence_head_start_time).timeout
+
+	# Wait until we actually have enough breadcrumbs
+	await _wait_for_player_history(
+		presence_min_spawn_dist_cells + 1,
+		presence_wait_history_max_seconds
+	)
+
+	_spawn_presence_behind_or_fallback()
 
 	_transitioning = false
 
+
+# -----------------------------
+# Presence spawn helpers
+# -----------------------------
+func _wait_for_player_history(min_len: int, max_seconds: float) -> void:
+	if controller == null:
+		return
+	var waited := 0.0
+	while waited < max_seconds:
+		var hist_v: Variant = controller.get("player_history")
+		if typeof(hist_v) == TYPE_ARRAY and (hist_v as Array).size() >= min_len:
+			return
+		await get_tree().process_frame
+		waited += get_process_delta_time()
+
+func _spawn_presence_behind_or_fallback() -> void:
+	if presence == null or controller == null:
+		return
+
+	presence.set_process(false)
+
+	# Wait until we have enough history OR we hit the timeout
+	await _wait_for_player_history(presence_min_spawn_dist_cells + 1, presence_wait_history_max_seconds)
+
+	var ok := false
+	if presence.has_method("respawn_from_history"):
+		ok = presence.respawn_from_history()
+
+	# New behind-biased fallback (room start / early history)
+	if not ok and presence.has_method("respawn_from_room_start"):
+		ok = presence.respawn_from_room_start()
+
+	# Absolute fallback
+	if not ok and presence.has_method("respawn_far_from_player"):
+		presence.respawn_far_from_player(presence_min_spawn_dist_cells)
+		ok = true
+
+	# If you hide it anywhere, make sure it’s visible
+	presence.visible = true
+	presence.set_process(ok)
+
+# -----------------------------
+# Level / player setup
+# -----------------------------
 func _start_new_level(_info: Dictionary) -> void:
+	# New maze means old history/trail are invalid.
+	if controller is GameController:
+		(controller as GameController).reset_for_new_level()
 	var spawn: Vector2i = maze.get_spawn_cell()
 
-	# If your player script uses a TileMap reference, keep it synced
+	# Keep player script synced
 	if "maze_path" in player:
 		player.maze_path = maze.get_path()
 
-	# Prefer calling player's reset method (cancels in-progress movement)
 	if player.has_method("reset_to_cell"):
 		player.reset_to_cell(spawn)
 	else:
 		player.global_position = maze.cell_to_global(spawn)
 		if "cell" in player:
 			player.cell = spawn
+
+	if controller is GameController:
+		var gc := controller as GameController
+		gc.player = player
+		gc.presence = presence
+		gc.record_player_cell(spawn)
 
 	# Fog should match new maze size and reset per level
 	if fog and fog.has_method("rebuild_for_current_maze"):
@@ -107,7 +197,6 @@ func presence_flicker() -> void:
 
 	var cm: CanvasModulate = $CanvasModulate
 	var old: Color = cm.color
-
 	var blackout: Color = Color(old.r * 0.05, old.g * 0.05, old.b * 0.05, 1.0)
 
 	cm.color = blackout
@@ -147,7 +236,7 @@ func _after_maze_generated() -> void:
 	cam.limit_right  = int(ceil(bounds.position.x + bounds.size.x))
 	cam.limit_bottom = int(ceil(bounds.position.y + bounds.size.y))
 
-func _show_level_intro_fade(msg: String, hold_time: float, fade_time: float) -> void:
+func _level_intro_fade_in(msg: String, fade_time: float) -> void:
 	if _intro_running:
 		return
 	_intro_running = true
@@ -159,20 +248,20 @@ func _show_level_intro_fade(msg: String, hold_time: float, fade_time: float) -> 
 	panel.visible = true
 	panel.modulate.a = 0.0
 
-	# Optional: freeze player input while intro is up
 	if has_method("set_player_input_enabled"):
 		call("set_player_input_enabled", false)
 
-	# Fade in
 	var t := create_tween()
 	t.tween_property(panel, "modulate:a", 1.0, fade_time)
 	await t.finished
 
-	# Hold
-	await get_tree().create_timer(max(0.0, hold_time)).timeout
+func _level_intro_fade_out(fade_time: float) -> void:
+	var panel: CanvasItem = $UI/LevelIntro
+	if panel == null:
+		_intro_running = false
+		return
 
-	# Fade out
-	t = create_tween()
+	var t := create_tween()
 	t.tween_property(panel, "modulate:a", 0.0, fade_time)
 	await t.finished
 
@@ -182,3 +271,22 @@ func _show_level_intro_fade(msg: String, hold_time: float, fade_time: float) -> 
 		call("set_player_input_enabled", true)
 
 	_intro_running = false
+
+func set_player_input_enabled(v: bool) -> void:
+	if player != null:
+		player.set_physics_process(v)
+
+func _level_intro_show_instant(msg: String) -> void:
+	if _intro_running:
+		return
+	_intro_running = true
+
+	var panel: CanvasItem = $UI/LevelIntro
+	var label: Label = $UI/LevelIntro/Text
+
+	label.text = msg
+	panel.visible = true
+	panel.modulate.a = 1.0
+
+	if has_method("set_player_input_enabled"):
+		call("set_player_input_enabled", false)

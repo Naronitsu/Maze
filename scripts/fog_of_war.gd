@@ -52,12 +52,13 @@ func _ready() -> void:
 	call_deferred("_init_fog")
 
 func _init_fog() -> void:
-	if _maze._grid_w <= 0 or _maze._grid_h <= 0:
+	var gs := _get_maze_grid_size()
+	if gs.x <= 0 or gs.y <= 0:
 		call_deferred("_init_fog")
 		return
 
-	_w = _maze._grid_w
-	_h = _maze._grid_h
+	_w = gs.x
+	_h = gs.y
 
 	_explored = PackedByteArray()
 	_explored.resize(_w * _h) # default 0
@@ -138,12 +139,29 @@ func set_suspended(v: bool) -> void:
 func _idx(x: int, y: int) -> int:
 	return y * _w + x
 
+func _get_maze_grid_size() -> Vector2i:
+	# Prefer public accessors if available.
+	if _maze != null and _maze.has_method("get_grid_size"):
+		var v: Variant = _maze.call("get_grid_size")
+		if typeof(v) == TYPE_VECTOR2I:
+			return v as Vector2i
+
+	# Fallback for older versions that expose internal fields.
+	if _maze != null:
+		var w_any: Variant = _maze.get("_grid_w")
+		var h_any: Variant = _maze.get("_grid_h")
+		if typeof(w_any) == TYPE_INT and typeof(h_any) == TYPE_INT:
+			return Vector2i(int(w_any), int(h_any))
+
+	return Vector2i.ZERO
+
 func rebuild_for_current_maze() -> void:
 	if _maze == null:
 		return
 
-	var new_w: int = _maze._grid_w
-	var new_h: int = _maze._grid_h
+	var ngs := _get_maze_grid_size()
+	var new_w: int = ngs.x
+	var new_h: int = ngs.y
 
 	# If the maze hasn't finished setting size yet, try next frame
 	if new_w <= 0 or new_h <= 0:

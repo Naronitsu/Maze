@@ -31,9 +31,18 @@ class_name MazeLayer
 @export var blob_radius_min: int = 1
 @export var blob_radius_max: int = 2
 
+# Main path shaping (prevents "highway" straight lines later)
+@export var main_path_waypoints_max: int = 3 # increases with difficulty (0..this)
+@export var main_path_side_step_max: float = 0.18 # chance of perpendicular step when aligned
+
+# Thinning: this used to erase junctions and make corridors.
+# Now it becomes a gentle "de-blobber" that gets WEAKER as difficulty rises.
 @export var enable_thinning: bool = true
 @export var thinning_passes_min: int = 0
 @export var thinning_passes_max: int = 250
+@export var thinning_area_scale_min: float = 0.6
+@export var thinning_area_scale_max: float = 1.2
+@export var thinning_hard_cap: int = 120
 
 # ---- State ----
 var level: int = 1
@@ -55,7 +64,8 @@ func generate() -> Dictionary:
 	else:
 		rng.seed = int(rng_seed + level * 1009 + run * 7919)
 
-	var d: float = clamp((float(level - 1) * 0.06) + (float(run - 1) * run_growth), 0.0, 1.0)
+	var raw :float= clamp((float(level - 1) * 0.06) + (float(run - 1) * run_growth), 0.0, 1.0)
+	var d := pow(raw, 0.65)
 
 	var w: int = _odd(base_width + (level - 1) * size_growth_per_level + (run - 1) * 2)
 	var h: int = _odd(base_height + (level - 1) * size_growth_per_level + (run - 1) * 2)
@@ -73,12 +83,33 @@ func generate() -> Dictionary:
 	var start_in: Vector2i = _step_inside(start_cell, w, h)
 	var exit_in: Vector2i = _step_inside(exit_cell, w, h)
 
+	# --- Main path ---
+	# Straight-ish at the start, but gets more "planned meander" as difficulty rises.
 	var wiggle: float = lerpf(0.0, 0.55, d)
-	_carve_main_path_monotone(_grid, w, h, start_in, exit_in, wiggle, d, rng)
 
+	# Waypoints: the path must touch these, which prevents it from becoming a boring highway.
+	var waypoint_count: int = int(lerpf(0.0, float(main_path_waypoints_max), d))
+	var waypoints: Array[Vector2i] = []
+	for i in range(waypoint_count):
+		waypoints.append(Vector2i(
+			rng.randi_range(2, w - 3),
+			rng.randi_range(1, h - 2)
+		))
+	waypoints.sort_custom(func(a: Vector2i, b: Vector2i) -> bool: return a.x < b.x)
+
+	var p0 := start_in
+	for wp in waypoints:
+		_carve_main_path_monotone(_grid, w, h, p0, wp, wiggle, d, rng)
+		p0 = wp
+	_carve_main_path_monotone(_grid, w, h, p0, exit_in, wiggle, d, rng)
+
+	# --- Branches (dead ends) ---
 	var branch_density: float = clamp((d - 0.05) / 0.95, 0.0, 1.0)
 	var area: float = float(w * h)
 	var branch_attempts: int = int(lerpf(area * 0.01, area * 0.06, branch_density))
+	var size_mult :float= clamp(pow(area / 625.0, 0.35), 1.0, 2.2)
+	branch_attempts = int(branch_attempts * size_mult)
+
 	var max_branch_len: int = int(lerpf(3.0, 12.0, branch_density))
 	var turn_chance: float = lerpf(0.15, 0.55, branch_density)
 
@@ -87,9 +118,18 @@ func generate() -> Dictionary:
 
 	_enforce_two_border_doors(_grid, w, h, start_cell, exit_cell)
 
+	# --- Thinning (now: gentle cleanup, weaker later) ---
 	if enable_thinning:
-		var passes: int = int(lerpf(float(thinning_passes_min), float(thinning_passes_max), d))
-		passes = int(float(passes) * clamp(area / 625.0, 0.8, 2.5))
+		# More thinning early, less thinning later (prevents "maze turns back into corridor")
+		var t := 1.0 - d
+		var passes: int = int(lerpf(float(thinning_passes_min), float(thinning_passes_max), t))
+
+		# much gentler scaling with area
+		passes = int(float(passes) * clamp(area / 625.0, thinning_area_scale_min, thinning_area_scale_max))
+
+		# hard cap so big maps don't get over-thinned
+		passes = min(passes, thinning_hard_cap)
+
 		_thin_floors_preserve_path(_grid, w, h, rng, start_in, exit_in, passes)
 
 	_render_grid(_grid, w, h)
@@ -234,36 +274,62 @@ func has_path(from_cell: Vector2i, to_cell: Vector2i) -> bool:
 
 # ---------------- Guaranteed main path ----------------
 
-func _carve_main_path_monotone(grid: PackedByteArray, w: int, h: int, start: Vector2i, goal: Vector2i, wiggle: float, difficulty: float, rng: RandomNumberGenerator) -> void:
+func _carve_main_path_monotone(
+		grid: PackedByteArray,
+		w: int,
+		h: int,
+		start: Vector2i,
+		goal: Vector2i,
+		wiggle: float,
+		difficulty: float,
+		rng: RandomNumberGenerator
+	) -> void:
 	var p: Vector2i = start
 	_set_floor(grid, p.x, p.y, w)
 
 	var blob_chance: float = lerpf(blob_chance_min, blob_chance_max, difficulty)
+	var side_step_chance: float = lerpf(0.0, main_path_side_step_max, difficulty)
 
 	while p != goal:
 		var dx: int = goal.x - p.x
 		var dy: int = goal.y - p.y
 
 		var options: Array[Vector2i] = []
+
+		# "Monotone" options (always progress toward the goal)
 		if dx > 0: options.append(Vector2i(1, 0))
 		elif dx < 0: options.append(Vector2i(-1, 0))
 		if dy > 0: options.append(Vector2i(0, 1))
 		elif dy < 0: options.append(Vector2i(0, -1))
 
-		var step: Vector2i
-		if options.size() == 1:
-			step = options[0]
-		else:
-			step = options[rng.randi_range(0, 1)] if rng.randf() < wiggle else options[0]
+		# When aligned on one axis, occasionally allow perpendicular drift.
+		# This prevents long straight highways without breaking guarantee too much.
+		if dy == 0 and rng.randf() < side_step_chance:
+			options.append(Vector2i(0, 1))
+			options.append(Vector2i(0, -1))
+		if dx == 0 and rng.randf() < side_step_chance:
+			options.append(Vector2i(1, 0))
+			options.append(Vector2i(-1, 0))
+
+		# Choose step: wiggle makes it less deterministic
+		var step: Vector2i = options[0]
+		if options.size() > 1:
+			if rng.randf() < wiggle:
+				step = options[rng.randi_range(0, options.size() - 1)]
 
 		var next := p + step
+
+		# If we wandered, keep it safe: refuse out-of-bounds
 		if not _in_bounds(next, w, h):
-			if options.size() == 2:
-				var alt := options[1] if step == options[0] else options[0]
-				next = p + alt
-				if not _in_bounds(next, w, h):
+			# fallback: try the first monotone option if available
+			var fallback_found := false
+			for opt in options:
+				var cand := p + opt
+				if _in_bounds(cand, w, h):
+					next = cand
+					fallback_found = true
 					break
-			else:
+			if not fallback_found:
 				break
 
 		p = next
@@ -450,11 +516,14 @@ func _thin_floors_preserve_path(
 			continue
 		if c == keep_from or c == keep_to:
 			continue
-
 		if c.distance_to(keep_from) <= 1 or c.distance_to(keep_to) <= 1:
 			continue
 
-		if _degree_floor(grid, w, h, c) < 3:
+		# IMPORTANT CHANGE:
+		# Only remove "degree 4" cells (open blobs), not junctions (degree 3),
+		# otherwise the maze collapses into corridors.
+		var deg := _degree_floor(grid, w, h, c)
+		if deg < 4:
 			continue
 
 		_set_wall(grid, x, y, w)
@@ -528,3 +597,16 @@ func _rebuild_patch(center: Vector2i, radius: int = 4) -> void:
 	# 4) doors on top
 	_place_doors()
 	update_internals()
+
+# -----------------------------------------------------------------------------
+# Public read-only accessors (keeps other scripts from reaching into internals)
+# -----------------------------------------------------------------------------
+
+func get_grid_size() -> Vector2i:
+	return Vector2i(_grid_w, _grid_h)
+
+func get_grid_width() -> int:
+	return _grid_w
+
+func get_grid_height() -> int:
+	return _grid_h
