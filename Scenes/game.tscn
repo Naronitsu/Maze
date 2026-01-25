@@ -7,7 +7,7 @@
 [ext_resource type="Texture2D" uid="uid://c3nbcpu5ut72x" path="res://sprites/Player.png" id="3_trtic"]
 [ext_resource type="PackedScene" uid="uid://4pam0hesbas4" path="res://scenes/player.tscn" id="4_3dryh"]
 [ext_resource type="Texture2D" uid="uid://bvd15gwjy64cj" path="res://sprites/Ground.png" id="5_gee14"]
-[ext_resource type="Script" uid="uid://c51dxlpami1qw" path="res://scripts/fog_of_war.gd" id="5_wowpa"]
+[ext_resource type="PackedScene" uid="uid://cx0aeolep8gca" path="res://scenes/fog_of_war_rw.tscn" id="6_kvuet"]
 [ext_resource type="Script" uid="uid://8c1oudx1h1es" path="res://scripts/heartbeat_ui.gd" id="9_0tnpc"]
 [ext_resource type="Texture2D" uid="uid://dv8o46w3suf8s" path="res://sprites/Veins.png" id="10_vtaks"]
 [ext_resource type="AudioStream" uid="uid://csb54cceyeuin" path="res://sounds/heartbeat-loop-96879.mp3" id="11_kvpfn"]
@@ -7130,10 +7130,35 @@ maze_layer_path = NodePath("../TileMap/MazeLayer")
 player = NodePath("../Player")
 presence = NodePath("../PresenceRW")
 
+[node name="Player" parent="." instance=ExtResource("4_3dryh")]
+maze_path = NodePath("../TileMap/MazeLayer")
+fog_path = NodePath("../Overlay/FogOfWarRW")
+controller_path = NodePath("../GameController")
+presence_path = NodePath("../PresenceRW")
+
+[node name="Camera" type="Camera2D" parent="Player"]
+zoom = Vector2(5, 5)
+position_smoothing_enabled = true
+drag_left_margin = 0.0
+drag_top_margin = 0.0
+drag_right_margin = 0.0
+drag_bottom_margin = 0.0
+
+[node name="Overlay" type="CanvasLayer" parent="."]
+
+[node name="FogOfWarRW" parent="Overlay" instance=ExtResource("6_kvuet")]
+z_index = 1
+player_path = NodePath("../../Player")
+camera_path = NodePath("../../Player/Camera")
+visionRange = 36.0
+halo_world_radius = 12.0
+layer_path = NodePath("../../TileMap/MazeLayer")
+
 [node name="PresenceRW" parent="." instance=ExtResource("12_dinhu")]
 controller_path = NodePath("../GameController")
 
 [node name="Sprite2D" type="Sprite2D" parent="PresenceRW"]
+visible = false
 z_index = 4096
 texture = ExtResource("3_trtic")
 region_enabled = true
@@ -7168,26 +7193,6 @@ horizontal_alignment = 1
 vertical_alignment = 1
 uppercase = true
 
-[node name="Overlay" type="CanvasLayer" parent="."]
-
-[node name="Blackout" type="ColorRect" parent="Overlay"]
-visible = false
-anchors_preset = 15
-anchor_right = 1.0
-anchor_bottom = 1.0
-grow_horizontal = 2
-grow_vertical = 2
-color = Color(0, 0, 0, 1)
-
-[node name="CanvasModulate" type="CanvasModulate" parent="."]
-
-[node name="FogOfWar" type="Node2D" parent="."]
-z_index = 9
-script = ExtResource("5_wowpa")
-maze_path = NodePath("../TileMap/MazeLayer")
-player_path = NodePath("../Player")
-vision_radius_tiles = 1
-
 [node name="TileMap" type="TileMap" parent="."]
 tile_set = SubResource("TileSet_wowpa")
 rendering_quadrant_size = 12
@@ -7197,20 +7202,6 @@ format = 2
 use_parent_material = true
 tile_set = SubResource("TileSet_kvpfn")
 script = ExtResource("2_wrm1d")
-
-[node name="Player" parent="." instance=ExtResource("4_3dryh")]
-maze_path = NodePath("../TileMap/MazeLayer")
-fog_path = NodePath("../FogOfWar")
-controller_path = NodePath("../GameController")
-presence_path = NodePath("../PresenceRW")
-
-[node name="Camera" type="Camera2D" parent="Player"]
-zoom = Vector2(5, 5)
-position_smoothing_enabled = true
-drag_left_margin = 0.0
-drag_top_margin = 0.0
-drag_right_margin = 0.0
-drag_bottom_margin = 0.0
 
 [node name="HeartbeatUI" type="CanvasLayer" parent="."]
 script = ExtResource("9_0tnpc")
