@@ -1,0 +1,10 @@
+[gd_scene load_steps=2 format=3 uid="uid://sbtfet8jd3re"]
+
+[ext_resource type="Script" uid="uid://c51dxlpami1qw" path="res://scripts/fog_of_war.gd" id="1_j5xl7"]
+
+[node name="FogOfWar" type="Node2D"]
+z_index = 9
+script = ExtResource("1_j5xl7")
+maze_path = NodePath("../TileMap/MazeLayer")
+player_path = NodePath("../Player")
+vision_radius_tiles = 1

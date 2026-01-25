@@ -16,11 +16,12 @@ extends Node2D
 @export var presence_wait_history_max_seconds: float = 6.0
 
 @onready var maze: TileMapLayer = $TileMap/MazeLayer
-@onready var player: CharacterBody2D = $Player
 @onready var presence: PresenceRW = $PresenceRW
 @onready var controller: Node = $GameController
 @onready var cam: Camera2D = $Player/Camera
-@onready var fog := $FogOfWar
+@onready var player: CharacterBody2D = $Player
+
+@onready var fog: FogOfWarRW = $Overlay/FogOfWarRW
 
 var _transitioning: bool = false
 var _intro_running: bool = false
@@ -235,6 +236,8 @@ func _after_maze_generated() -> void:
 	cam.limit_top    = int(floor(bounds.position.y))
 	cam.limit_right  = int(ceil(bounds.position.x + bounds.size.x))
 	cam.limit_bottom = int(ceil(bounds.position.y + bounds.size.y))
+	
+	await fog.reset_fog_for_level()
 
 func _level_intro_fade_in(msg: String, fade_time: float) -> void:
 	if _intro_running:
