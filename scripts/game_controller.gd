@@ -14,7 +14,7 @@ class_name GameController
 
 @export var history_max: int = 250
 
-@onready var maze_layer: TileMapLayer = $"../TileMap/MazeLayer"
+@onready var maze_layer: DungeonMazeLayer = $"../TileMap/MazeLayer" as DungeonMazeLayer
 
 # --- State ---
 var trail: Dictionary = {}               # Vector2i -> float
@@ -143,3 +143,60 @@ func record_player_cell(c: Vector2i) -> void:
 	player_history.append(c)
 	if player_history.size() > history_max:
 		player_history.pop_front()
+		
+func try_open_door(cell: Vector2i) -> bool:
+	if maze_layer == null:
+		return false
+	return maze_layer.try_open_door_at(cell)
+
+func is_door_closed(cell: Vector2i) -> bool:
+	if maze_layer == null:
+		return false
+	return maze_layer.is_door_closed(cell)
+
+# Treat closed doors as passable for AI planning (because it can open them).
+func is_passable_for_presence(c: Vector2i) -> bool:
+	_refresh_refs()
+	if maze_layer == null:
+		return false
+	if maze_layer.is_floor(c):
+		return true
+	# closed door tiles are not floor, but presence can open them
+	return maze_layer.is_door_closed(c)
+
+# BFS distance that uses passable-for-presence instead of is_walkable
+func path_distance_presence(a: Vector2i, b: Vector2i, max_nodes: int = 4000) -> int:
+	_refresh_refs()
+	if maze_layer == null:
+		return 999999
+	if a == b:
+		return 0
+	if not is_passable_for_presence(a) or not is_passable_for_presence(b):
+		return 999999
+
+	var q: Array[Vector2i] = [a]
+	var head: int = 0
+	var dist: Dictionary = {a: 0}
+
+	var visited: int = 0
+	while head < q.size():
+		visited += 1
+		if visited > max_nodes:
+			break
+
+		var cur: Vector2i = q[head]
+		head += 1
+		var cd: int = int(dist[cur])
+
+		if cur == b:
+			return cd
+
+		for n: Vector2i in get_neighbors4(cur):
+			if not is_passable_for_presence(n):
+				continue
+			if dist.has(n):
+				continue
+			dist[n] = cd + 1
+			q.append(n)
+
+	return 999999

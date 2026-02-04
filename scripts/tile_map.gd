@@ -2,6 +2,9 @@
 extends TileMapLayer
 class_name DungeonMazeLayer
 
+signal door_opened(cell: Vector2i)
+signal door_closed(cell: Vector2i)
+
 # ---- Progression / tuning ----
 @export var base_width: int = 25
 @export var base_height: int = 25
@@ -50,6 +53,8 @@ var _room_mask: PackedByteArray = PackedByteArray()
 var _doors_open: Array[Vector2i] = []
 var _doors_closed: Array[Vector2i] = []
 
+# 1 = closed door at this cell, 0 = not closed
+var _door_closed_mask: PackedByteArray = PackedByteArray()
 
 # --------------------------------------------------------------------
 # Public API
@@ -79,6 +84,9 @@ func _generate_once() -> Dictionary:
 	var h: int = _odd(base_height + (level - 1) * size_growth_per_level + (run - 1) * 2)
 	_grid_w = w
 	_grid_h = h
+
+	_door_closed_mask = PackedByteArray()
+	_door_closed_mask.resize(w * h) # defaults to 0
 
 	_grid = PackedByteArray()
 	_grid.resize(w * h) # defaults to 0 (walls)
@@ -267,9 +275,11 @@ func _render_grid() -> void:
 func _place_doors() -> void:
 	for c: Vector2i in _doors_open:
 		if _in_bounds(c.x, c.y, _grid_w, _grid_h):
+			_set_door_closed(c, false)
 			set_cell(c, source_id, door_open_atlas, 0)
 	for c: Vector2i in _doors_closed:
 		if _in_bounds(c.x, c.y, _grid_w, _grid_h):
+			_set_door_closed(c, true)
 			set_cell(c, source_id, door_closed_atlas, 0)
 
 
@@ -354,6 +364,14 @@ func _step_inside(border_cell: Vector2i, w: int, h: int) -> Vector2i:
 func _add_open_door(cell: Vector2i) -> void:
 	if not _doors_open.has(cell):
 		_doors_open.append(cell)
+	# Ensure logic agrees with visuals
+	if _door_closed_mask.size() > 0:
+		_door_closed_mask[_idx(cell.x, cell.y, _grid_w)] = 0
+
+func _add_closed_door(cell: Vector2i) -> void:
+	if not _doors_closed.has(cell):
+		_doors_closed.append(cell)
+	_set_door_closed(cell, true)
 
 func _enforce_two_border_doors_and_floors(grid: PackedByteArray, w: int, h: int, start: Vector2i, exit: Vector2i) -> void:
 	var s_in := _step_inside(start, w, h)
@@ -369,6 +387,63 @@ func _enforce_two_border_doors_and_floors(grid: PackedByteArray, w: int, h: int,
 	_add_open_door(start)
 	_add_open_door(exit)
 
+func is_door_closed(cell: Vector2i) -> bool:
+	if _grid_w <= 0 or _grid_h <= 0:
+		return false
+	if not _in_bounds(cell.x, cell.y, _grid_w, _grid_h):
+		return false
+	return _door_closed_mask[_idx(cell.x, cell.y, _grid_w)] == 1
+
+func _set_door_closed(cell: Vector2i, closed: bool) -> void:
+	if not _in_bounds(cell.x, cell.y, _grid_w, _grid_h):
+		return
+	_door_closed_mask[_idx(cell.x, cell.y, _grid_w)] = 1 if closed else 0
+
+func try_open_door_at(cell: Vector2i) -> bool:
+	if not is_door_closed(cell):
+		return false
+
+	_set_door_closed(cell, false)
+	_doors_closed.erase(cell)
+	if not _doors_open.has(cell):
+		_doors_open.append(cell)
+
+	set_cell(cell, source_id, door_open_atlas, 0)
+
+	emit_signal("door_opened", cell)
+	return true
+	
+func is_door_open(cell: Vector2i) -> bool:
+	# "Open" means it's in doors_open (and not closed in the mask)
+	return _doors_open.has(cell) and not is_door_closed(cell)
+
+func is_door_cell(cell: Vector2i) -> bool:
+	return is_door_closed(cell) or _doors_open.has(cell)
+
+func try_close_door_at(cell: Vector2i) -> bool:
+	if not _doors_open.has(cell):
+		return false
+	if is_door_closed(cell):
+		return false
+
+	# Optional: prevent closing border doors
+	if cell.x == 0 or cell.x == _grid_w - 1 or cell.y == 0 or cell.y == _grid_h - 1:
+		return false
+
+	_set_door_closed(cell, true)
+	_doors_open.erase(cell)
+	if not _doors_closed.has(cell):
+		_doors_closed.append(cell)
+
+	set_cell(cell, source_id, door_closed_atlas, 0)
+
+	emit_signal("door_closed", cell)
+	return true
+
+func toggle_door_at(cell: Vector2i) -> bool:
+	if is_door_closed(cell):
+		return try_open_door_at(cell)
+	return try_close_door_at(cell)
 
 # --------------------------------------------------------------------
 # Room doorway selection
@@ -548,25 +623,46 @@ func _can_carve_corridor_cell(
 
 func _rebuild_room_doors() -> void:
 	# Keep only border doors already added (entrance/exit).
-	var keep: Array[Vector2i] = []
+	var keep_open: Array[Vector2i] = []
 	for d in _doors_open:
 		if d.x == 0 or d.x == _grid_w - 1 or d.y == 0 or d.y == _grid_h - 1:
-			keep.append(d)
-	_doors_open = keep
+			keep_open.append(d)
+	_doors_open = keep_open
 
-	# Add an open door on every corridor tile that touches any room tile.
+	# Rebuild closed doors from scratch
+	_doors_closed.clear()
+	# (Mask will be set in _place_doors, but we can also clear it here)
+	for i in range(_door_closed_mask.size()):
+		_door_closed_mask[i] = 0
+
 	for y in range(_grid_h):
 		for x in range(_grid_w):
 			var c := Vector2i(x, y)
+
 			if not _is_corridor_floor(c, _grid_w):
 				continue
 
+			# Skip borders; entrance/exit handled separately
+			if x == 0 or x == _grid_w - 1 or y == 0 or y == _grid_h - 1:
+				continue
+
+			var room_neighbors := 0
+			var corridor_neighbors := 0
+
 			for d in DIR4:
 				var n := c + d
-				if _in_bounds(n.x, n.y, _grid_w, _grid_h) and _is_room(n, _grid_w):
-					_add_open_door(c)
-					break
+				if not _in_bounds(n.x, n.y, _grid_w, _grid_h):
+					continue
+				if _is_room(n, _grid_w):
+					room_neighbors += 1
+				elif _is_corridor_floor(n, _grid_w):
+					corridor_neighbors += 1
 
+			# Door rule:
+			# - exactly one room neighbor (a single room connection)
+			# - at least one corridor neighbor (connected)
+			if room_neighbors == 1 and corridor_neighbors >= 1:
+				_add_closed_door(c)
 
 # --------------------------------------------------------------------
 # Compatibility helpers for your existing game/player scripts
@@ -587,7 +683,7 @@ func get_world_bounds() -> Rect2:
 
 	# Cell size in local space; use TileMapLayer's tile_set tile size if available.
 	var ts := tile_set
-	var cell_size := Vector2(12, 12)
+	var cell_size := Vector2(32, 32)
 	if ts != null:
 		cell_size = Vector2(ts.tile_size)
 
@@ -616,6 +712,11 @@ func is_floor(cell: Vector2i) -> bool:
 		return false
 	if not _in_bounds(cell.x, cell.y, _grid_w, _grid_h):
 		return false
+
+	# Closed doors block movement.
+	if is_door_closed(cell):
+		return false
+
 	return _grid[_idx(cell.x, cell.y, _grid_w)] == 1
 
 func is_wall(cell: Vector2i) -> bool:
@@ -669,7 +770,7 @@ func _has_path_from_start_to_exit() -> bool:
 			var ii := _idx(n.x, n.y, _grid_w)
 			if visited[ii] == 1:
 				continue
-			if _grid[ii] != 1:
+			if not is_floor(n):
 				continue
 			visited[ii] = 1
 			q.append(n)
