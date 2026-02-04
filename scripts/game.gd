@@ -15,7 +15,7 @@ extends Node2D
 @export var presence_min_history_steps: int = 8
 @export var presence_wait_history_max_seconds: float = 6.0
 
-@onready var maze: TileMapLayer = $TileMap/MazeLayer
+@onready var maze: DungeonMazeLayer = $TileMap/MazeLayer
 @onready var presence: PresenceRW = $PresenceRW
 @onready var controller: Node = $GameController
 @onready var cam: Camera2D = $Player/Camera
@@ -180,7 +180,7 @@ func _start_new_level(_info: Dictionary) -> void:
 	_after_maze_generated()
 
 func play_presence_sound(pos: Vector2) -> void:
-	var a: AudioStreamPlayer2D = $PresenceAudio
+	var a: AudioStreamPlayer2D = $SubViewport/PresenceAudio
 	a.global_position = pos
 	a.pitch_scale = randf_range(0.92, 1.08)
 	a.stop()
@@ -196,7 +196,7 @@ func presence_flicker() -> void:
 
 	_is_flickering = true
 
-	var cm: CanvasModulate = $CanvasModulate
+	var cm: CanvasModulate = $SubViewport/CanvasModulate
 	var old: Color = cm.color
 	var blackout: Color = Color(old.r * 0.05, old.g * 0.05, old.b * 0.05, 1.0)
 
@@ -216,7 +216,7 @@ func presence_blackout(duration: float = 0.45, fade: float = 0.08) -> void:
 		_blackout_running = false
 		return
 
-	var rect: ColorRect = $Overlay/Blackout
+	var rect: ColorRect = $SubViewport/Overlay/Blackout
 	rect.visible = true
 	rect.modulate.a = 0.0
 

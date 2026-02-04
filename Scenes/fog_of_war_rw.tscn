@@ -4,6 +4,7 @@
 [ext_resource type="Shader" uid="uid://4wio5gyhfsuw" path="res://shaders/fog_darkness_world_memory.gdshader" id="2_bntwn"]
 
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_hhb1e"]
+resource_local_to_scene = true
 shader = ExtResource("2_bntwn")
 shader_parameter/darkness_alpha = 1.0
 shader_parameter/explored_strength = 0.55

@@ -15,6 +15,8 @@ extends CharacterBody2D
 @export var run_grace_time: float = 0.20
 
 @export var trail_history_max: int = 80
+@export var interact_action: StringName = &"interact"
+
 var trail_history: Array[Vector2i] = []
 
 var _run_grace: float = 0.0
@@ -33,6 +35,7 @@ var _run_grace: float = 0.0
 
 var cell: Vector2i
 var facing: Vector2i = Vector2i.RIGHT
+var _move_facing: Vector2i = Vector2i.RIGHT
 
 var _moving: bool = false
 var _from: Vector2
@@ -55,7 +58,7 @@ func _ready() -> void:
 	# Initialize fog facing
 	_apply_facing_to_fog()
 
-	_play_anim(&"idle")
+	_play_state_anim("idle", facing)
 
 func _physics_process(delta: float) -> void:
 	# Close-eyes state can change even mid-step.
@@ -84,7 +87,7 @@ func _physics_process(delta: float) -> void:
 
 	# If currently moving (interpolating between cells)
 	if _moving:
-		_play_anim(&"run")
+		_play_state_anim("run", _move_facing)
 
 		_t += delta / step_time
 		if _t >= 1.0:
@@ -96,11 +99,17 @@ func _physics_process(delta: float) -> void:
 			_moving = false
 		return
 
+		# Interact: toggle door you're looking at
+	if Input.is_action_just_pressed(interact_action):
+		_try_toggle_door()
+		# Optional: don't also move on the same frame if the key overlaps (usually it doesn't)
+		# return
+
 	# Not currently interpolating, but still within grace window -> keep run playing
 	if _run_grace > 0.0:
-		_play_anim(&"run")
+		_play_state_anim("run", facing)
 	else:
-		_play_anim(&"idle")
+		_play_state_anim("idle", facing)
 
 	# Movement input is separate from look input now
 	var move_dir := Vector2i.ZERO
@@ -142,14 +151,18 @@ func _update_look_input() -> void:
 
 	if look_dir != Vector2i.ZERO:
 		facing = look_dir
-		_apply_facing_to_fog()
-		if fog != null:
-			fog.reveal_now()
+		# sideways uses flip when facing left
+		_update_sprite_facing(facing)
+
+		if not _eyes_closed:
+			_apply_facing_to_fog()
+			if fog != null:
+				fog.reveal_now()
 
 func _try_step(dir: Vector2i) -> void:
 	var target_cell: Vector2i = cell + dir
 
-	# Block if not walkable (uses maze's generated grid)
+	# If blocked, try opening a door
 	if not maze.is_floor(target_cell):
 		return
 
@@ -161,7 +174,13 @@ func _try_step(dir: Vector2i) -> void:
 	if collision != null:
 		return
 
-	# Commit step
+	# Commit step (rest unchanged)
+	_move_facing = dir
+	facing = dir
+	_update_sprite_facing(facing)
+	if not _eyes_closed:
+		_apply_facing_to_fog()
+
 	cell = target_cell
 
 	if controller != null:
@@ -184,7 +203,7 @@ func _try_step(dir: Vector2i) -> void:
 		controller.add_trail_at_world_pos(_to, amount)
 
 	# Optional: update fog after movement finishes (Fog also updates in _process, but this is snappy)
-	if fog != null:
+	if fog != null and not _eyes_closed:
 		fog.reveal_now()
 
 func reset_to_cell(new_cell: Vector2i) -> void:
@@ -193,10 +212,13 @@ func reset_to_cell(new_cell: Vector2i) -> void:
 	_t = 0.0
 	_run_grace = 0.0
 	global_position = _cell_to_global(cell)
+
+	_update_sprite_facing(facing)
 	_apply_facing_to_fog()
 	if fog != null:
 		fog.reveal_now()
-	_play_anim(&"idle")
+
+	_play_state_anim("idle", facing)
 
 func _cell_to_global(c: Vector2i) -> Vector2:
 	return maze.to_global(maze.map_to_local(c))
@@ -207,6 +229,15 @@ func _apply_facing_to_fog() -> void:
 	# Fog accepts Vector2 or Vector2i; pass Vector2i directly if your fog uses the flexible setter.
 	fog.set_facing_cardinal(facing)
 
+func _update_sprite_facing(dir: Vector2i) -> void:
+	# Sideways animations are authored as "moving right"
+	if anim == null:
+		return
+	if dir.x != 0:
+		anim.flip_h = (dir.x < 0)
+	else:
+		anim.flip_h = false
+
 func _play_anim(name: StringName) -> void:
 	if anim == null:
 		return
@@ -216,3 +247,38 @@ func _play_anim(name: StringName) -> void:
 		return
 	if anim.animation != name or not anim.is_playing():
 		anim.play(name)
+
+func _play_state_anim(state: String, dir: Vector2i) -> void:
+	var a := _anim_name_for(state, dir)
+	_play_anim(a)
+
+func _anim_name_for(state: String, dir_in: Vector2i) -> StringName:
+	var dir := dir_in
+	if dir == Vector2i.ZERO:
+		dir = facing
+
+	# Sideways: right is default, left is flip
+	if dir.x != 0:
+		if anim != null:
+			anim.flip_h = (dir.x < 0)
+		return StringName(state + "_sideways")
+
+	# Vertical: no flip
+	if anim != null:
+		anim.flip_h = false
+
+	if dir.y < 0:
+		return StringName(state + "_up")
+	else:
+		return StringName(state + "_down")
+		
+func _try_toggle_door() -> void:
+	# Option A: only the cell you're facing (feels intentional)
+	var target := cell + facing
+	if maze.toggle_door_at(target):
+		return
+
+	# Option B (fallback): if not facing a door, try any adjacent door
+	for d in [Vector2i.LEFT, Vector2i.RIGHT, Vector2i.UP, Vector2i.DOWN]:
+		if maze.toggle_door_at(cell + d):
+			return
