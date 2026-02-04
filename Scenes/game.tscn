@@ -7240,7 +7240,6 @@ expand_mode = 1
 
 [node name="HeartbeatAudio" type="AudioStreamPlayer2D" parent="HeartbeatUI"]
 stream = ExtResource("11_kvpfn")
-bus = &"SFX"
 
 [node name="CRT" type="CanvasLayer" parent="."]
 layer = 999
