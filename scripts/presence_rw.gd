@@ -1,13 +1,17 @@
 extends Node2D
 class_name PresenceRW
-
-## Grid-following monster controller (simplified).
-## - Follows the player's *route* (history with backtracking collapsed).
-## - Plans through closed doors (treats them as passable) and opens them when needed.
 ##
-## Notes:
-## - The GameController already provides `path_distance_presence()` which treats closed doors
-##   as passable for planning. This script uses that, and explicitly opens a door when stepping.
+## PresenceRW (rewrite)
+## - Chases the player directly (shortest-path by BFS distance).
+## - Treats CLOSED doors as passable for planning, and opens doors when needed.
+## - Also opens any door tile the player steps onto (so it never stays shut “behind” them).
+##
+## Requires GameController methods used in this project:
+## - world_to_cell(), cell_to_world_center(), get_neighbors4()
+## - path_distance_presence(a,b)  (treats closed doors as passable)
+## - is_passable_for_presence(c)
+## - is_door_closed(c), try_open_door(c)
+##
 
 @export var controller_path: NodePath
 @export var move_interval: float = 0.45
@@ -15,15 +19,6 @@ class_name PresenceRW
 @export var near_cells: int = 4
 @export var far_cells: int = 25
 @export var catch_distance_cells: int = 0
-
-# How far behind the player route to aim.
-@export var behind_steps: int = 14
-
-# Used by respawn_from_history()
-@export var history_tail_exclusion: int = 18
-@export var min_dist_cells: int = 8
-@export var max_dist_cells: int = 60
-@export var pick_from_best_fraction: float = 0.25
 
 @export var debug_draw: bool = false
 @export var debug_radius: float = 6.0
@@ -34,10 +29,12 @@ const OFFMAP_POS := Vector2(-1000000.0, -1000000.0)
 
 var cell: Vector2i = INVALID_CELL
 
-var _active := false
+var _active: bool = false
 var _prev_cell: Vector2i = INVALID_CELL
 var _timer: float = 0.0
 var _rng := RandomNumberGenerator.new()
+
+var _last_player_cell: Vector2i = INVALID_CELL
 
 @onready var controller: GameController = _resolve_controller()
 
@@ -49,10 +46,17 @@ func _ready() -> void:
 func _process(delta: float) -> void:
 	if not _active:
 		return
+
+	_ensure_initialized_from_world()
+
+	# If player stepped into a door tile, open it immediately.
+	_open_player_door_if_needed()
+
 	_timer += delta
 	if _timer >= move_interval:
 		_timer = 0.0
 		_step()
+
 	_check_catch()
 
 func _draw() -> void:
@@ -93,6 +97,7 @@ func deactivate() -> void:
 	cell = INVALID_CELL
 	_prev_cell = INVALID_CELL
 	_timer = 0.0
+	_last_player_cell = INVALID_CELL
 	global_position = OFFMAP_POS
 	visible = false
 	set_process(false)
@@ -105,6 +110,7 @@ func activate() -> void:
 	set_process(true)
 	set_physics_process(true)
 	_timer = 0.0
+	_last_player_cell = INVALID_CELL
 	_snap_to_cell()
 	queue_redraw()
 
@@ -114,20 +120,20 @@ func is_active() -> bool:
 func get_pressure01() -> float:
 	if not _active or controller == null or controller.player == null or cell == INVALID_CELL:
 		return 0.0
-	var p_cell: Vector2i = controller.world_to_cell(controller.player.global_position)
-	var d: int = _presence_distance(cell, p_cell)
+	var p_cell := controller.world_to_cell(controller.player.global_position)
+	var d := _presence_distance(cell, p_cell)
 	var t := inverse_lerp(float(far_cells), float(near_cells), float(d))
 	return clampf(t, 0.0, 1.0)
 
+# Optional convenience spawn
 func respawn_far_from_player(min_dist: int = 18, attempts: int = 800) -> void:
 	if controller == null or controller.player == null:
 		return
 
-	var p_cell: Vector2i = controller.world_to_cell(controller.player.global_position)
-	var size: Vector2i = controller.grid_size_cells()
+	var p_cell := controller.world_to_cell(controller.player.global_position)
+	var size := controller.grid_size_cells()
 
 	if size == Vector2i.ZERO:
-		# Fallback: a valid neighbor
 		for n in controller.get_neighbors4(p_cell):
 			if _presence_passable(n):
 				cell = n
@@ -143,7 +149,7 @@ func respawn_far_from_player(min_dist: int = 18, attempts: int = 800) -> void:
 		var c := Vector2i(_rng.randi_range(0, size.x - 1), _rng.randi_range(0, size.y - 1))
 		if not _presence_passable(c):
 			continue
-		var md: int = abs(c.x - p_cell.x) + abs(c.y - p_cell.y)
+		var md :int= abs(c.x - p_cell.x) + abs(c.y - p_cell.y)
 		if md < min_dist:
 			continue
 		cell = c
@@ -158,69 +164,82 @@ func respawn_far_from_player(min_dist: int = 18, attempts: int = 800) -> void:
 			activate()
 			return
 
-func respawn_from_history() -> bool:
+# Spawn near the room start (entrance) - called from history
+func respawn_from_room_start() -> bool:
 	if controller == null:
 		return false
-
-	var route := _route_history(controller.player_history)
-	if route.is_empty():
+	
+	# Try to get the maze to find spawn cell
+	var maze: Node = null
+	if controller.has_meta("maze_ref"):
+		maze = controller.get_meta("maze_ref")
+	else:
+		# Fallback: try to find it in the scene
+		var scene = get_tree().current_scene
+		if scene != null and scene.has_node("TileMap/MazeLayer"):
+			maze = scene.get_node("TileMap/MazeLayer")
+	
+	if maze == null or not maze.has_method("get_spawn_cell"):
 		return false
-
-	var player_cell: Vector2i = controller.player_cell
-	if controller.player != null:
-		player_cell = controller.world_to_cell(controller.player.global_position)
-
-	# Never exclude so much tail that we can't possibly be >= min_dist behind
-	var max_tail := maxi(0, route.size() - 1 - min_dist_cells)
-	var tail := mini(history_tail_exclusion, max_tail)
-	var last_allowed := maxi(0, route.size() - 1 - tail)
-
-	var pairs: Array[Dictionary] = [] # {"cell": Vector2i, "d": int}
-	for i in range(0, last_allowed + 1):
-		var c: Vector2i = route[i]
-		if not _presence_passable(c):
-			continue
-		var d: int = _presence_distance(c, player_cell)
-		if d >= 999999:
-			continue
-		if d < min_dist_cells or d > max_dist_cells:
-			continue
-		pairs.append({"cell": c, "d": d})
-
-	if pairs.is_empty():
+	
+	var spawn_cell: Vector2i = maze.call("get_spawn_cell")
+	if not _presence_passable(spawn_cell):
 		return false
-
-	pairs.sort_custom(func(a: Dictionary, b: Dictionary) -> bool: return int(a["d"]) < int(b["d"]))
-	var top_count := maxi(1, int(ceil(pairs.size() * pick_from_best_fraction)))
-	var pick_index := _rng.randi_range(0, top_count - 1)
-	cell = pairs[pick_index]["cell"]
+	
+	cell = spawn_cell
 	_prev_cell = cell
 	activate()
 	return true
 
-# -----------------------------------------------------------------------------
-# Core chase behavior
+# Spawn along early player history (behind them at entrance)
+func respawn_from_history() -> bool:
+	if controller == null:
+		return false
+	
+	var hist: Array = controller.player_history as Array
+	if hist.is_empty():
+		return false
+	
+	# Get an early point in history (near the start/entrance)
+	# Use the first cell or one of the first few
+	var spawn_cell: Vector2i = hist[0] if not hist.is_empty() else Vector2i.ZERO
+	
+	if not _presence_passable(spawn_cell):
+		# Try neighbors if spawn cell isn't passable
+		for n in controller.get_neighbors4(spawn_cell):
+			if _presence_passable(n):
+				spawn_cell = n
+				break
+	else:
+		return false
+	
+	cell = spawn_cell
+	_prev_cell = cell
+	activate()
+	return true
+
+# Optional convenience spawn
 # -----------------------------------------------------------------------------
 
 func _step() -> void:
 	if controller == null or not _active:
 		return
-
-	_ensure_initialized_from_world()
 	if cell == INVALID_CELL:
 		return
+	if controller.player == null:
+		return
 
-	var target := _choose_route_target()
-	if target == INVALID_CELL:
+	var p_cell := controller.world_to_cell(controller.player.global_position)
+
+	# If we're already on top of the player, nothing to do (catch check handles it).
+	if p_cell == cell:
 		return
 
 	var neighbors := controller.get_neighbors4(cell)
 	if neighbors.is_empty():
 		return
 
-	var next := _best_step_toward(neighbors, target, true)
-	if next == INVALID_CELL:
-		next = _best_step_toward(neighbors, target, false)
+	var next := _best_step_toward_player(neighbors, p_cell)
 	if next == INVALID_CELL:
 		return
 
@@ -231,67 +250,48 @@ func _step() -> void:
 	cell = next
 	_snap_to_cell()
 
-func _choose_route_target() -> Vector2i:
-	if controller == null:
-		return INVALID_CELL
-
-	var route := _route_history(controller.player_history)
-	if route.is_empty():
-		return INVALID_CELL
-
-	# Aim behind the player's current position on the route.
-	var idx := maxi(0, route.size() - 1 - behind_steps)
-	return route[idx]
-
-func _best_step_toward(neighbors: Array[Vector2i], target: Vector2i, avoid_backtrack: bool) -> Vector2i:
+func _best_step_toward_player(neighbors: Array[Vector2i], player_cell: Vector2i) -> Vector2i:
 	var best := INVALID_CELL
 	var best_d := 999999
 
+	# Randomize tie-breaks so the chase doesn't look “grid-perfect”.
 	var candidates := neighbors.duplicate()
 	candidates.shuffle()
 
-	for n in candidates:
-		if avoid_backtrack and n == _prev_cell:
+	for n: Vector2i in candidates:
+		# Avoid instant backtrack if there are other options.
+		if n == _prev_cell and candidates.size() > 1:
 			continue
 		if not _presence_passable(n):
 			continue
 
-		var d := _presence_distance(n, target)
+		var d := _presence_distance(n, player_cell)
 		if d < best_d:
 			best_d = d
 			best = n
 
+	# If we only found the backtrack, allow it.
+	if best == INVALID_CELL:
+		for n: Vector2i in candidates:
+			if not _presence_passable(n):
+				continue
+			var d := _presence_distance(n, player_cell)
+			if d < best_d:
+				best_d = d
+				best = n
+
 	return best
 
 # -----------------------------------------------------------------------------
-# Backtracking-collapsed "route" helper
-# -----------------------------------------------------------------------------
-
-func _route_history(raw: Array[Vector2i]) -> Array[Vector2i]:
-	# Collapse loops/backtracking into a single route stack.
-	# Example: A->B->C->B->D becomes A->B->D.
-	var route: Array[Vector2i] = []
-	var index: Dictionary = {}
-	for c in raw:
-		if index.has(c):
-			var keep: int = int(index[c]) + 1
-			for k in range(route.size() - 1, keep - 1, -1):
-				index.erase(route[k])
-				route.pop_back()
-		else:
-			index[c] = route.size()
-			route.append(c)
-	return route
-
-# -----------------------------------------------------------------------------
-# Door/passability helpers
+# Door + passability helpers
 # -----------------------------------------------------------------------------
 
 func _presence_passable(c: Vector2i) -> bool:
-	# Prefer controller's "passable for presence" if available (treats closed doors as passable).
-	if controller != null and controller.has_method("is_passable_for_presence"):
+	if controller == null:
+		return false
+	if controller.has_method("is_passable_for_presence"):
 		return bool(controller.call("is_passable_for_presence", c))
-	return controller != null and controller.is_walkable(c)
+	return controller.is_walkable(c)
 
 func _presence_distance(a: Vector2i, b: Vector2i) -> int:
 	if controller == null:
@@ -308,6 +308,20 @@ func _try_open_if_door(c: Vector2i) -> bool:
 			return bool(controller.call("try_open_door", c))
 	return false
 
+func _open_player_door_if_needed() -> void:
+	if controller == null or controller.player == null:
+		return
+
+	var p_cell := controller.world_to_cell(controller.player.global_position)
+	if p_cell == _last_player_cell:
+		return
+	_last_player_cell = p_cell
+
+	# “Open any doors he enters.”
+	_try_open_if_door(p_cell)
+
+# -----------------------------------------------------------------------------
+# Catch
 # -----------------------------------------------------------------------------
 
 func _check_catch() -> void:
@@ -320,8 +334,8 @@ func _check_catch() -> void:
 	if cell == INVALID_CELL:
 		return
 
-	var p_cell: Vector2i = controller.world_to_cell(controller.player.global_position)
-	var d: int = _presence_distance(cell, p_cell)
+	var p_cell := controller.world_to_cell(controller.player.global_position)
+	var d := _presence_distance(cell, p_cell)
 	if d <= catch_distance_cells:
 		_on_catch()
 
