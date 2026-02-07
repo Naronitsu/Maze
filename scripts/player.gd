@@ -1,37 +1,9 @@
-# Player.gd (tilemap-cell movement + FogOfWarRW looking + trail writing)
+# Player.gd (tilemap-cell movement + grid navigation)
 extends CharacterBody2D
 
-@export var step_time: float = 0.10
-@export var maze_path: NodePath            # assign: TileMap/MazeLayer
-@export var fog_path: NodePath             # assign: FogOfWarRW (optional; can be overridden)
-@export var allow_hold_to_repeat: bool = false
-
-@export var controller_path: NodePath
-@export var presence_path: NodePath
-
 @onready var anim: AnimatedSprite2D = $AnimatedSprite2D
-
-@export var close_eyes_action: StringName = &"close_eyes"
-@export var run_grace_time: float = 0.20
-
-@export var trail_history_max: int = 80
-@export var interact_action: StringName = &"interact"
-
-var trail_history: Array[Vector2i] = []
-
-var _run_grace: float = 0.0
-
-@onready var maze: DungeonMazeLayer = get_node(maze_path) as DungeonMazeLayer
-
-# Fog ref (prefer fog_path if set; fallback to your hard-coded overlay path)
-@onready var fog: FogOfWarRW = (
-	get_node(fog_path) as FogOfWarRW
-	if fog_path != NodePath()
-	else $"../Overlay/FogOfWarRW" as FogOfWarRW
-)
-
-@onready var controller: GameController = get_node_or_null(controller_path) as GameController
-@onready var presence: Node = (get_node(presence_path) if presence_path != NodePath() else null)
+@onready var maze: DungeonMazeLayer = get_node_or_null(NodePath("../TileMap/MazeLayer")) as DungeonMazeLayer
+@onready var controller: GameController = get_node_or_null(NodePath("../GameController")) as GameController
 
 var cell: Vector2i
 var facing: Vector2i = Vector2i.RIGHT
@@ -43,40 +15,51 @@ var _to: Vector2
 var _t: float = 0.0
 
 var _eyes_closed: bool = false
+var _run_grace: float = 0.0
+
+var trail_history: Array[Vector2i] = []
+
+var allow_hold_to_repeat: bool = false
+
+# Will be set by game.gd
+var vision_controller: VisionController = null
 
 func _ready() -> void:
-	if maze == null or maze.get_world_bounds().size == Vector2.ZERO:
+	# Core systems are now autoloads
+	
+	# Initialize position
+	if maze != null and maze.get_world_bounds().size != Vector2.ZERO:
 		cell = maze.local_to_map(maze.to_local(global_position))
 	else:
-		cell = maze.get_spawn_cell()
+		cell = maze.get_spawn_cell() if maze != null else Vector2i.ZERO
 
 	global_position = _cell_to_global(cell)
 
 	if controller != null:
 		controller.record_player_cell(cell)
 
-	# Initialize fog facing
-	_apply_facing_to_fog()
-
+	# Initialize vision facing (will be updated once vision_controller is set)
+	_update_vision_facing()
 	_play_state_anim("idle", facing)
 
 func _physics_process(delta: float) -> void:
+	# Only block input during level transitions, allow during intro/playing
+	if GameState.current == GameState.State.TRANSITIONING:
+		return
+	
 	# Close-eyes state can change even mid-step.
-	var want_closed: bool = Input.is_action_pressed(close_eyes_action)
+	var want_closed: bool = Input.is_action_pressed(GameConfig.player_close_eyes_action)
 	if want_closed != _eyes_closed:
 		_eyes_closed = want_closed
 		if _eyes_closed:
-			if fog != null:
-				fog.reset_fog()
-				fog.set_suspended(true)
-			if presence != null and presence.has_method("set_eyes_closed"):
-				presence.call("set_eyes_closed", true)
+			if vision_controller != null:
+				vision_controller.suspend_vision(true)
+			EventBus.player_closed_eyes.emit()
 		else:
-			if fog != null:
-				fog.set_suspended(false)
-				_apply_facing_to_fog()
-			if presence != null and presence.has_method("set_eyes_closed"):
-				presence.call("set_eyes_closed", false)
+			if vision_controller != null:
+				vision_controller.suspend_vision(false)
+				_update_vision_facing()
+			EventBus.player_opened_eyes.emit()
 
 	# Update looking direction FIRST (independent of movement)
 	_update_look_input()
@@ -89,7 +72,7 @@ func _physics_process(delta: float) -> void:
 	if _moving:
 		_play_state_anim("run", _move_facing)
 
-		_t += delta / step_time
+		_t += delta / GameConfig.player_step_time
 		if _t >= 1.0:
 			_t = 1.0
 
@@ -99,11 +82,9 @@ func _physics_process(delta: float) -> void:
 			_moving = false
 		return
 
-		# Interact: toggle door you're looking at
-	if Input.is_action_just_pressed(interact_action):
+	# Interact: toggle door you're looking at
+	if Input.is_action_just_pressed(GameConfig.player_interact_action):
 		_try_toggle_door()
-		# Optional: don't also move on the same frame if the key overlaps (usually it doesn't)
-		# return
 
 	# Not currently interpolating, but still within grace window -> keep run playing
 	if _run_grace > 0.0:
@@ -155,9 +136,9 @@ func _update_look_input() -> void:
 		_update_sprite_facing(facing)
 
 		if not _eyes_closed:
-			_apply_facing_to_fog()
-			if fog != null:
-				fog.reveal_now()
+			_update_vision_facing()
+			if vision_controller != null:
+				vision_controller.reveal_now()
 
 func _try_step(dir: Vector2i) -> void:
 	var target_cell: Vector2i = cell + dir
@@ -179,32 +160,36 @@ func _try_step(dir: Vector2i) -> void:
 	facing = dir
 	_update_sprite_facing(facing)
 	if not _eyes_closed:
-		_apply_facing_to_fog()
+		_update_vision_facing()
 
 	cell = target_cell
 
 	if controller != null:
 		controller.record_player_cell(cell)
 
+	# Emit player moved signal for other systems
+	var prev_cell = cell - dir
+	EventBus.player_moved.emit(prev_cell, cell)
+
 	trail_history.append(cell)
-	if trail_history.size() > trail_history_max:
+	if trail_history.size() > GameConfig.player_trail_history_max:
 		trail_history.pop_front()
 
 	_from = global_position
 	_to = target_pos
 	_t = 0.0
 	_moving = true
-	_run_grace = run_grace_time
+	_run_grace = GameConfig.player_run_grace_time
 
 	# Write trail for the Presence to follow
 	if controller != null:
-		var is_running := Input.is_action_pressed("run") # change if your run action differs
-		var amount := controller.trail_add_run if is_running else controller.trail_add_walk
+		var is_running := Input.is_action_pressed("run")
+		var amount := GameConfig.controller_trail_add_run if is_running else GameConfig.controller_trail_add_walk
 		controller.add_trail_at_world_pos(_to, amount)
 
-	# Optional: update fog after movement finishes (Fog also updates in _process, but this is snappy)
-	if fog != null and not _eyes_closed:
-		fog.reveal_now()
+	# Optional: update vision after movement finishes (FOV also updates in _process, but this is snappy)
+	if vision_controller != null and not _eyes_closed:
+		vision_controller.reveal_now()
 
 func reset_to_cell(new_cell: Vector2i) -> void:
 	cell = new_cell
@@ -214,20 +199,20 @@ func reset_to_cell(new_cell: Vector2i) -> void:
 	global_position = _cell_to_global(cell)
 
 	_update_sprite_facing(facing)
-	_apply_facing_to_fog()
-	if fog != null:
-		fog.reveal_now()
+	_update_vision_facing()
+	if vision_controller != null:
+		vision_controller.reveal_now()
 
 	_play_state_anim("idle", facing)
 
 func _cell_to_global(c: Vector2i) -> Vector2:
 	return maze.to_global(maze.map_to_local(c))
 
-func _apply_facing_to_fog() -> void:
-	if fog == null:
+func _update_vision_facing() -> void:
+	if vision_controller == null:
 		return
-	# Fog accepts Vector2 or Vector2i; pass Vector2i directly if your fog uses the flexible setter.
-	fog.set_facing_cardinal(facing)
+	# Update FOV direction through centralized vision controller
+	vision_controller.update_facing(facing)
 
 func _update_sprite_facing(dir: Vector2i) -> void:
 	# Sideways animations are authored as "moving right"
@@ -238,15 +223,15 @@ func _update_sprite_facing(dir: Vector2i) -> void:
 	else:
 		anim.flip_h = false
 
-func _play_anim(name: StringName) -> void:
+func _play_anim(p_name: StringName) -> void:
 	if anim == null:
 		return
 	if anim.sprite_frames == null:
 		return
-	if not anim.sprite_frames.has_animation(name):
+	if not anim.sprite_frames.has_animation(p_name):
 		return
-	if anim.animation != name or not anim.is_playing():
-		anim.play(name)
+	if anim.animation != p_name or not anim.is_playing():
+		anim.play(p_name)
 
 func _play_state_anim(state: String, dir: Vector2i) -> void:
 	var a := _anim_name_for(state, dir)

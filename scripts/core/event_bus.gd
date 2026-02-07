@@ -1,0 +1,33 @@
+extends Node
+
+## Central event hub for all game communications.
+## Use this instead of direct method calls to decouple systems.
+
+# Level lifecycle
+signal level_started(spawn_cell: Vector2i, maze: DungeonMazeLayer)
+signal level_transitioning
+signal level_ended
+signal game_over
+
+# Player events
+signal player_moved(from_cell: Vector2i, to_cell: Vector2i)
+signal player_closed_eyes
+signal player_opened_eyes
+
+# Presence events
+signal presence_should_spawn(player_history: Array)
+signal presence_spawned(cell: Vector2i)
+signal presence_moved(from_cell: Vector2i, to_cell: Vector2i)
+signal presence_caught_player(presence_cell: Vector2i, player_cell: Vector2i)
+signal presence_flicker  # Visual effect: screen flicker
+
+# Door events
+signal door_opened(cell: Vector2i)
+signal door_closed(cell: Vector2i)
+signal door_interacted(cell: Vector2i)
+
+# Game state events
+signal state_changed(from_state: String, to_state: String)
+
+func _ready() -> void:
+	add_to_group("persist")  # Singleton pattern - survives scene changes

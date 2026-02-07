@@ -1,35 +1,98 @@
 extends Node2D
 
-@export var max_levels_before_reset: int = 10
+# Use SceneReferences singleton instead of @onready decorators
+var maze: DungeonMazeLayer
+var presence: PresenceRW
+var controller: GameController
+var cam: Camera2D
+var player: CharacterBody2D
+var fog: FogOfWarRW
+var transition_controller: TransitionController
+var vision_controller: VisionController
 
-# Door transition tuning
-@export var door_pause_time: float = 0.25
-@export var door_fade_time: float = 0.20
-@export var door_text_hold_time: float = 0.8
-@export var door_message_time: float = 1.2
-@export var door_message: String = "there is a monster behind you, run"
-
-# Presence pacing / spawning
-@export var presence_head_start_time: float = 2.5
-@export var presence_min_spawn_dist_cells: int = 12
-@export var presence_min_history_steps: int = 8
-@export var presence_wait_history_max_seconds: float = 6.0
-
-@onready var maze: DungeonMazeLayer = $TileMap/MazeLayer
-@onready var presence: PresenceRW = $PresenceRW
-@onready var controller: Node = $GameController
-@onready var cam: Camera2D = $Player/Camera
-@onready var player: CharacterBody2D = $Player
-
-@onready var fog: FogOfWarRW = $Overlay/FogOfWarRW
-
-var _transitioning: bool = false
-var _intro_running: bool = false
+var _is_transitioning: bool = false
+var _ready_complete: bool = false
 
 func _ready() -> void:
+	print("[Game] _ready() started")
+	
+	# Initialize scene references
+	if not SceneReferences.validate_all(self):
+		push_error("[Game] Failed to validate scene references")
+		return
+	
+	# Cache references from SceneReferences
+	maze = SceneReferences.maze
+	presence = SceneReferences.presence
+	controller = SceneReferences.controller
+	cam = SceneReferences.camera
+	player = SceneReferences.player
+	fog = SceneReferences.fog
+	
+	# Create and initialize transition controller
+	transition_controller = TransitionController.new()
+	transition_controller.game = self
+	transition_controller.maze = maze
+	transition_controller.controller = controller
+	transition_controller.presence = presence
+	transition_controller.fog = fog
+	transition_controller.ui_layer = SceneReferences.ui_layer
+	transition_controller.level_intro_panel = SceneReferences.level_intro_panel
+	transition_controller.level_intro_text = SceneReferences.level_intro_text
+	add_child(transition_controller)
+	
+	# Wire fog to player for vision updates
+	if fog and fog.has_method("set_player_and_presence"):
+		fog.call("set_player_and_presence", player, presence)
+	
+	# Initialize vision controller
+	vision_controller = VisionController.new()
+	if vision_controller.initialize(player, cam, fog, presence):
+		add_child(vision_controller)
+		# Wire vision controller to player for facing updates
+		player.vision_controller = vision_controller
+		print("[Game] VisionController initialized")
+	else:
+		push_error("[Game] Failed to initialize VisionController")
+	
+	# Wire vision_controller and fog to heartbeat_ui if it exists
+	var heartbeat_ui = get_node_or_null("HeartbeatUI")
+	if heartbeat_ui != null:
+		heartbeat_ui.vision_controller = vision_controller
+		heartbeat_ui.fog = fog
+	
+	# Check if loading from save
+	var save_data = SaveManager.current_save_data
+	print("[Game] Save data: ", save_data)
+	var is_continuing = save_data.has("level") and save_data.has("run")
+	print("[Game] Is continuing: ", is_continuing)
+	
+	if is_continuing:
+		# Load saved level/run/position/seed
+		maze.level = save_data.get("level", 1)
+		maze.run = save_data.get("run", 1)
+		maze.rng_seed = save_data.get("maze_seed", 12345)
+		var saved_cell: Vector2i = save_data.get("player_cell", Vector2i.ZERO)
+		print("[Game] Loading saved game: Level %d, Run %d, Seed: %d, Position: %s" % [maze.level, maze.run, maze.rng_seed, saved_cell])
+	else:
+		# New game - generate random seed
+		maze.rng_seed = randi()
+		print("[Game] New game with random seed: %d" % maze.rng_seed)
+	
 	# Generate + spawn first level
-	_start_new_level(maze.generate())
-	_after_maze_generated()
+	print("[Game] Generating maze...")
+	var maze_info = maze.generate()
+	
+	# Override spawn position if continuing from save
+	if is_continuing:
+		var saved_cell: Vector2i = save_data.get("player_cell", Vector2i.ZERO)
+		if saved_cell != Vector2i.ZERO:
+			maze_info["spawn_override"] = saved_cell
+	
+	_start_new_level(maze_info)
+	print("[Game] Waiting for maze setup...")
+	await _after_maze_generated()
+	print("[Game] Maze generated")
 
 	# Wire refs for systems that expect them.
 	if controller is GameController:
@@ -39,120 +102,95 @@ func _ready() -> void:
 	if presence != null:
 		presence.set_process(false)
 
-	# Show intro at game start
-	_level_intro_show_instant(door_message)
-	await get_tree().create_timer(door_text_hold_time).timeout
-	await _level_intro_fade_out(door_fade_time)
+	# Skip intro if continuing from save
+	if is_continuing:
+		print("[Game] Skipping intro for continue game")
+		GameState.current = GameState.State.PLAYING
+		EventBus.level_started.emit(player.cell if "cell" in player else Vector2i.ZERO, maze)
+		print("[Game] level_started signal emitted")
+		_ready_complete = true
+		return
 
-	# Head start time
-	await get_tree().create_timer(presence_head_start_time).timeout
+	# Show intro at game start (new game only) - use transition controller
+	print("[Game] Showing intro sequence for new game")
+	await _show_intro_sequence()
+	
+	# Set game state to playing after intro
+	print("[Game] Intro complete, setting GameState to PLAYING")
+	GameState.current = GameState.State.PLAYING
+	
+	# Emit level_started - PresenceSpawnManager will handle spawning
+	EventBus.level_started.emit(player.cell if "cell" in player else Vector2i.ZERO, maze)
+	print("[Game] level_started signal emitted")
+	_ready_complete = true
 
-	# Also wait until history exists (player actually moved)
-	await _wait_for_player_history(presence_min_history_steps, presence_wait_history_max_seconds)
-
-	# Spawn monster behind if possible, else fallback far
-	_spawn_presence_behind_or_fallback()
+func _input(event: InputEvent) -> void:
+	# Return to main menu on ESC (but not during initialization)
+	if not _ready_complete:
+		return
+	if event.is_action_pressed("ui_cancel"):
+		_return_to_main_menu()
 
 func _physics_process(_delta: float) -> void:
-	if _transitioning:
+	if _is_transitioning:
 		return
 	if not ("cell" in player):
 		return
 
 	if (player.cell as Vector2i) == maze.exit_cell:
-		_transitioning = true
-		call_deferred("_door_transition_and_advance")
+		print("[Game] Player reached exit at %s" % player.cell)
+		_is_transitioning = true
+		GameState.current = GameState.State.TRANSITIONING
+		EventBus.level_transitioning.emit()
+		# Transition controller listens to this signal
+		if transition_controller != null:
+			transition_controller.start_transition()
 
-func _door_transition_and_advance() -> void:
-	# Freeze player in place (prevents extra input during transition)
-	if player != null and player.has_method("reset_to_cell") and ("cell" in player):
-		player.reset_to_cell(player.cell)
+# ========================================
+# Intro Sequence
+# ========================================
 
-	# Pause PresenceRW during transition
-	if presence != null:
-		presence.set_process(false)
-
-	await get_tree().create_timer(door_pause_time).timeout
-
-	await _level_intro_fade_in(door_message, door_fade_time)
-	await get_tree().create_timer(door_text_hold_time).timeout
-
-	# Advance difficulty
-	if maze.level >= max_levels_before_reset:
-		maze.advance_run()
-	else:
-		maze.advance_level()
-
-	# ✅ ACTUALLY REGENERATE THE MAZE
-	var info: Dictionary = maze.generate()
-	_start_new_level(info)
-
-	await get_tree().process_frame
-	await _level_intro_fade_out(door_fade_time)
-
-	# Wait one frame for player/fog/camera to settle and for history to contain new-cell entries
-	await get_tree().process_frame
-
-	# Head start again on every new level
-	await get_tree().create_timer(presence_head_start_time).timeout
-
-	# Wait until we actually have enough breadcrumbs
-	await _wait_for_player_history(
-		presence_min_spawn_dist_cells + 1,
-		presence_wait_history_max_seconds
-	)
-
-	_spawn_presence_behind_or_fallback()
-	_transitioning = false
-
-# -----------------------------
-# Presence spawn helpers
-# -----------------------------
-func _wait_for_player_history(min_len: int, max_seconds: float) -> void:
-	if controller == null:
+func _show_intro_sequence() -> void:
+	"""Show intro text and fade out for new game"""
+	if SceneReferences.level_intro_panel == null or SceneReferences.level_intro_text == null:
 		return
-	var waited := 0.0
-	while waited < max_seconds:
-		var hist_v: Variant = controller.get("player_history")
-		if typeof(hist_v) == TYPE_ARRAY and (hist_v as Array).size() >= min_len:
-			return
-		await get_tree().process_frame
-		waited += get_process_delta_time()
+	
+	var panel = SceneReferences.level_intro_panel
+	var label = SceneReferences.level_intro_text
+	
+	# Show text instantly
+	panel.visible = true
+	panel.modulate = Color(1, 1, 1, 1)
+	label.visible = true
+	label.text = GameConfig.door_message
+	label.modulate = Color(1, 1, 1, 1)
+	
+	GameState.current = GameState.State.PAUSED
+	
+	# Hold text
+	await get_tree().create_timer(GameConfig.door_text_hold_time).timeout
+	
+	# Fade out
+	var t := create_tween()
+	t.tween_property(label, "modulate:a", 0.0, GameConfig.door_fade_time)
+	await t.finished
+	
+	var t2 := create_tween()
+	t2.tween_property(panel, "modulate:a", 0.0, GameConfig.door_fade_time)
+	await t2.finished
+	
+	panel.visible = false
 
-func _spawn_presence_behind_or_fallback() -> void:
-	if presence == null or controller == null:
-		return
-
-	presence.set_process(false)
-
-	# Wait until we have enough history OR we hit the timeout
-	await _wait_for_player_history(presence_min_spawn_dist_cells + 1, presence_wait_history_max_seconds)
-
-	var ok := false
-	if presence.has_method("respawn_from_history"):
-		ok = presence.respawn_from_history()
-
-	# New behind-biased fallback (room start / early history)
-	if not ok and presence.has_method("respawn_from_room_start"):
-		ok = presence.respawn_from_room_start()
-
-	# Absolute fallback
-	if not ok and presence.has_method("respawn_far_from_player"):
-		presence.respawn_far_from_player(presence_min_spawn_dist_cells)
-		ok = true
-
-	# If you hide it anywhere, make sure it’s visible
-	presence.visible = true
-	presence.set_process(ok)
-
-# -----------------------------
+# ========================================
 # Level / player setup
-# -----------------------------
+# ========================================
 func _start_new_level(_info: Dictionary) -> void:
 	# New maze means old history/trail are invalid.
 	if controller is GameController:
 		(controller as GameController).reset_for_new_level()
-	var spawn: Vector2i = maze.get_spawn_cell()
+	
+	# Use spawn override if provided (from save file)
+	var spawn: Vector2i = _info.get("spawn_override", maze.get_spawn_cell())
 
 	# Keep player script synced
 	if "maze_path" in player:
@@ -172,62 +210,14 @@ func _start_new_level(_info: Dictionary) -> void:
 		gc.record_player_cell(spawn)
 
 	# Fog should match new maze size and reset per level
-	if fog and fog.has_method("rebuild_for_current_maze"):
-		fog.call_deferred("rebuild_for_current_maze")
-	if fog and fog.has_method("reveal_now"):
-		fog.call_deferred("reveal_now")
+	# But defer fog updates during transition to avoid visual flash
+	if not _is_transitioning:
+		if fog and fog.has_method("rebuild_for_current_maze"):
+			fog.call_deferred("rebuild_for_current_maze")
+		if fog and fog.has_method("reveal_now"):
+			fog.call_deferred("reveal_now")
 
 	_after_maze_generated()
-
-func play_presence_sound(pos: Vector2) -> void:
-	var a: AudioStreamPlayer2D = $SubViewport/PresenceAudio
-	a.global_position = pos
-	a.pitch_scale = randf_range(0.92, 1.08)
-	a.stop()
-	a.play()
-
-var _is_flickering: bool = false
-
-func presence_flicker() -> void:
-	if _is_flickering:
-		return
-	if not has_node("CanvasModulate"):
-		return
-
-	_is_flickering = true
-
-	var cm: CanvasModulate = $SubViewport/CanvasModulate
-	var old: Color = cm.color
-	var blackout: Color = Color(old.r * 0.05, old.g * 0.05, old.b * 0.05, 1.0)
-
-	cm.color = blackout
-	await get_tree().create_timer(0.45).timeout
-
-	cm.color = old
-	_is_flickering = false
-
-var _blackout_running: bool = false
-
-func presence_blackout(duration: float = 0.45, fade: float = 0.08) -> void:
-	if _blackout_running:
-		return
-	_blackout_running = true
-	if not has_node("Overlay/Blackout"):
-		_blackout_running = false
-		return
-
-	var rect: ColorRect = $SubViewport/Overlay/Blackout
-	rect.visible = true
-	rect.modulate.a = 0.0
-
-	var t := create_tween()
-	t.tween_property(rect, "modulate:a", 1.0, fade)
-	t.tween_interval(max(0.0, duration))
-	t.tween_property(rect, "modulate:a", 0.0, fade)
-	await t.finished
-
-	rect.visible = false
-	_blackout_running = false
 
 func _after_maze_generated() -> void:
 	var bounds: Rect2 = maze.get_world_bounds()
@@ -237,59 +227,19 @@ func _after_maze_generated() -> void:
 	cam.limit_right  = int(ceil(bounds.position.x + bounds.size.x))
 	cam.limit_bottom = int(ceil(bounds.position.y + bounds.size.y))
 	
-	await fog.reset_fog_for_level()
+	if fog and fog.has_method("reset_fog_for_level"):
+		fog.reset_fog_for_level()
+		# Wait a frame for fog to settle
+		await get_tree().process_frame
 
-func _level_intro_fade_in(msg: String, fade_time: float) -> void:
-	if _intro_running:
-		return
-	_intro_running = true
-
-	var panel: CanvasItem = $UI/LevelIntro
-	var label: Label = $UI/LevelIntro/Text
-
-	label.text = msg
-	panel.visible = true
-	panel.modulate.a = 0.0
-
-	if has_method("set_player_input_enabled"):
-		call("set_player_input_enabled", false)
-
-	var t := create_tween()
-	t.tween_property(panel, "modulate:a", 1.0, fade_time)
-	await t.finished
-
-func _level_intro_fade_out(fade_time: float) -> void:
-	var panel: CanvasItem = $UI/LevelIntro
-	if panel == null:
-		_intro_running = false
-		return
-
-	var t := create_tween()
-	t.tween_property(panel, "modulate:a", 0.0, fade_time)
-	await t.finished
-
-	panel.visible = false
-
-	if has_method("set_player_input_enabled"):
-		call("set_player_input_enabled", true)
-
-	_intro_running = false
+func _return_to_main_menu() -> void:
+	print("[Game] Returning to main menu")
+	# Save current progress before leaving
+	if maze and "level" in maze and "run" in maze:
+		SaveManager.save_game(maze.level, maze.run, player.cell if "cell" in player else Vector2i.ZERO, maze.rng_seed)
+	
+	get_tree().change_scene_to_file("res://scenes/main_menu.tscn")
 
 func set_player_input_enabled(v: bool) -> void:
 	if player != null:
 		player.set_physics_process(v)
-
-func _level_intro_show_instant(msg: String) -> void:
-	if _intro_running:
-		return
-	_intro_running = true
-
-	var panel: CanvasItem = $UI/LevelIntro
-	var label: Label = $UI/LevelIntro/Text
-
-	label.text = msg
-	panel.visible = true
-	panel.modulate.a = 1.0
-
-	if has_method("set_player_input_enabled"):
-		call("set_player_input_enabled", false)

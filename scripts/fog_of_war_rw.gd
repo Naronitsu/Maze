@@ -5,27 +5,11 @@ class_name FogOfWarRW
 @export var camera_path: NodePath
 
 @export var wall_mask: int = 1 << 0
-
-# Current vision (world units)
-@export var visionRange: float = 128.0
-@export var half_angle_deg: float = 35.0
-@export var rays: int = 81
-@export var halo_rays: int = 64
-
-# Halo (world units)
-@export var halo_world_radius: float = 48.0
-@export var halo_segments: int = 24
-
-@export var darkness_alpha: float = 1.0
-@export var explored_alpha: float = 0.60
-@export var enable_memory: bool = true
-
+@export var layer_path: NodePath
 @export var show_mask_preview: bool = false
 
 @onready var player: Node2D = get_node(player_path)
 @onready var cam: Camera2D = get_node(camera_path) as Camera2D
-
-@export var layer_path: NodePath
 @onready var layer: TileMapLayer = get_node(layer_path)
 
 # Current (screen-sized) mask viewport
@@ -157,16 +141,16 @@ func _setup_darkness_shader() -> void:
 
 	mat.set_shader_parameter("current_tex", viewport.get_texture())
 	mat.set_shader_parameter("explored_tex", explored_viewport.get_texture())
-	mat.set_shader_parameter("darkness_alpha", darkness_alpha)
-	mat.set_shader_parameter("explored_alpha", explored_alpha)
-	mat.set_shader_parameter("enable_memory", enable_memory)
+	mat.set_shader_parameter("darkness_alpha", GameConfig.fog_darkness_alpha)
+	mat.set_shader_parameter("explored_alpha", GameConfig.fog_explored_alpha)
+	mat.set_shader_parameter("enable_memory", GameConfig.fog_enable_memory)
 
 func _push_shader_uniforms() -> void:
 	var mat := darkness.material as ShaderMaterial
 	if mat == null:
 		return
 
-	mat.set_shader_parameter("enable_memory", enable_memory)
+	mat.set_shader_parameter("enable_memory", GameConfig.fog_enable_memory)
 
 	var vp_size: Vector2 = get_viewport().get_visible_rect().size
 	var zoom: Vector2 = cam.zoom
@@ -193,17 +177,17 @@ func _update_masks() -> void:
 	# CURRENT MASK (screen-space): cone + halo
 	var origin_screen: Vector2 = _world_to_fog_local(player.global_position)
 
-	var halo_radius_screen := halo_world_radius * cam.zoom.x
+	var halo_radius_screen := GameConfig.fog_halo_world_radius * cam.zoom.x
 	halo_poly.polygon = _make_circle(origin_screen, halo_radius_screen)
 
 	var cone_screen := PackedVector2Array()
 	cone_screen.append(origin_screen)
 
 	var base: float = facing.angle()
-	var half: float = deg_to_rad(half_angle_deg)
+	var half: float = deg_to_rad(GameConfig.fog_half_angle_deg)
 
-	for i in range(rays):
-		var t := 0.0 if rays == 1 else float(i) / float(rays - 1)
+	for i in range(GameConfig.fog_rays):
+		var t := 0.0 if GameConfig.fog_rays == 1 else float(i) / float(GameConfig.fog_rays - 1)
 		var a: float = lerp(-half, half, t) + base
 		var dir := Vector2(cos(a), sin(a))
 		cone_screen.append(_cast_ray_to_screen(dir))
@@ -211,11 +195,11 @@ func _update_masks() -> void:
 	vision_poly.polygon = cone_screen
 
 	# EXPLORED MASK (memory): ONLY cone (no halo)
-	if enable_memory:
+	if GameConfig.fog_enable_memory:
 		var origin_exp: Vector2 = player.global_position - maze_origin_world
 
 		# Occluded halo memory (does NOT see through walls)
-		var halo_world_pts := _build_occluded_halo_world(player.global_position, halo_world_radius, halo_rays)
+		var halo_world_pts := _build_occluded_halo_world(player.global_position, GameConfig.fog_halo_world_radius, GameConfig.fog_halo_rays)
 
 		var halo_exp := PackedVector2Array()
 		for p in halo_world_pts:
@@ -227,8 +211,8 @@ func _update_masks() -> void:
 		var cone_exp := PackedVector2Array()
 		cone_exp.append(origin_exp)
 
-		for i in range(rays):
-			var t := 0.0 if rays == 1 else float(i) / float(rays - 1)
+		for i in range(GameConfig.fog_rays):
+			var t := 0.0 if GameConfig.fog_rays == 1 else float(i) / float(GameConfig.fog_rays - 1)
 			var a: float = lerp(-half, half, t) + base
 			var dir := Vector2(cos(a), sin(a))
 			var end_world := _cast_ray_to_world(dir)
@@ -238,7 +222,7 @@ func _update_masks() -> void:
 
 func _cast_ray_to_world(dir: Vector2) -> Vector2:
 	var origin_world: Vector2 = player.global_position + dir * 6.0
-	var to_world: Vector2 = origin_world + dir * visionRange
+	var to_world: Vector2 = origin_world + dir * GameConfig.fog_vision_range
 
 	var query := PhysicsRayQueryParameters2D.create(origin_world, to_world)
 	query.collision_mask = wall_mask
@@ -261,7 +245,7 @@ func _world_to_fog_local(world_pos: Vector2) -> Vector2:
 
 func _make_circle(center: Vector2, radius: float) -> PackedVector2Array:
 	var pts := PackedVector2Array()
-	var n: int = max(8, halo_segments)
+	var n: int = max(8, GameConfig.fog_halo_segments)
 	for i in range(n):
 		var a := TAU * float(i) / float(n)
 		pts.append(center + Vector2(cos(a), sin(a)) * radius)
