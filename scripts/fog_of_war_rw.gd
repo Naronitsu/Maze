@@ -27,6 +27,9 @@ class_name FogOfWarRW
 
 var facing: Vector2 = Vector2.RIGHT
 var suspended: bool = false
+var _awaiting_level_start: bool = true
+var _pending_reveal: bool = false
+var _explored_base: Sprite2D
 
 var maze_origin_world: Vector2
 var maze_size_world: Vector2
@@ -37,12 +40,18 @@ const MASK_LAYER := 1 << MASK_LAYER_BIT
 
 func _ready() -> void:
 	set_anchors_preset(Control.PRESET_FULL_RECT)
+	# Keep fog frozen until the level is fully ready.
+	suspended = true
+	_awaiting_level_start = true
+	EventBus.level_started.connect(_on_level_started)
+	EventBus.level_transitioning.connect(_on_level_transitioning)
 
 	await _wait_for_tiles()
 
 	_compute_layer_bounds()
 	_setup_viewports()
 	_setup_darkness_shader()
+	_ensure_explored_base()
 
 	# Make mask "ink" explicitly white
 	vision_poly.color = Color(1, 1, 1, 1)
@@ -56,6 +65,20 @@ func _ready() -> void:
 	if mask_preview != null:
 		mask_preview.visible = show_mask_preview
 		mask_preview.texture = explored_viewport.get_texture()
+
+	# If level_started already fired while we were initializing, resume now.
+	if _pending_reveal and not _awaiting_level_start:
+		_resume_after_level_start()
+
+func _on_level_started(_spawn_cell: Vector2i, _maze: DungeonMazeLayer) -> void:
+	_awaiting_level_start = false
+	_pending_reveal = true
+	_resume_after_level_start()
+
+func _on_level_transitioning() -> void:
+	suspended = true
+	_awaiting_level_start = true
+	_pending_reveal = false
 
 func _process(_dt: float) -> void:
 	_push_shader_uniforms()
@@ -169,7 +192,7 @@ func _push_shader_uniforms() -> void:
 # -------------------------
 
 func _update_masks() -> void:
-	if suspended:
+	if suspended or _awaiting_level_start:
 		vision_poly.polygon = PackedVector2Array()
 		halo_poly.polygon = PackedVector2Array()
 		return
@@ -269,8 +292,8 @@ func _clear_explored_once() -> void:
 	explored_viewport.transparent_bg = true
 
 	explored_viewport.render_target_clear_mode = SubViewport.CLEAR_MODE_ALWAYS
-	await get_tree().process_frame
-	await get_tree().process_frame
+	for _i in range(4):
+		await get_tree().process_frame
 	explored_viewport.render_target_clear_mode = SubViewport.CLEAR_MODE_NEVER
 
 func _build_occluded_halo_world(origin_world: Vector2, radius: float, n_rays: int) -> PackedVector2Array:
@@ -306,3 +329,76 @@ func reset_fog_for_level() -> void:
 	# Also clear the polygons so you don't stamp a frame of junk
 	explored_vision.polygon = PackedVector2Array()
 	explored_halo.polygon = PackedVector2Array()
+	vision_poly.polygon = PackedVector2Array()
+	halo_poly.polygon = PackedVector2Array()
+
+	# Clear any restored base texture for the new level
+	if _explored_base != null:
+		_explored_base.texture = null
+
+func save_explored_to_file(path: String) -> Vector2i:
+	if explored_viewport == null:
+		return Vector2i.ZERO
+	var tex := explored_viewport.get_texture()
+	if tex == null:
+		return Vector2i.ZERO
+	var img := tex.get_image()
+	if img == null or img.is_empty():
+		return Vector2i.ZERO
+	var err := img.save_png(path)
+	if err != OK:
+		push_warning("[FogOfWarRW] Failed to save explored fog: %s" % path)
+		return Vector2i.ZERO
+	return Vector2i(img.get_width(), img.get_height())
+
+func load_explored_from_file(path: String, expected_size: Vector2i = Vector2i.ZERO) -> bool:
+	if path == "":
+		return false
+	var img := Image.new()
+	var err := img.load(path)
+	if err != OK:
+		push_warning("[FogOfWarRW] Failed to load explored fog: %s" % path)
+		return false
+	if expected_size != Vector2i.ZERO:
+		if img.get_width() != expected_size.x or img.get_height() != expected_size.y:
+			push_warning("[FogOfWarRW] Explored fog size mismatch; ignoring save")
+			return false
+	_ensure_explored_base()
+	_explored_base.texture = ImageTexture.create_from_image(img)
+	return true
+
+func _ensure_explored_base() -> void:
+	if _explored_base != null and is_instance_valid(_explored_base):
+		return
+	var root := explored_viewport.get_node_or_null("MaskRoot") as Node2D
+	if root == null:
+		return
+	var existing := root.get_node_or_null("ExploredBase") as Sprite2D
+	if existing != null:
+		_explored_base = existing
+		_explored_base.centered = false
+		_explored_base.position = Vector2.ZERO
+		_explored_base.z_index = -10
+		return
+	_explored_base = Sprite2D.new()
+	_explored_base.name = "ExploredBase"
+	_explored_base.centered = false
+	_explored_base.position = Vector2.ZERO
+	_explored_base.z_index = -10
+	root.add_child(_explored_base)
+
+func _resume_after_level_start() -> void:
+	if not _pending_reveal:
+		return
+
+	# Wait for tiles + a couple frames so collisions and viewports are stable.
+	await _wait_for_tiles()
+	await get_tree().process_frame
+	await get_tree().process_frame
+
+	if _awaiting_level_start:
+		return
+
+	suspended = false
+	_pending_reveal = false
+	reveal_now()
