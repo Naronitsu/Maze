@@ -15,6 +15,9 @@ signal door_closed(cell: Vector2i)
 # Optional cap behavior for advance_run()
 @export var runs_per_level: int = 0 # 0 = never shows level progression, just increments run
 
+# ---- Debug ----
+@export var debug_dump_on_fail: bool = false
+
 # ---- TileSet atlas info ----
 @export var source_id: int = 0
 
