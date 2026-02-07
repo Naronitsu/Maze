@@ -1,37 +1,14 @@
 extends CanvasLayer
 
-@export var presence_path: NodePath
-@onready var presence: Node = get_node_or_null(presence_path)
 @onready var heartbeat_audio: AudioStreamPlayer2D = $HeartbeatAudio
 @onready var veins: TextureRect = $Veins
 
+# Will be set by game.gd
+var vision_controller: VisionController = null
+var fog: Node = null
+
 var _veins_tween: Tween
 var _cam_tween: Tween
-
-# Beat timing
-@export var bpm_min: float = 48.0
-@export var bpm_max: float = 140.0
-
-# Veins strength (visibility)
-@export var veins_alpha_min: float = 0.00
-@export var veins_alpha_max: float = 0.55
-
-# Optional persistent pressure between beats (keep small)
-@export var veins_base_alpha_max: float = 0.18
-
-# Veins "growth" toward the center
-@export var veins_scale_min: float = 1.00
-@export var veins_scale_max: float = 1.10
-
-# Two-beat shape (lub-dub)
-@export var dub_delay: float = 0.12
-@export var beat_fade_in: float = 0.05
-@export var beat_fade_out: float = 0.12
-
-# Camera thump tuning
-@export var cam_thump_zoom: float = 0.985
-@export var cam_thump_in: float = 0.03
-@export var cam_thump_out: float = 0.10
 
 var _timer: float = 0.0
 var _period: float = 1.0
@@ -51,18 +28,16 @@ func _process(delta: float) -> void:
 		_timer -= _period
 		_pulse_once()
 
-# NEW: pressure from PresenceRW
+# NEW: pressure from VisionController
 func _get_pressure01() -> float:
-	if presence == null:
+	if vision_controller == null:
 		return 0.0
-	if presence.has_method("get_pressure01"):
-		return clampf(float(presence.call("get_pressure01")), 0.0, 1.0)
-	return 0.0
+	return clampf(vision_controller.get_pressure01(), 0.0, 1.0)
 
 func _update_period() -> void:
 	var a := _get_pressure01()
 	# calmer early, intense late
-	var bpm := lerpf(bpm_min, bpm_max, a * a)
+	var bpm := lerpf(GameConfig.heartbeat_bpm_min, GameConfig.heartbeat_bpm_max, a * a)
 	_period = 60.0 / maxf(1.0, bpm)
 
 func _apply_base_pressure() -> void:
@@ -70,7 +45,7 @@ func _apply_base_pressure() -> void:
 		return
 
 	var a := _get_pressure01()
-	var base := lerpf(0.0, veins_base_alpha_max, a * a)
+	var base := lerpf(0.0, GameConfig.heartbeat_veins_base_alpha_max, a * a)
 
 	if veins.modulate.a < base:
 		veins.modulate.a = base
@@ -81,8 +56,8 @@ func _pulse_once() -> void:
 
 	var a := _get_pressure01()
 
-	var peak_alpha := lerpf(veins_alpha_min, veins_alpha_max, a * a)
-	var peak_scale := lerpf(veins_scale_min, veins_scale_max, a * a)
+	var peak_alpha := lerpf(GameConfig.heartbeat_veins_alpha_min, GameConfig.heartbeat_veins_alpha_max, a * a)
+	var peak_scale := lerpf(GameConfig.heartbeat_veins_scale_min, GameConfig.heartbeat_veins_scale_max, a * a)
 	var dub_alpha := peak_alpha * 0.65
 	var dub_scale := lerpf(1.0, peak_scale, 0.65)
 
@@ -99,30 +74,30 @@ func _pulse_once() -> void:
 	_veins_tween.set_ease(Tween.EASE_OUT)
 
 	# LUB
-	_veins_tween.tween_property(veins, "modulate:a", peak_alpha, beat_fade_in)
-	_veins_tween.parallel().tween_property(veins, "scale", Vector2(peak_scale, peak_scale), beat_fade_in)
+	_veins_tween.tween_property(veins, "modulate:a", peak_alpha, GameConfig.heartbeat_beat_fade_in)
+	_veins_tween.parallel().tween_property(veins, "scale", Vector2(peak_scale, peak_scale), GameConfig.heartbeat_beat_fade_in)
 
-	_veins_tween.tween_property(veins, "modulate:a", 0.0, beat_fade_out)
-	_veins_tween.parallel().tween_property(veins, "scale", Vector2.ONE, beat_fade_out)
+	_veins_tween.tween_property(veins, "modulate:a", 0.0, GameConfig.heartbeat_beat_fade_out)
+	_veins_tween.parallel().tween_property(veins, "scale", Vector2.ONE, GameConfig.heartbeat_beat_fade_out)
 
 	# DUB
-	_veins_tween.tween_interval(dub_delay)
-	_veins_tween.tween_property(veins, "modulate:a", dub_alpha, beat_fade_in)
-	_veins_tween.parallel().tween_property(veins, "scale", Vector2(dub_scale, dub_scale), beat_fade_in)
+	_veins_tween.tween_interval(GameConfig.heartbeat_dub_delay)
+	_veins_tween.tween_property(veins, "modulate:a", dub_alpha, GameConfig.heartbeat_beat_fade_in)
+	_veins_tween.parallel().tween_property(veins, "scale", Vector2(dub_scale, dub_scale), GameConfig.heartbeat_beat_fade_in)
 
-	_veins_tween.tween_property(veins, "modulate:a", 0.0, beat_fade_out)
-	_veins_tween.parallel().tween_property(veins, "scale", Vector2.ONE, beat_fade_out)
+	_veins_tween.tween_property(veins, "modulate:a", 0.0, GameConfig.heartbeat_beat_fade_out)
+	_veins_tween.parallel().tween_property(veins, "scale", Vector2.ONE, GameConfig.heartbeat_beat_fade_out)
 
 	_play_heartbeat()
 
 	var cam := get_viewport().get_camera_2d()
 	if cam:
 		var z0 := cam.zoom
-		var z1 := z0 * Vector2(cam_thump_zoom, cam_thump_zoom)
+		var z1 := z0 * Vector2(GameConfig.heartbeat_cam_thump_zoom, GameConfig.heartbeat_cam_thump_zoom)
 
 		_cam_tween = create_tween()
-		_cam_tween.tween_property(cam, "zoom", z1, cam_thump_in)
-		_cam_tween.tween_property(cam, "zoom", z0, cam_thump_out)
+		_cam_tween.tween_property(cam, "zoom", z1, GameConfig.heartbeat_cam_thump_in)
+		_cam_tween.tween_property(cam, "zoom", z0, GameConfig.heartbeat_cam_thump_out)
 
 func _play_heartbeat() -> void:
 	if heartbeat_audio == null or heartbeat_audio.stream == null:

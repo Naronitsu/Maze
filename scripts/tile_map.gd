@@ -10,7 +10,7 @@ signal door_closed(cell: Vector2i)
 @export var base_height: int = 25
 @export var size_growth_per_level: int = 2
 @export var run_growth: float = 0.12
-@export var rng_seed: int = 0
+@export var rng_seed: int = 12345
 
 # Optional cap behavior for advance_run()
 @export var runs_per_level: int = 0 # 0 = never shows level progression, just increments run
@@ -520,7 +520,7 @@ func _carve_corridor_path(
 	return carved
 
 func _carve_line_corridor(
-	grid: PackedByteArray,
+	p_grid_unused: PackedByteArray,
 	w: int,
 	h: int,
 	a: Vector2i,

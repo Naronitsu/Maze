@@ -19,6 +19,14 @@ config/icon="res://icon.svg"
 
 buses/default_bus_layout=""
 
+[autoload]
+
+EventBus="*res://scripts/core/event_bus.gd"
+GameState="*res://scripts/core/game_state.gd"
+GameConfig="*res://scripts/core/game_config.gd"
+SaveManager="*res://scripts/core/save_manager.gd"
+SceneReferences="*res://scripts/core/scene_references.gd"
+
 [display]
 
 window/size/viewport_width=960

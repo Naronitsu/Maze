@@ -1,17 +1,7 @@
 extends Node2D
 class_name PresenceRW
-##
-## PresenceRW (rewrite)
-## - Chases the player directly (shortest-path by BFS distance).
-## - Treats CLOSED doors as passable for planning, and opens doors when needed.
-## - Also opens any door tile the player steps onto (so it never stays shut “behind” them).
-##
-## Requires GameController methods used in this project:
-## - world_to_cell(), cell_to_world_center(), get_neighbors4()
-## - path_distance_presence(a,b)  (treats closed doors as passable)
-## - is_passable_for_presence(c)
-## - is_door_closed(c), try_open_door(c)
-##
+
+const PresenceSpawnStrategy = preload("res://scripts/core/presence_spawn_strategy.gd")
 
 @export var controller_path: NodePath
 @export var move_interval: float = 0.45
@@ -39,12 +29,20 @@ var _last_player_cell: Vector2i = INVALID_CELL
 @onready var controller: GameController = _resolve_controller()
 
 func _ready() -> void:
+	# Core systems are now autoloads
+	
 	_rng.randomize()
 	if cell == INVALID_CELL:
 		deactivate()
+	
+	# Listen to events
+	EventBus.player_moved.connect(_on_player_moved)
+	EventBus.player_closed_eyes.connect(_on_player_closed_eyes)
+	EventBus.player_opened_eyes.connect(_on_player_opened_eyes)
+	EventBus.presence_should_spawn.connect(_on_presence_should_spawn)
 
 func _process(delta: float) -> void:
-	if not _active:
+	if not _active or GameState.current != GameState.State.PLAYING:
 		return
 
 	_ensure_initialized_from_world()
@@ -53,7 +51,7 @@ func _process(delta: float) -> void:
 	_open_player_door_if_needed()
 
 	_timer += delta
-	if _timer >= move_interval:
+	if _timer >= GameConfig.presence_move_interval:
 		_timer = 0.0
 		_step()
 
@@ -91,7 +89,6 @@ func _ensure_initialized_from_world() -> void:
 # -----------------------------------------------------------------------------
 # Public API
 # -----------------------------------------------------------------------------
-
 func deactivate() -> void:
 	_active = false
 	cell = INVALID_CELL
@@ -114,6 +111,44 @@ func activate() -> void:
 	_snap_to_cell()
 	queue_redraw()
 
+# =========================================================
+# Spawn Event Handler
+# =========================================================
+
+func _on_presence_should_spawn(player_history: Array) -> void:
+	"""Handle presence_should_spawn signal - try spawn chain using strategies"""
+	print("[PresenceRW] Received spawn signal (history: %d cells)" % player_history.size())
+	
+	set_process(false)  # Don't move until spawned
+	
+	if controller == null:
+		push_error("[PresenceRW] No controller available for spawning")
+		return
+	
+	# Try strategies in order: history → room → far
+	var strategies: Array[PresenceSpawnStrategy] = [
+		PresenceSpawnStrategy.HistoryStrategy.new(controller, controller.maze_layer as DungeonMazeLayer),
+		PresenceSpawnStrategy.RoomSpawnStrategy.new(controller, controller.maze_layer as DungeonMazeLayer),
+		PresenceSpawnStrategy.FarSpawnStrategy.new(controller, controller.maze_layer as DungeonMazeLayer, GameConfig.presence_min_spawn_dist_cells),
+	]
+	
+	var spawned := false
+	for strategy in strategies:
+		if strategy.attempt(self):
+			spawned = true
+			print("[PresenceRW] Spawned via %s" % strategy.get_class())
+			break
+	
+	# Activate if spawned
+	if spawned:
+		activate()
+		EventBus.presence_spawned.emit(cell)
+		print("[PresenceRW] Presence activated at %s" % cell)
+	else:
+		print("[PresenceRW] ERROR: Failed to spawn presence with any strategy")
+	
+	queue_redraw()
+
 func is_active() -> bool:
 	return _active
 
@@ -122,104 +157,8 @@ func get_pressure01() -> float:
 		return 0.0
 	var p_cell := controller.world_to_cell(controller.player.global_position)
 	var d := _presence_distance(cell, p_cell)
-	var t := inverse_lerp(float(far_cells), float(near_cells), float(d))
+	var t := inverse_lerp(float(GameConfig.presence_far_cells), float(GameConfig.presence_near_cells), float(d))
 	return clampf(t, 0.0, 1.0)
-
-# Optional convenience spawn
-func respawn_far_from_player(min_dist: int = 18, attempts: int = 800) -> void:
-	if controller == null or controller.player == null:
-		return
-
-	var p_cell := controller.world_to_cell(controller.player.global_position)
-	var size := controller.grid_size_cells()
-
-	if size == Vector2i.ZERO:
-		for n in controller.get_neighbors4(p_cell):
-			if _presence_passable(n):
-				cell = n
-				_prev_cell = cell
-				activate()
-				return
-		cell = p_cell
-		_prev_cell = cell
-		activate()
-		return
-
-	for _i in range(attempts):
-		var c := Vector2i(_rng.randi_range(0, size.x - 1), _rng.randi_range(0, size.y - 1))
-		if not _presence_passable(c):
-			continue
-		var md :int= abs(c.x - p_cell.x) + abs(c.y - p_cell.y)
-		if md < min_dist:
-			continue
-		cell = c
-		_prev_cell = cell
-		activate()
-		return
-
-	for n in controller.get_neighbors4(p_cell):
-		if _presence_passable(n):
-			cell = n
-			_prev_cell = cell
-			activate()
-			return
-
-# Spawn near the room start (entrance) - called from history
-func respawn_from_room_start() -> bool:
-	if controller == null:
-		return false
-	
-	# Try to get the maze to find spawn cell
-	var maze: Node = null
-	if controller.has_meta("maze_ref"):
-		maze = controller.get_meta("maze_ref")
-	else:
-		# Fallback: try to find it in the scene
-		var scene = get_tree().current_scene
-		if scene != null and scene.has_node("TileMap/MazeLayer"):
-			maze = scene.get_node("TileMap/MazeLayer")
-	
-	if maze == null or not maze.has_method("get_spawn_cell"):
-		return false
-	
-	var spawn_cell: Vector2i = maze.call("get_spawn_cell")
-	if not _presence_passable(spawn_cell):
-		return false
-	
-	cell = spawn_cell
-	_prev_cell = cell
-	activate()
-	return true
-
-# Spawn along early player history (behind them at entrance)
-func respawn_from_history() -> bool:
-	if controller == null:
-		return false
-	
-	var hist: Array = controller.player_history as Array
-	if hist.is_empty():
-		return false
-	
-	# Get an early point in history (near the start/entrance)
-	# Use the first cell or one of the first few
-	var spawn_cell: Vector2i = hist[0] if not hist.is_empty() else Vector2i.ZERO
-	
-	if not _presence_passable(spawn_cell):
-		# Try neighbors if spawn cell isn't passable
-		for n in controller.get_neighbors4(spawn_cell):
-			if _presence_passable(n):
-				spawn_cell = n
-				break
-	else:
-		return false
-	
-	cell = spawn_cell
-	_prev_cell = cell
-	activate()
-	return true
-
-# Optional convenience spawn
-# -----------------------------------------------------------------------------
 
 func _step() -> void:
 	if controller == null or not _active:
@@ -249,6 +188,9 @@ func _step() -> void:
 	_prev_cell = cell
 	cell = next
 	_snap_to_cell()
+	
+	# Emit presence_moved signal
+	EventBus.presence_moved.emit(_prev_cell, cell)
 
 func _best_step_toward_player(neighbors: Array[Vector2i], player_cell: Vector2i) -> Vector2i:
 	var best := INVALID_CELL
@@ -329,15 +271,29 @@ func _check_catch() -> void:
 		return
 	if controller == null or controller.player == null:
 		return
-	if catch_distance_cells < 0:
+	if GameConfig.presence_catch_distance_cells < 0:
 		return
 	if cell == INVALID_CELL:
 		return
 
 	var p_cell := controller.world_to_cell(controller.player.global_position)
 	var d := _presence_distance(cell, p_cell)
-	if d <= catch_distance_cells:
+	if d <= GameConfig.presence_catch_distance_cells:
 		_on_catch()
 
 func _on_catch() -> void:
+	EventBus.presence_caught_player.emit(cell, controller.world_to_cell(controller.player.global_position))
 	get_tree().reload_current_scene()
+
+# Event listeners
+func _on_player_moved(_from_cell: Vector2i, to_cell: Vector2i) -> void:
+	"""Called when player moves, so we can detect door opening."""
+	_last_player_cell = to_cell
+
+func _on_player_closed_eyes() -> void:
+	"""Called when player closes eyes."""
+	pass
+
+func _on_player_opened_eyes() -> void:
+	"""Called when player opens eyes."""
+	pass

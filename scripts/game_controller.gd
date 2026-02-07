@@ -7,13 +7,6 @@ class_name GameController
 @export var player: Node2D
 @export var presence: Node2D
 
-@export var trail_add_walk: float = 1.0
-@export var trail_add_run: float = 2.0
-@export var trail_decay_per_second: float = 0.8
-@export var trail_floor: float = 0.0
-
-@export var history_max: int = 250
-
 @onready var maze_layer: DungeonMazeLayer = $"../TileMap/MazeLayer" as DungeonMazeLayer
 
 # --- State ---
@@ -81,11 +74,11 @@ func get_trail(c: Vector2i) -> float:
 func _decay_trail(delta: float) -> void:
 	if trail.is_empty():
 		return
-	var decay := trail_decay_per_second * delta
+	var decay := GameConfig.controller_trail_decay_per_second * delta
 	var to_erase: Array[Vector2i] = []
 	for k in trail.keys():
 		var v := float(trail[k]) - decay
-		if v <= trail_floor + 0.0001:
+		if v <= GameConfig.controller_trail_floor + 0.0001:
 			to_erase.append(k)
 		else:
 			trail[k] = v
@@ -141,7 +134,7 @@ func record_player_cell(c: Vector2i) -> void:
 		return
 
 	player_history.append(c)
-	if player_history.size() > history_max:
+	if player_history.size() > GameConfig.controller_history_max:
 		player_history.pop_front()
 		
 func try_open_door(cell: Vector2i) -> bool:
