@@ -12,11 +12,6 @@ var vision_controller: VisionController
 
 var _is_transitioning: bool = false
 var _ready_complete: bool = false
-var _is_continuing: bool = false
-var _continue_fog_path: String = ""
-var _continue_fog_size: Vector2i = Vector2i.ZERO
-
-const FOG_SAVE_PATH := "user://fog_explored.png"
 
 func _ready() -> void:
 	print("[Game] _ready() started")
@@ -69,18 +64,16 @@ func _ready() -> void:
 	# Check if loading from save
 	var save_data = SaveManager.current_save_data
 	print("[Game] Save data: ", save_data)
-	_is_continuing = save_data.has("level") and save_data.has("run")
-	print("[Game] Is continuing: ", _is_continuing)
+	var is_continuing = save_data.has("level") and save_data.has("run")
+	print("[Game] Is continuing: ", is_continuing)
 	
-	if _is_continuing:
+	if is_continuing:
 		# Load saved level/run/position/seed
 		maze.level = save_data.get("level", 1)
 		maze.run = save_data.get("run", 1)
 		maze.rng_seed = save_data.get("maze_seed", 12345)
 		var saved_cell: Vector2i = save_data.get("player_cell", Vector2i.ZERO)
 		print("[Game] Loading saved game: Level %d, Run %d, Seed: %d, Position: %s" % [maze.level, maze.run, maze.rng_seed, saved_cell])
-		_continue_fog_path = save_data.get("fog_path", "")
-		_continue_fog_size = save_data.get("fog_size", Vector2i.ZERO)
 	else:
 		# New game - generate random seed
 		maze.rng_seed = randi()
@@ -91,7 +84,7 @@ func _ready() -> void:
 	var maze_info = maze.generate()
 	
 	# Override spawn position if continuing from save
-	if _is_continuing:
+	if is_continuing:
 		var saved_cell: Vector2i = save_data.get("player_cell", Vector2i.ZERO)
 		if saved_cell != Vector2i.ZERO:
 			maze_info["spawn_override"] = saved_cell
@@ -110,7 +103,7 @@ func _ready() -> void:
 		presence.set_process(false)
 
 	# Skip intro if continuing from save
-	if _is_continuing:
+	if is_continuing:
 		print("[Game] Skipping intro for continue game")
 		GameState.current = GameState.State.PLAYING
 		EventBus.level_started.emit(player.cell if "cell" in player else Vector2i.ZERO, maze)
@@ -239,27 +232,11 @@ func _after_maze_generated() -> void:
 		# Wait a frame for fog to settle
 		await get_tree().process_frame
 
-	if _is_continuing and _continue_fog_path != "":
-		if fog and fog.has_method("load_explored_from_file"):
-			fog.load_explored_from_file(_continue_fog_path, _continue_fog_size)
-		# Only restore explored fog once on initial continue.
-		_is_continuing = false
-
 func _return_to_main_menu() -> void:
 	print("[Game] Returning to main menu")
 	# Save current progress before leaving
 	if maze and "level" in maze and "run" in maze:
-		var fog_size := Vector2i.ZERO
-		if fog and fog.has_method("save_explored_to_file"):
-			fog_size = fog.save_explored_to_file(FOG_SAVE_PATH)
-		SaveManager.save_game(
-			maze.level,
-			maze.run,
-			player.cell if "cell" in player else Vector2i.ZERO,
-			maze.rng_seed,
-			FOG_SAVE_PATH if fog_size != Vector2i.ZERO else "",
-			fog_size
-		)
+		SaveManager.save_game(maze.level, maze.run, player.cell if "cell" in player else Vector2i.ZERO, maze.rng_seed)
 	
 	get_tree().change_scene_to_file("res://scenes/main_menu.tscn")
 

@@ -11,7 +11,6 @@ signal door_closed(cell: Vector2i)
 @export var size_growth_per_level: int = 2
 @export var run_growth: float = 0.12
 @export var rng_seed: int = 12345
-@export var debug_dump_on_fail: bool = true
 
 # Optional cap behavior for advance_run()
 @export var runs_per_level: int = 0 # 0 = never shows level progression, just increments run
