@@ -735,8 +735,17 @@ func generate_with_retries(max_attempts: int = 12) -> Dictionary:
 		if _has_path_from_start_to_exit():
 			_render_grid()
 			return data
-	# last attempt (shows something rather than nothing)
+
+	if debug_dump_on_fail:
+		_dump_grid_debug("no_path_after_retries")
+
+	_force_connect_start_to_exit()
+	_rebuild_room_doors()
 	_render_grid()
+
+	if debug_dump_on_fail:
+		_dump_grid_debug("after_force_connect")
+	# last attempt (shows something rather than nothing)
 	return {
 		"w": _grid_w,
 		"h": _grid_h,
@@ -750,7 +759,7 @@ func _has_path_from_start_to_exit() -> bool:
 	var s := _step_inside(start_cell, _grid_w, _grid_h)
 	var e := _step_inside(exit_cell, _grid_w, _grid_h)
 
-	if not is_floor(s) or not is_floor(e):
+	if not _is_passable_for_generation(s) or not _is_passable_for_generation(e):
 		return false
 
 	var visited := PackedByteArray()
@@ -770,9 +779,66 @@ func _has_path_from_start_to_exit() -> bool:
 			var ii := _idx(n.x, n.y, _grid_w)
 			if visited[ii] == 1:
 				continue
-			if not is_floor(n):
+			if not _is_passable_for_generation(n):
 				continue
 			visited[ii] = 1
 			q.append(n)
 
 	return false
+
+func _is_passable_for_generation(c: Vector2i) -> bool:
+	if _grid_w <= 0 or _grid_h <= 0:
+		return false
+	if not _in_bounds(c.x, c.y, _grid_w, _grid_h):
+		return false
+	# Closed doors are still openable, so treat them as passable for connectivity.
+	if is_door_closed(c):
+		return true
+	return _grid[_idx(c.x, c.y, _grid_w)] == 1
+
+func _force_connect_start_to_exit() -> void:
+	var s := _step_inside(start_cell, _grid_w, _grid_h)
+	var e := _step_inside(exit_cell, _grid_w, _grid_h)
+	if not _in_bounds(s.x, s.y, _grid_w, _grid_h):
+		return
+	if not _in_bounds(e.x, e.y, _grid_w, _grid_h):
+		return
+
+	var horiz_first: bool = abs(s.x - e.x) >= abs(s.y - e.y)
+	var mid := (Vector2i(e.x, s.y) if horiz_first else Vector2i(s.x, e.y))
+
+	_force_line_carve(s, mid)
+	_force_line_carve(mid, e)
+
+func _force_line_carve(a: Vector2i, b: Vector2i) -> void:
+	if a.x != b.x and a.y != b.y:
+		return
+	var dx := signi(b.x - a.x)
+	var dy := signi(b.y - a.y)
+	var p := a
+	while p != b:
+		p = Vector2i(p.x + dx, p.y + dy)
+		if not _in_bounds(p.x, p.y, _grid_w, _grid_h):
+			break
+		_grid[_idx(p.x, p.y, _grid_w)] = 1
+		_room_mask[_idx(p.x, p.y, _grid_w)] = 0
+
+func _dump_grid_debug(tag: String) -> void:
+	print("[MazeGen] dump:", tag, " w=", _grid_w, " h=", _grid_h, " level=", level, " run=", run, " seed=", rng_seed)
+	for y in range(_grid_h):
+		var row := ""
+		for x in range(_grid_w):
+			var c := Vector2i(x, y)
+			var ch := "#"
+			if c == start_cell:
+				ch = "S"
+			elif c == exit_cell:
+				ch = "E"
+			elif is_door_closed(c):
+				ch = "D"
+			elif _doors_open.has(c):
+				ch = "O"
+			elif _grid[_idx(x, y, _grid_w)] == 1:
+				ch = "."
+			row += ch
+		print(row)
