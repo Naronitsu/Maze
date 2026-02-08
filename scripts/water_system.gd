@@ -91,6 +91,8 @@ func _apply_bucket_leak(step: float) -> void:
 	var pool_cell := bucket_cell
 	if not bucket_placed and controller != null and player != null:
 		pool_cell = controller.world_to_cell(player.global_position)
+	if bucket_placed and not water_cells.has(pool_cell):
+		return
 	_add_water(pool_cell, actual)
 
 func _evaporate_water(step: float) -> void:
