@@ -9,10 +9,13 @@ var level_intro_panel: CanvasItem
 var level_intro_label: Label
 var level_counter_label: Label
 var game_over_panel: CanvasItem
+var pause_menu: Control
+var pause_settings: Control
 
 var _intro_running: bool = false
 
 func _ready() -> void:
+	process_mode = Node.PROCESS_MODE_ALWAYS
 	# Get UI element references
 	level_intro_panel = game.get_node_or_null("UI/LevelIntro")
 	if level_intro_panel:
@@ -20,6 +23,16 @@ func _ready() -> void:
 	
 	level_counter_label = game.get_node_or_null("UI/LevelCounter")
 	game_over_panel = game.get_node_or_null("UI/GameOver")
+	pause_menu = game.get_node_or_null("UI/PauseMenu")
+	pause_settings = game.get_node_or_null("UI/PauseSettings")
+
+	if pause_menu:
+		pause_menu.connect("resume_pressed", _on_pause_resume)
+		pause_menu.connect("settings_pressed", _on_pause_settings)
+		pause_menu.connect("quit_pressed", _on_pause_quit)
+
+	if pause_settings:
+		pause_settings.connect("back_pressed", _on_settings_back)
 	
 	# Subscribe to EventBus signals
 	EventBus.level_started.connect(_on_level_started)
@@ -60,12 +73,43 @@ func _on_game_over() -> void:
 
 func _on_state_changed(from_state: String, to_state: String) -> void:
 	print("[UIManager] State changed: %s -> %s" % [from_state, to_state])
-	
-	# Could add pause menu handling here
-	# if to_state == "PAUSED":
-	#     show_pause_menu()
-	# elif from_state == "PAUSED":
-	#     hide_pause_menu()
+	if to_state == "PAUSED" and get_tree().paused:
+		_show_pause_menu()
+	elif from_state == "PAUSED":
+		_hide_pause_menu()
+		_hide_settings_menu()
+
+func _on_pause_resume() -> void:
+	EventBus.resume_requested.emit()
+
+func _on_pause_settings() -> void:
+	_show_settings_menu()
+
+func _on_pause_quit() -> void:
+	EventBus.return_to_menu_requested.emit()
+
+func _on_settings_back() -> void:
+	_show_pause_menu()
+
+func _show_pause_menu() -> void:
+	if pause_settings:
+		pause_settings.visible = false
+	if pause_menu:
+		pause_menu.visible = true
+
+func _hide_pause_menu() -> void:
+	if pause_menu:
+		pause_menu.visible = false
+
+func _show_settings_menu() -> void:
+	if pause_menu:
+		pause_menu.visible = false
+	if pause_settings:
+		pause_settings.visible = true
+
+func _hide_settings_menu() -> void:
+	if pause_settings:
+		pause_settings.visible = false
 
 # ------------------------
 # Intro screen methods

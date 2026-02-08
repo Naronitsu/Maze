@@ -1,0 +1,101 @@
+[gd_scene load_steps=2 format=3 uid="uid://pause_settings_01"]
+
+[ext_resource type="Script" path="res://scripts/pause_settings.gd" id="1_pause_settings"]
+
+[node name="PauseSettings" type="Control"]
+visible = false
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+script = ExtResource("1_pause_settings")
+
+[node name="Backdrop" type="ColorRect" parent="."]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 1
+color = Color(0, 0, 0, 0.6)
+
+[node name="Center" type="CenterContainer" parent="."]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 1
+
+[node name="Panel" type="Panel" parent="Center"]
+custom_minimum_size = Vector2(520, 380)
+
+[node name="VBox" type="VBoxContainer" parent="Center/Panel"]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+alignment = 1
+
+[node name="Title" type="Label" parent="Center/Panel/VBox"]
+text = "Settings"
+horizontal_alignment = 1
+
+[node name="Grid" type="GridContainer" parent="Center/Panel/VBox"]
+columns = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+
+[node name="CrtLabel" type="Label" parent="Center/Panel/VBox/Grid"]
+text = "CRT"
+
+[node name="CrtToggle" type="CheckBox" parent="Center/Panel/VBox/Grid"]
+text = "Enabled"
+
+[node name="AberrationLabel" type="Label" parent="Center/Panel/VBox/Grid"]
+text = "Chromatic Aberration"
+
+[node name="AberrationToggle" type="CheckBox" parent="Center/Panel/VBox/Grid"]
+text = "Enabled"
+
+[node name="ResolutionLabel" type="Label" parent="Center/Panel/VBox/Grid"]
+text = "Resolution"
+
+[node name="ResolutionOption" type="OptionButton" parent="Center/Panel/VBox/Grid"]
+size_flags_horizontal = 3
+
+[node name="WindowModeLabel" type="Label" parent="Center/Panel/VBox/Grid"]
+text = "Window Mode"
+
+[node name="WindowModeOption" type="OptionButton" parent="Center/Panel/VBox/Grid"]
+size_flags_horizontal = 3
+
+[node name="MasterLabel" type="Label" parent="Center/Panel/VBox/Grid"]
+text = "Master Volume"
+
+[node name="MasterVolume" type="HSlider" parent="Center/Panel/VBox/Grid"]
+min_value = 0.0
+max_value = 1.0
+step = 0.01
+size_flags_horizontal = 3
+
+[node name="SfxLabel" type="Label" parent="Center/Panel/VBox/Grid"]
+text = "SFX Volume"
+
+[node name="SfxVolume" type="HSlider" parent="Center/Panel/VBox/Grid"]
+min_value = 0.0
+max_value = 1.0
+step = 0.01
+size_flags_horizontal = 3
+
+[node name="BackRow" type="HBoxContainer" parent="Center/Panel/VBox"]
+alignment = 1
+
+[node name="BackButton" type="Button" parent="Center/Panel/VBox/BackRow"]
+text = "Back"
+size_flags_horizontal = 3

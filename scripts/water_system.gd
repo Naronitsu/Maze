@@ -3,12 +3,13 @@ class_name WaterSystem
 
 const INVALID_CELL := Vector2i(-999999, -999999)
 const WATER_DROPLET_SCENE := preload("res://scenes/water_droplet.tscn")
+const WATER_DROP_PARTICLE_SCENE := preload("res://scenes/water_drop_particle.tscn")
 const BUCKET_SCENE := preload("res://scenes/bucket.tscn")
 const BUCKET_WATER_SCALE_MULT := 1.4
 const WATER_FADE_START_AMOUNT := 0.05
 const WATER_BUCKET_MIN_ALPHA := 0.6
 const WATER_SPRITE_MAX_AMOUNT := 1.2
-const WATER_PRESENCE_ON_MULT := 25.0
+const WATER_PRESENCE_ON_MULT := 100.0
 
 var bucket_amount: float = 0.0
 var bucket_cell: Vector2i = INVALID_CELL
@@ -24,10 +25,11 @@ var presence: PresenceRW = null
 var _accum: float = 0.0
 var _game_over_emitted: bool = false
 var _last_drop_cell: Vector2i = INVALID_CELL
+var _drop_spawn_timer: float = 0.0
 
 func _ready() -> void:
 	print("========== WaterSystem._ready() CALLED ==========")
-	z_index = 5  # Above maze, player, presence
+	z_index = 0  # Same level as tilemap, below player
 	bucket_amount = clampf(GameConfig.water_bucket_start_amount, 0.0, GameConfig.water_bucket_capacity)
 	print("[WaterSystem] Ready. Bucket amount: %.2f (z_index: %d)" % [bucket_amount, z_index])
 	print("[WaterSystem] Parent: %s, Owner: %s" % [get_parent().name if get_parent() else "NONE", owner.name if owner else "NONE"])
@@ -67,6 +69,7 @@ func _process(delta: float) -> void:
 	if bucket_cell == INVALID_CELL:
 		return
 
+	_drop_spawn_timer += step
 	_evaporate_water(step)
 	_apply_bucket_leak(step)
 
@@ -91,9 +94,17 @@ func _apply_bucket_leak(step: float) -> void:
 	var pool_cell := bucket_cell
 	if not bucket_placed and controller != null and player != null:
 		pool_cell = controller.world_to_cell(player.global_position)
-	if bucket_placed and not water_cells.has(pool_cell):
-		return
 	_add_water(pool_cell, actual)
+
+	# Visual drop particles disabled for now
+	# if _drop_spawn_timer >= 1.5:
+	# 	_drop_spawn_timer = 0.0
+	# 	var drop_pos := Vector2.ZERO
+	# 	if bucket_placed and controller != null:
+	# 		drop_pos = controller.cell_to_world_center(bucket_cell)
+	# 	elif player != null:
+	# 		drop_pos = player.global_position
+	# 	_spawn_falling_drop(drop_pos)
 
 func _evaporate_water(step: float) -> void:
 	if water_cells.is_empty():
@@ -194,6 +205,7 @@ func _on_level_started(player_cell: Vector2i, _maze: Node) -> void:
 	bucket_cell = player_cell
 	_last_drop_cell = INVALID_CELL
 	_game_over_emitted = false
+	_drop_spawn_timer = 0.0
 	_clear_droplets(water_cells)
 	_remove_bucket_node()
 
@@ -243,6 +255,7 @@ func _get_or_create_droplet(store: Dictionary, cell: Vector2i) -> WaterDroplet:
 		return existing
 	var droplet := WATER_DROPLET_SCENE.instantiate() as WaterDroplet
 	add_child(droplet)
+	# z_index inherited from parent (WaterSystem)
 	store[cell] = droplet
 	if controller != null:
 		droplet.global_position = controller.cell_to_world_center(cell)
@@ -297,7 +310,7 @@ func _ensure_bucket_node() -> void:
 	if bucket_node != null:
 		return
 	bucket_node = BUCKET_SCENE.instantiate() as Node2D
-	bucket_node.z_index = 2
+	# z_index inherited from parent (WaterSystem)
 	add_child(bucket_node)
 	if controller != null:
 		bucket_node.global_position = controller.cell_to_world_center(bucket_cell)
@@ -315,3 +328,14 @@ func _sync_bucket_node() -> void:
 	_ensure_bucket_node()
 	if bucket_node != null and controller != null:
 		bucket_node.global_position = controller.cell_to_world_center(bucket_cell)
+
+func _spawn_falling_drop(world_pos: Vector2) -> void:
+	if WATER_DROP_PARTICLE_SCENE == null:
+		return
+	if world_pos == Vector2.ZERO:
+		return
+	var drop := WATER_DROP_PARTICLE_SCENE.instantiate() as WaterDropParticle
+	if drop == null:
+		return
+	add_child(drop)
+	drop.spawn_falling(world_pos)

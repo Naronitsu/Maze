@@ -21,6 +21,9 @@ const FOG_SAVE_PATH := "user://fog_explored.png"
 
 func _ready() -> void:
 	print("[Game] _ready() started")
+	EventBus.pause_requested.connect(_on_pause_requested)
+	EventBus.resume_requested.connect(_on_resume_requested)
+	EventBus.return_to_menu_requested.connect(_return_to_main_menu)
 	
 	# Initialize scene references
 	if not SceneReferences.validate_all(self):
@@ -36,6 +39,7 @@ func _ready() -> void:
 	fog = SceneReferences.fog
 	water_system = SceneReferences.water_system
 	print("[Game._ready()] Water system ref: %s" % water_system)
+	SettingsManager.apply_visuals_to_scene(self)
 	
 	# Create and initialize transition controller
 	transition_controller = TransitionController.new()
@@ -137,12 +141,16 @@ func _ready() -> void:
 	print("[Game] level_started signal emitted")
 	_ready_complete = true
 
+
 func _input(event: InputEvent) -> void:
-	# Return to main menu on ESC (but not during initialization)
+	# Toggle pause menu on ESC (but not during initialization)
 	if not _ready_complete:
 		return
 	if event.is_action_pressed("ui_cancel"):
-		_return_to_main_menu()
+		if get_tree().paused:
+			set_paused_state(false)
+		else:
+			set_paused_state(true)
 
 func _physics_process(_delta: float) -> void:
 	if _is_transitioning:
@@ -253,6 +261,8 @@ func _after_maze_generated() -> void:
 
 func _return_to_main_menu() -> void:
 	print("[Game] Returning to main menu")
+	if get_tree().paused:
+		get_tree().paused = false
 	# Save current progress before leaving
 	if maze and "level" in maze and "run" in maze:
 		var fog_size := Vector2i.ZERO
@@ -272,3 +282,27 @@ func _return_to_main_menu() -> void:
 func set_player_input_enabled(v: bool) -> void:
 	if player != null:
 		player.set_physics_process(v)
+
+func set_paused_state(is_paused: bool) -> void:
+	if not _ready_complete:
+		return
+	if _is_transitioning or GameState.current == GameState.State.TRANSITIONING:
+		return
+	if GameState.current == GameState.State.GAME_OVER:
+		return
+	if is_paused:
+		if get_tree().paused:
+			return
+		get_tree().paused = true
+		GameState.current = GameState.State.PAUSED
+	else:
+		if not get_tree().paused:
+			return
+		get_tree().paused = false
+		GameState.current = GameState.State.PLAYING
+
+func _on_pause_requested() -> void:
+	set_paused_state(true)
+
+func _on_resume_requested() -> void:
+	set_paused_state(false)

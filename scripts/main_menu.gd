@@ -5,7 +5,9 @@ extends Control
 
 @onready var continue_btn: Button = $CenterContainer/VBoxContainer/ContinueButton
 @onready var play_btn: Button = $CenterContainer/VBoxContainer/PlayButton
+@onready var settings_btn: Button = $CenterContainer/VBoxContainer/SettingsButton
 @onready var quit_btn: Button = $CenterContainer/VBoxContainer/QuitButton
+@onready var settings_panel: Control = $PauseSettings
 
 var _transitioning := false
 var _fade_rect: ColorRect
@@ -14,7 +16,11 @@ var _is_continue := false
 func _ready() -> void:
 	continue_btn.pressed.connect(_on_continue_pressed)
 	play_btn.pressed.connect(_on_play_pressed)
+	settings_btn.pressed.connect(_on_settings_pressed)
 	quit_btn.pressed.connect(_on_quit_pressed)
+	if settings_panel:
+		settings_panel.connect("back_pressed", _on_settings_back)
+	SettingsManager.apply_visuals_to_scene(self)
 
 	# Show/hide continue button based on save existence
 	if SaveManager.has_save():
@@ -43,6 +49,23 @@ func _ready() -> void:
 
 	# Ensure it draws on top
 	_fade_rect.z_index = 999
+
+func _on_settings_pressed() -> void:
+	if settings_panel == null:
+		return
+	_settings_set_active(true)
+	if settings_panel.has_method("refresh_from_settings"):
+		settings_panel.call("refresh_from_settings")
+
+func _on_settings_back() -> void:
+	_settings_set_active(false)
+
+func _settings_set_active(active: bool) -> void:
+	settings_panel.visible = active
+	play_btn.disabled = active
+	continue_btn.disabled = active
+	settings_btn.disabled = active
+	quit_btn.disabled = active
 
 func _start_game() -> void:
 	if _transitioning:

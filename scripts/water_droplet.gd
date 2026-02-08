@@ -16,6 +16,7 @@ func _ready() -> void:
 	if sprite.texture == null:
 		sprite.texture = WATER_SPRITE
 	sprite.region_enabled = true
+	sprite.centered = true
 	_apply_visuals()
 
 func update_visuals(p_amount: float, p_max_amount: float, p_alpha: float, p_scale: float = 1.0) -> void:

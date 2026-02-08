@@ -1,4 +1,4 @@
-[gd_scene load_steps=32 format=3 uid="uid://cynmmfn4ux1dd"]
+[gd_scene load_steps=34 format=3 uid="uid://cynmmfn4ux1dd"]
 
 [ext_resource type="Script" uid="uid://bbvhcofrcxrrs" path="res://scripts/game.gd" id="1_3dryh"]
 [ext_resource type="Texture2D" uid="uid://bvxffpi0ecbj8" path="res://sprites/urizen_onebit_tileset__v2d0.png" id="1_qxrlw"]
@@ -24,6 +24,8 @@
 [ext_resource type="Script" uid="uid://dy5tva3fep1ra" path="res://scripts/game_controller.gd" id="13_kvuet"]
 [ext_resource type="Script" uid="uid://d0m3w4t3rsys1a" path="res://scripts/water_system.gd" id="14_water"]
 [ext_resource type="Script" uid="uid://d0m3w4t3rhud11" path="res://scripts/water_hud.gd" id="15_water_hud"]
+[ext_resource type="PackedScene" uid="uid://pause_menu_01" path="res://scenes/pause_menu.tscn" id="16_pause_menu"]
+[ext_resource type="PackedScene" uid="uid://pause_settings_01" path="res://scenes/pause_settings.tscn" id="17_pause_settings"]
 
 [sub_resource type="OccluderPolygon2D" id="OccluderPolygon2D_3dryh"]
 polygon = PackedVector2Array(-6, -6, 6, -6, 6, 6, -6, 6)
@@ -7195,6 +7197,10 @@ vertical_alignment = 1
 autowrap_mode = 2
 uppercase = true
 
+[node name="PauseMenu" parent="UI" instance=ExtResource("16_pause_menu")]
+
+[node name="PauseSettings" parent="UI" instance=ExtResource("17_pause_settings")]
+
 [node name="GameController" type="Node2D" parent="." node_paths=PackedStringArray("player", "presence")]
 script = ExtResource("13_kvuet")
 maze_layer_path = NodePath("../TileMap/MazeLayer")
@@ -7235,6 +7241,7 @@ region_enabled = true
 region_rect = Rect2(0, 0, 12, 12)
 
 [node name="TileMap" type="TileMap" parent="."]
+z_index = -1
 tile_set = SubResource("TileSet_wowpa")
 rendering_quadrant_size = 12
 format = 2

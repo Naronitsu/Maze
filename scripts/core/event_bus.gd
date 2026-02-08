@@ -28,6 +28,9 @@ signal door_interacted(cell: Vector2i)
 
 # Game state events
 signal state_changed(from_state: String, to_state: String)
+signal pause_requested
+signal resume_requested
+signal return_to_menu_requested
 
 func _ready() -> void:
 	add_to_group("persist")  # Singleton pattern - survives scene changes

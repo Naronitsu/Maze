@@ -54,9 +54,9 @@ var water_bucket_pickup_distance: int = 1  # Can only pick up bucket if within t
 var water_puddle_evap_per_second: float = 0.005  # Very slow base evap when no presence (~3 min to empty)
 var water_puddle_min_amount: float = 0.02
 var water_bucket_pool_evap_mult: float = 0.5  # Pooled water at bucket evaporates 2x slower
-var water_presence_radius_cells: int = 2  # Presence within 2 cells triggers fast evap
+var water_presence_radius_cells: int = 4  # Presence within 4 cells triggers fast evap
 var water_presence_leak_multiplier: float = 1.0
-var water_presence_evap_multiplier: float = 9.0  # 10x faster evap (0.005 * (1+9)) = 0.05/sec when presence near
+var water_presence_evap_multiplier: float = 9.0  # 10x faster evap when presence near (not on top)
 var water_drop_lifetime: float = 30.0  # Drops stay on ground for 30 seconds
 var water_drop_evap_presence_radius: int = 3  # Drops evaporate faster if presence within 3 cells
 var water_update_interval: float = 0.1

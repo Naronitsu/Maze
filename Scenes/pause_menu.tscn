@@ -1,0 +1,59 @@
+[gd_scene load_steps=2 format=3 uid="uid://pause_menu_01"]
+
+[ext_resource type="Script" path="res://scripts/pause_menu.gd" id="1_pause_menu"]
+
+[node name="PauseMenu" type="Control"]
+visible = false
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+script = ExtResource("1_pause_menu")
+
+[node name="Backdrop" type="ColorRect" parent="."]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 1
+color = Color(0, 0, 0, 0.6)
+
+[node name="Center" type="CenterContainer" parent="."]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 1
+
+[node name="Panel" type="Panel" parent="Center"]
+custom_minimum_size = Vector2(320, 220)
+
+[node name="VBox" type="VBoxContainer" parent="Center/Panel"]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+alignment = 1
+
+[node name="Title" type="Label" parent="Center/Panel/VBox"]
+text = "Paused"
+horizontal_alignment = 1
+
+[node name="ResumeButton" type="Button" parent="Center/Panel/VBox"]
+text = "Resume"
+size_flags_horizontal = 3
+
+[node name="SettingsButton" type="Button" parent="Center/Panel/VBox"]
+text = "Settings"
+size_flags_horizontal = 3
+
+[node name="QuitButton" type="Button" parent="Center/Panel/VBox"]
+text = "Quit to Menu"
+size_flags_horizontal = 3

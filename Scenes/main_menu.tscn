@@ -1,7 +1,19 @@
-[gd_scene load_steps=3 format=3 uid="uid://ch5yinsi1824"]
+[gd_scene load_steps=6 format=3 uid="uid://ch5yinsi1824"]
 
 [ext_resource type="Script" uid="uid://30gv258vk3sv" path="res://scripts/main_menu.gd" id="1_l6cm7"]
 [ext_resource type="PackedScene" uid="uid://cynmmfn4ux1dd" path="res://scenes/game.tscn" id="2_ekxnf"]
+[ext_resource type="PackedScene" uid="uid://pause_settings_01" path="res://scenes/pause_settings.tscn" id="3_pause_settings"]
+[ext_resource type="Shader" uid="uid://dtp8ym7kbljwb" path="res://shaders/crt_warp.gdshader" id="4_crt_shader"]
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_crt_main"]
+resource_local_to_scene = true
+shader = ExtResource("4_crt_shader")
+shader_parameter/curvature = 0.09
+shader_parameter/vignette = 0.0
+shader_parameter/scanlines = 0.25
+shader_parameter/aberration_px = 1.0
+shader_parameter/noise = 0.06
+shader_parameter/glow = 0.12
 
 [node name="MainMenu" type="Control"]
 layout_mode = 3
@@ -65,7 +77,26 @@ icon_alignment = 1
 layout_mode = 2
 text = "Continue"
 
+[node name="SettingsButton" type="Button" parent="CenterContainer/VBoxContainer"]
+layout_mode = 2
+text = "Settings"
+
 [node name="QuitButton" type="Button" parent="CenterContainer/VBoxContainer"]
 layout_mode = 2
 text = "Quit"
 icon_alignment = 1
+
+[node name="PauseSettings" parent="." instance=ExtResource("3_pause_settings")]
+visible = false
+
+[node name="CRT" type="CanvasLayer" parent="."]
+layer = 999
+
+[node name="CRTOverlay" type="ColorRect" parent="CRT"]
+material = SubResource("ShaderMaterial_crt_main")
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
