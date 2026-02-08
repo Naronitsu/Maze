@@ -25,6 +25,7 @@ var _timer: float = 0.0
 var _rng := RandomNumberGenerator.new()
 
 var _last_player_cell: Vector2i = INVALID_CELL
+var water_system = null
 
 @onready var controller: GameController = _resolve_controller()
 
@@ -40,6 +41,7 @@ func _ready() -> void:
 	EventBus.player_closed_eyes.connect(_on_player_closed_eyes)
 	EventBus.player_opened_eyes.connect(_on_player_opened_eyes)
 	EventBus.presence_should_spawn.connect(_on_presence_should_spawn)
+	call_deferred("_resolve_water_system")
 
 func _process(delta: float) -> void:
 	if not _active or GameState.current != GameState.State.PLAYING:
@@ -165,20 +167,23 @@ func _step() -> void:
 		return
 	if cell == INVALID_CELL:
 		return
-	if controller.player == null:
+	if water_system != null and water_system.has_method("has_water_at"):
+		if bool(water_system.call("has_water_at", cell)):
+			return
+
+	var target_cell := _get_target_cell()
+	if target_cell == INVALID_CELL:
 		return
 
-	var p_cell := controller.world_to_cell(controller.player.global_position)
-
-	# If we're already on top of the player, nothing to do (catch check handles it).
-	if p_cell == cell:
+	# If we're already on top of the target, nothing to do.
+	if target_cell == cell:
 		return
 
 	var neighbors := controller.get_neighbors4(cell)
 	if neighbors.is_empty():
 		return
 
-	var next := _best_step_toward_player(neighbors, p_cell)
+	var next := _best_step_toward_target(neighbors, target_cell)
 	if next == INVALID_CELL:
 		return
 
@@ -192,7 +197,7 @@ func _step() -> void:
 	# Emit presence_moved signal
 	EventBus.presence_moved.emit(_prev_cell, cell)
 
-func _best_step_toward_player(neighbors: Array[Vector2i], player_cell: Vector2i) -> Vector2i:
+func _best_step_toward_target(neighbors: Array[Vector2i], target_cell: Vector2i) -> Vector2i:
 	var best := INVALID_CELL
 	var best_d := 999999
 
@@ -207,7 +212,7 @@ func _best_step_toward_player(neighbors: Array[Vector2i], player_cell: Vector2i)
 		if not _presence_passable(n):
 			continue
 
-		var d := _presence_distance(n, player_cell)
+		var d := _presence_distance(n, target_cell)
 		if d < best_d:
 			best_d = d
 			best = n
@@ -217,12 +222,33 @@ func _best_step_toward_player(neighbors: Array[Vector2i], player_cell: Vector2i)
 		for n: Vector2i in candidates:
 			if not _presence_passable(n):
 				continue
-			var d := _presence_distance(n, player_cell)
+			var d := _presence_distance(n, target_cell)
 			if d < best_d:
 				best_d = d
 				best = n
 
 	return best
+
+func _get_target_cell() -> Vector2i:
+	if water_system == null:
+		_resolve_water_system()
+
+	if water_system != null:
+		return water_system.get_preferred_target_cell()
+
+	if controller == null or controller.player == null:
+		return INVALID_CELL
+	return controller.world_to_cell(controller.player.global_position)
+
+func _resolve_water_system() -> void:
+	if water_system != null:
+		return
+	if SceneReferences.water_system != null:
+		water_system = SceneReferences.water_system
+		return
+	var ws := get_node_or_null("../WaterSystem")
+	if ws != null:
+		water_system = ws
 
 # -----------------------------------------------------------------------------
 # Door + passability helpers

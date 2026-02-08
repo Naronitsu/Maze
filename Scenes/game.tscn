@@ -1,4 +1,4 @@
-[gd_scene load_steps=30 format=3 uid="uid://cynmmfn4ux1dd"]
+[gd_scene load_steps=32 format=3 uid="uid://cynmmfn4ux1dd"]
 
 [ext_resource type="Script" uid="uid://bbvhcofrcxrrs" path="res://scripts/game.gd" id="1_3dryh"]
 [ext_resource type="Texture2D" uid="uid://bvxffpi0ecbj8" path="res://sprites/urizen_onebit_tileset__v2d0.png" id="1_qxrlw"]
@@ -22,6 +22,8 @@
 [ext_resource type="AudioStream" uid="uid://csb54cceyeuin" path="res://sounds/heartbeat-loop-96879.mp3" id="11_kvpfn"]
 [ext_resource type="PackedScene" uid="uid://bm38rhriwppcc" path="res://scenes/presence_rw.tscn" id="12_dinhu"]
 [ext_resource type="Script" uid="uid://dy5tva3fep1ra" path="res://scripts/game_controller.gd" id="13_kvuet"]
+[ext_resource type="Script" uid="uid://d0m3w4t3rsys1a" path="res://scripts/water_system.gd" id="14_water"]
+[ext_resource type="Script" uid="uid://d0m3w4t3rhud11" path="res://scripts/water_hud.gd" id="15_water_hud"]
 
 [sub_resource type="OccluderPolygon2D" id="OccluderPolygon2D_3dryh"]
 polygon = PackedVector2Array(-6, -6, 6, -6, 6, 6, -6, 6)
@@ -7199,6 +7201,9 @@ maze_layer_path = NodePath("../TileMap/MazeLayer")
 player = NodePath("../Player")
 presence = NodePath("../PresenceRW")
 
+[node name="WaterSystem" type="Node2D" parent="."]
+script = ExtResource("14_water")
+
 [node name="Player" parent="." instance=ExtResource("4_3dryh")]
 
 [node name="Camera" type="Camera2D" parent="Player"]
@@ -7254,6 +7259,9 @@ expand_mode = 1
 
 [node name="HeartbeatAudio" type="AudioStreamPlayer2D" parent="HeartbeatUI"]
 stream = ExtResource("11_kvpfn")
+
+[node name="WaterHUD" type="CanvasLayer" parent="."]
+script = ExtResource("15_water_hud")
 
 [node name="CRT" type="CanvasLayer" parent="."]
 layer = 999

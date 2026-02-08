@@ -9,6 +9,7 @@ var player: CharacterBody2D
 var fog: FogOfWarRW
 var transition_controller: TransitionController
 var vision_controller: VisionController
+var water_system: WaterSystem
 
 var _is_transitioning: bool = false
 var _ready_complete: bool = false
@@ -33,6 +34,8 @@ func _ready() -> void:
 	cam = SceneReferences.camera
 	player = SceneReferences.player
 	fog = SceneReferences.fog
+	water_system = SceneReferences.water_system
+	print("[Game._ready()] Water system ref: %s" % water_system)
 	
 	# Create and initialize transition controller
 	transition_controller = TransitionController.new()
@@ -65,6 +68,9 @@ func _ready() -> void:
 	if heartbeat_ui != null:
 		heartbeat_ui.vision_controller = vision_controller
 		heartbeat_ui.fog = fog
+
+	if water_system != null:
+		water_system.set_refs(controller, player, presence)
 	
 	# Check if loading from save
 	var save_data = SaveManager.current_save_data

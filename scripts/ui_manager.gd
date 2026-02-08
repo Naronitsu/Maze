@@ -25,6 +25,7 @@ func _ready() -> void:
 	EventBus.level_started.connect(_on_level_started)
 	EventBus.level_transitioning.connect(_on_level_transitioning)
 	EventBus.presence_caught_player.connect(_on_player_caught)
+	EventBus.game_over.connect(_on_game_over)
 	EventBus.state_changed.connect(_on_state_changed)
 
 func _on_level_started(_player_pos: Vector2i, maze: Node) -> void:
@@ -47,6 +48,13 @@ func _on_player_caught(_presence_cell: Vector2i, _player_cell: Vector2i) -> void
 		game_over_panel.visible = true
 		game_over_panel.modulate.a = 0.0
 		
+		var t := get_tree().create_tween()
+		t.tween_property(game_over_panel, "modulate:a", 1.0, 0.5)
+
+func _on_game_over() -> void:
+	if game_over_panel:
+		game_over_panel.visible = true
+		game_over_panel.modulate.a = 0.0
 		var t := get_tree().create_tween()
 		t.tween_property(game_over_panel, "modulate:a", 1.0, 0.5)
 

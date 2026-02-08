@@ -43,8 +43,8 @@ func _ready() -> void:
 	_play_state_anim("idle", facing)
 
 func _physics_process(delta: float) -> void:
-	# Only block input during level transitions, allow during intro/playing
-	if GameState.current == GameState.State.TRANSITIONING:
+	# Only allow input during active gameplay
+	if GameState.current != GameState.State.PLAYING:
 		return
 	
 	# Close-eyes state can change even mid-step.
