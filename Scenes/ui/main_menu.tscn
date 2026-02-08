@@ -1,8 +1,8 @@
 [gd_scene load_steps=6 format=3 uid="uid://ch5yinsi1824"]
 
-[ext_resource type="Script" uid="uid://30gv258vk3sv" path="res://scripts/main_menu.gd" id="1_l6cm7"]
-[ext_resource type="PackedScene" uid="uid://cynmmfn4ux1dd" path="res://scenes/game.tscn" id="2_ekxnf"]
-[ext_resource type="PackedScene" uid="uid://pause_settings_01" path="res://scenes/pause_settings.tscn" id="3_pause_settings"]
+[ext_resource type="Script" uid="uid://30gv258vk3sv" path="res://scripts/ui/main_menu.gd" id="1_l6cm7"]
+[ext_resource type="PackedScene" uid="uid://cynmmfn4ux1dd" path="res://scenes/gameplay/game.tscn" id="2_ekxnf"]
+[ext_resource type="PackedScene" uid="uid://pause_settings_01" path="res://scenes/ui/pause_settings.tscn" id="3_pause_settings"]
 [ext_resource type="Shader" uid="uid://dtp8ym7kbljwb" path="res://shaders/crt_warp.gdshader" id="4_crt_shader"]
 
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_crt_main"]

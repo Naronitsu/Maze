@@ -1,6 +1,6 @@
 [gd_scene load_steps=2 format=3 uid="uid://pause_settings_01"]
 
-[ext_resource type="Script" path="res://scripts/pause_settings.gd" id="1_pause_settings"]
+[ext_resource type="Script" path="res://scripts/ui/pause_settings.gd" id="1_pause_settings"]
 
 [node name="PauseSettings" type="Control"]
 visible = false

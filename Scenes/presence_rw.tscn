@@ -1,6 +1,6 @@
-[gd_scene load_steps=2 format=3 uid="uid://bm38rhriwppcc"]
+[gd_scene load_steps=2 format=3 uid="uid://3kx8q8koqgf2"]
 
-[ext_resource type="Script" uid="uid://dng3d3313shoc" path="res://scripts/presence_rw.gd" id="1_0smlv"]
+[ext_resource type="Script" path="res://scripts/presence_rw.gd" id="1_0smlv"]
 
 [node name="PresenceRW" type="Node2D"]
 z_index = 1

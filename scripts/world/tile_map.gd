@@ -625,47 +625,118 @@ func _can_carve_corridor_cell(
 # --------------------------------------------------------------------
 
 func _rebuild_room_doors() -> void:
-	# Keep only border doors already added (entrance/exit).
+	# Keep only border doors (entrance/exit)
 	var keep_open: Array[Vector2i] = []
 	for d in _doors_open:
 		if d.x == 0 or d.x == _grid_w - 1 or d.y == 0 or d.y == _grid_h - 1:
 			keep_open.append(d)
 	_doors_open = keep_open
 
-	# Rebuild closed doors from scratch
+	# Rebuild closed doors
 	_doors_closed.clear()
-	# (Mask will be set in _place_doors, but we can also clear it here)
 	for i in range(_door_closed_mask.size()):
 		_door_closed_mask[i] = 0
 
+	# Find true room entrances: corridor tiles with exactly 1 room neighbor
+	# that are NOT part of a corridor running parallel to the room wall
 	for y in range(_grid_h):
 		for x in range(_grid_w):
 			var c := Vector2i(x, y)
-
+			
+			# Must be corridor floor
 			if not _is_corridor_floor(c, _grid_w):
 				continue
-
-			# Skip borders; entrance/exit handled separately
+			
+			# Skip border tiles
 			if x == 0 or x == _grid_w - 1 or y == 0 or y == _grid_h - 1:
 				continue
-
+			
+			# Count room neighbors and find the direction
 			var room_neighbors := 0
-			var corridor_neighbors := 0
-
-			for d in DIR4:
-				var n := c + d
-				if not _in_bounds(n.x, n.y, _grid_w, _grid_h):
-					continue
-				if _is_room(n, _grid_w):
+			var room_dir := Vector2i.ZERO
+			
+			for dir in DIR4:
+				var n := c + dir
+				if _in_bounds(n.x, n.y, _grid_w, _grid_h) and _is_room(n, _grid_w):
 					room_neighbors += 1
-				elif _is_corridor_floor(n, _grid_w):
-					corridor_neighbors += 1
+					room_dir = dir
+			
+			# Only consider tiles with exactly 1 room neighbor
+			if room_neighbors != 1:
+				continue
+			
+			# Check if this is a dead-end or T-junction entrance (not a straight corridor)
+			var away_dir := -room_dir
+			var away_pos := c + away_dir
+			
+			# Perpendicular directions
+			var perp_dirs: Array[Vector2i] = []
+			if room_dir.x != 0:
+				perp_dirs = [Vector2i.UP, Vector2i.DOWN]
+			else:
+				perp_dirs = [Vector2i.LEFT, Vector2i.RIGHT]
+			
+			# Count corridor tiles in perpendicular and opposite directions
+			var perp_corridor_count := 0
+			for pd in perp_dirs:
+				var pn := c + pd
+				if _in_bounds(pn.x, pn.y, _grid_w, _grid_h) and _is_corridor_floor(pn, _grid_w):
+					perp_corridor_count += 1
+			
+			var opposite_is_corridor := false
+			if _in_bounds(away_pos.x, away_pos.y, _grid_w, _grid_h):
+				opposite_is_corridor = _is_corridor_floor(away_pos, _grid_w)
+			
+			# A door should be placed if this is NOT a straight-through corridor
+			# (i.e., NOT both perpendiculars are corridor AND opposite is corridor)
+			var is_straight_corridor := (perp_corridor_count == 2) and opposite_is_corridor
+			
+			if not is_straight_corridor:
+				# Additional check: don't place door if there's already a door in the perpendicular direction
+				# (this prevents double doors at corners)
+				var has_adjacent_door := false
+				for pd in perp_dirs:
+					var adj := c + pd
+					if _in_bounds(adj.x, adj.y, _grid_w, _grid_h):
+						if _doors_closed.has(adj) or _doors_open.has(adj):
+							has_adjacent_door = true
+							break
+				
+				if not has_adjacent_door:
+					_add_closed_door(c)
 
-			# Door rule:
-			# - exactly one room neighbor (a single room connection)
-			# - at least one corridor neighbor (connected)
-			if room_neighbors == 1 and corridor_neighbors >= 1:
-				_add_closed_door(c)
+
+func _is_valid_room_entrance(corridor_cell: Vector2i, room_cell: Vector2i) -> bool:
+	# Determine the direction from corridor to room
+	var to_room := room_cell - corridor_cell
+	
+	# Check perpendicular directions from the corridor tile
+	var perp_dirs: Array[Vector2i] = []
+	if to_room.x != 0:  # Room is left/right
+		perp_dirs = [Vector2i.UP, Vector2i.DOWN]
+	else:  # Room is up/down
+		perp_dirs = [Vector2i.LEFT, Vector2i.RIGHT]
+	
+	# Count how many perpendicular sides are corridor
+	var perp_corridor_count := 0
+	for pd in perp_dirs:
+		var pn := corridor_cell + pd
+		if _in_bounds(pn.x, pn.y, _grid_w, _grid_h) and _is_corridor_floor(pn, _grid_w):
+			perp_corridor_count += 1
+	
+	# Check opposite direction (away from room)
+	var away_from_room := -to_room
+	var opposite_pos := corridor_cell + away_from_room
+	var opposite_is_corridor := false
+	if _in_bounds(opposite_pos.x, opposite_pos.y, _grid_w, _grid_h):
+		opposite_is_corridor = _is_corridor_floor(opposite_pos, _grid_w)
+	
+	# It's a parallel corridor wall (not entrance) if BOTH perp sides AND opposite are corridors
+	var is_parallel_wall := (perp_corridor_count == 2) and opposite_is_corridor
+	
+	# Valid entrance = NOT a parallel wall
+	return not is_parallel_wall
+
 
 # --------------------------------------------------------------------
 # Compatibility helpers for your existing game/player scripts

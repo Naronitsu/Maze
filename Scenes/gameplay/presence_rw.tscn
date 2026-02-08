@@ -1,0 +1,9 @@
+[gd_scene load_steps=2 format=3 uid="uid://bm38rhriwppcc"]
+
+[ext_resource type="Script" uid="uid://dng3d3313shoc" path="res://scripts/gameplay/presence_rw.gd" id="1_0smlv"]
+
+[node name="PresenceRW" type="Node2D"]
+z_index = 1
+script = ExtResource("1_0smlv")
+
+[node name="AudioStreamPlayer2D" type="AudioStreamPlayer2D" parent="."]

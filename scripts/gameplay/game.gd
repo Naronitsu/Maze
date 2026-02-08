@@ -9,7 +9,7 @@ var player: CharacterBody2D
 var fog: FogOfWarRW
 var transition_controller: TransitionController
 var vision_controller: VisionController
-var water_system: WaterSystem
+var water_system: Node
 
 var _is_transitioning: bool = false
 var _ready_complete: bool = false
@@ -277,17 +277,9 @@ func _return_to_main_menu() -> void:
 			fog_size
 		)
 	
-	get_tree().change_scene_to_file("res://scenes/main_menu.tscn")
-
-func set_player_input_enabled(v: bool) -> void:
-	if player != null:
-		player.set_physics_process(v)
+	get_tree().change_scene_to_file("res://scenes/ui/main_menu.tscn")
 
 func set_paused_state(is_paused: bool) -> void:
-	if not _ready_complete:
-		return
-	if _is_transitioning or GameState.current == GameState.State.TRANSITIONING:
-		return
 	if GameState.current == GameState.State.GAME_OVER:
 		return
 	if is_paused:

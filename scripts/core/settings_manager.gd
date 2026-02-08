@@ -74,6 +74,8 @@ func apply_display() -> void:
 	var win := get_tree().root as Window
 	if win == null:
 		return
+	
+	# Change window mode first
 	match window_mode:
 		"fullscreen":
 			win.mode = Window.MODE_EXCLUSIVE_FULLSCREEN
@@ -84,7 +86,10 @@ func apply_display() -> void:
 		"windowed":
 			win.mode = Window.MODE_WINDOWED
 			win.borderless = false
-			win.size = resolution
+	
+	# Only set size for windowed mode - fullscreen uses monitor resolution
+	if window_mode == "windowed":
+		win.size = resolution
 
 func apply_audio() -> void:
 	_set_bus_volume("Master", master_volume)

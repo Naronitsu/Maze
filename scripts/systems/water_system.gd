@@ -1,10 +1,9 @@
 extends Node2D
-class_name WaterSystem
 
 const INVALID_CELL := Vector2i(-999999, -999999)
-const WATER_DROPLET_SCENE := preload("res://scenes/water_droplet.tscn")
-const WATER_DROP_PARTICLE_SCENE := preload("res://scenes/water_drop_particle.tscn")
-const BUCKET_SCENE := preload("res://scenes/bucket.tscn")
+const WATER_DROPLET_SCENE := preload("res://scenes/particles/water_droplet.tscn")
+const WATER_DROP_PARTICLE_SCENE := preload("res://scenes/particles/water_drop_particle.tscn")
+const BUCKET_SCENE := preload("res://scenes/particles/bucket.tscn")
 const BUCKET_WATER_SCALE_MULT := 1.4
 const WATER_FADE_START_AMOUNT := 0.05
 const WATER_BUCKET_MIN_ALPHA := 0.6

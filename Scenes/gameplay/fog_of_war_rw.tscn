@@ -1,6 +1,6 @@
-[gd_scene load_steps=4 format=3 uid="uid://bmfyu3oubtt"]
+[gd_scene load_steps=4 format=3 uid="uid://cx0aeolep8gca"]
 
-[ext_resource type="Script" path="res://scripts/fog_of_war_rw.gd" id="1_xy0ud"]
+[ext_resource type="Script" uid="uid://b27e1bkhks3o5" path="res://scripts/gameplay/fog_of_war_rw.gd" id="1_xy0ud"]
 [ext_resource type="Shader" uid="uid://4wio5gyhfsuw" path="res://shaders/fog_darkness_world_memory.gdshader" id="2_bntwn"]
 
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_hhb1e"]
@@ -24,6 +24,7 @@ grow_vertical = 2
 script = ExtResource("1_xy0ud")
 
 [node name="MaskViewport" type="SubViewport" parent="."]
+size = Vector2i(1, 1)
 transparent_bg = true
 render_target_update_mode = 4
 
@@ -54,6 +55,7 @@ offset_right = 40.0
 offset_bottom = 40.0
 
 [node name="ExploredViewport" type="SubViewport" parent="."]
+size = Vector2i(1, 1)
 transparent_bg = true
 render_target_clear_mode = 1
 render_target_update_mode = 4

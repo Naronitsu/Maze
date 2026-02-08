@@ -1,7 +1,7 @@
 extends CanvasLayer
 class_name WaterHUD
 
-var water_system: WaterSystem = null
+var water_system = null
 var water_label: Label = null
 
 func _ready() -> void:
@@ -25,8 +25,8 @@ func _process(_delta: float) -> void:
 	if water_label == null:
 		return
 	
-	var amt := water_system.bucket_amount
-	var cap := GameConfig.water_bucket_capacity
+	var amt: float = water_system.bucket_amount
+	var cap: float = GameConfig.water_bucket_capacity
 	var pct := (amt / cap) * 100.0 if cap > 0.0 else 0.0
 	var status := "PLACED" if water_system.bucket_placed else "CARRY"
 	
@@ -44,4 +44,4 @@ func _resolve_water_system() -> void:
 	if water_system != null:
 		return
 	if SceneReferences.water_system != null:
-		water_system = SceneReferences.water_system as WaterSystem
+		water_system = SceneReferences.water_system

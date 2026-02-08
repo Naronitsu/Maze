@@ -1,31 +1,31 @@
 [gd_scene load_steps=34 format=3 uid="uid://cynmmfn4ux1dd"]
 
-[ext_resource type="Script" uid="uid://bbvhcofrcxrrs" path="res://scripts/game.gd" id="1_3dryh"]
+[ext_resource type="Script" uid="uid://bbvhcofrcxrrs" path="res://scripts/gameplay/game.gd" id="1_3dryh"]
 [ext_resource type="Texture2D" uid="uid://bvxffpi0ecbj8" path="res://sprites/urizen_onebit_tileset__v2d0.png" id="1_qxrlw"]
-[ext_resource type="Script" uid="uid://rpjnts3dwysw" path="res://scripts/presence_spawn_manager.gd" id="2_1kice"]
-[ext_resource type="Script" uid="uid://5f4rasa4k0ni" path="res://scripts/audio_manager.gd" id="2_ca42v"]
+[ext_resource type="Script" uid="uid://rpjnts3dwysw" path="res://scripts/gameplay/presence_spawn_manager.gd" id="2_1kice"]
+[ext_resource type="Script" uid="uid://5f4rasa4k0ni" path="res://scripts/systems/audio_manager.gd" id="2_ca42v"]
 [ext_resource type="FontFile" uid="uid://bqy5p2kflj3sw" path="res://fonts/Quintessential-Regular.ttf" id="2_dinhu"]
 [ext_resource type="Shader" uid="uid://dtp8ym7kbljwb" path="res://shaders/crt_warp.gdshader" id="2_trtic"]
-[ext_resource type="Script" uid="uid://cwnx1sov5ax5p" path="res://scripts/tile_map.gd" id="2_wrm1d"]
-[ext_resource type="Script" uid="uid://ddr62so3onguo" path="res://scripts/level_transition_manager.gd" id="3_5newe"]
+[ext_resource type="Script" uid="uid://cwnx1sov5ax5p" path="res://scripts/world/tile_map.gd" id="2_wrm1d"]
+[ext_resource type="Script" uid="uid://ddr62so3onguo" path="res://scripts/gameplay/level_transition_manager.gd" id="3_5newe"]
 [ext_resource type="AudioStream" uid="uid://bc0wdfrr5q7ph" path="res://sounds/soundreality-opening-door-411632.mp3" id="3_ssvqc"]
 [ext_resource type="Texture2D" uid="uid://c3nbcpu5ut72x" path="res://sprites/Player.png" id="3_trtic"]
-[ext_resource type="PackedScene" uid="uid://4pam0hesbas4" path="res://scenes/player.tscn" id="4_3dryh"]
+[ext_resource type="PackedScene" uid="uid://4pam0hesbas4" path="res://scenes/gameplay/player.tscn" id="4_3dryh"]
 [ext_resource type="AudioStream" uid="uid://fce267luc5ow" path="res://sounds/dragon-studio-close-door-382723.mp3" id="4_264po"]
 [ext_resource type="Texture2D" uid="uid://bvd15gwjy64cj" path="res://sprites/Ground.png" id="5_gee14"]
-[ext_resource type="PackedScene" uid="uid://cx0aeolep8gca" path="res://scenes/fog_of_war_rw.tscn" id="6_kvuet"]
-[ext_resource type="Script" uid="uid://dn6km3ruotsy8" path="res://scripts/visual_effects_manager.gd" id="7_5newe"]
-[ext_resource type="Script" uid="uid://cehyhu8wpclx3" path="res://scripts/ui_manager.gd" id="8_37s47"]
-[ext_resource type="Script" uid="uid://8c1oudx1h1es" path="res://scripts/heartbeat_ui.gd" id="9_0tnpc"]
+[ext_resource type="PackedScene" uid="uid://cx0aeolep8gca" path="res://scenes/gameplay/fog_of_war_rw.tscn" id="6_kvuet"]
+[ext_resource type="Script" uid="uid://dn6km3ruotsy8" path="res://scripts/systems/visual_effects_manager.gd" id="7_5newe"]
+[ext_resource type="Script" uid="uid://cehyhu8wpclx3" path="res://scripts/ui/ui_manager.gd" id="8_37s47"]
+[ext_resource type="Script" uid="uid://8c1oudx1h1es" path="res://scripts/ui/heartbeat_ui.gd" id="9_0tnpc"]
 [ext_resource type="Texture2D" uid="uid://dv8o46w3suf8s" path="res://sprites/Veins.png" id="10_vtaks"]
 [ext_resource type="Texture2D" uid="uid://5k7vb75wpv0i" path="res://sprites/Ground_new.png" id="11_ir15t"]
 [ext_resource type="AudioStream" uid="uid://csb54cceyeuin" path="res://sounds/heartbeat-loop-96879.mp3" id="11_kvpfn"]
-[ext_resource type="PackedScene" uid="uid://bm38rhriwppcc" path="res://scenes/presence_rw.tscn" id="12_dinhu"]
-[ext_resource type="Script" uid="uid://dy5tva3fep1ra" path="res://scripts/game_controller.gd" id="13_kvuet"]
-[ext_resource type="Script" uid="uid://d0m3w4t3rsys1a" path="res://scripts/water_system.gd" id="14_water"]
-[ext_resource type="Script" uid="uid://d0m3w4t3rhud11" path="res://scripts/water_hud.gd" id="15_water_hud"]
-[ext_resource type="PackedScene" uid="uid://pause_menu_01" path="res://scenes/pause_menu.tscn" id="16_pause_menu"]
-[ext_resource type="PackedScene" uid="uid://pause_settings_01" path="res://scenes/pause_settings.tscn" id="17_pause_settings"]
+[ext_resource type="PackedScene" uid="uid://bm38rhriwppcc" path="res://scenes/gameplay/presence_rw.tscn" id="12_dinhu"]
+[ext_resource type="Script" uid="uid://dy5tva3fep1ra" path="res://scripts/gameplay/game_controller.gd" id="13_kvuet"]
+[ext_resource type="Script" uid="uid://dx1281opqisrs" path="res://scripts/systems/water_system.gd" id="14_water"]
+[ext_resource type="Script" uid="uid://dx1281opfedsk" path="res://scripts/ui/water_hud.gd" id="15_water_hud"]
+[ext_resource type="PackedScene" path="res://scenes/ui/pause_menu.tscn" id="16_pause_menu"]
+[ext_resource type="PackedScene" path="res://scenes/ui/pause_settings.tscn" id="17_pause_settings"]
 
 [sub_resource type="OccluderPolygon2D" id="OccluderPolygon2D_3dryh"]
 polygon = PackedVector2Array(-6, -6, 6, -6, 6, 6, -6, 6)
@@ -7198,8 +7198,10 @@ autowrap_mode = 2
 uppercase = true
 
 [node name="PauseMenu" parent="UI" instance=ExtResource("16_pause_menu")]
+layout_mode = 3
 
 [node name="PauseSettings" parent="UI" instance=ExtResource("17_pause_settings")]
+layout_mode = 3
 
 [node name="GameController" type="Node2D" parent="." node_paths=PackedStringArray("player", "presence")]
 script = ExtResource("13_kvuet")
@@ -7226,8 +7228,6 @@ drag_bottom_margin = 0.0
 z_index = 1
 player_path = NodePath("../../Player")
 camera_path = NodePath("../../Player/Camera")
-visionRange = 120.0
-halo_world_radius = 30.0
 layer_path = NodePath("../../TileMap/MazeLayer")
 
 [node name="PresenceRW" parent="." instance=ExtResource("12_dinhu")]
@@ -7253,7 +7253,6 @@ script = ExtResource("2_wrm1d")
 
 [node name="HeartbeatUI" type="CanvasLayer" parent="."]
 script = ExtResource("9_0tnpc")
-presence_path = NodePath("../PresenceRW")
 
 [node name="Veins" type="TextureRect" parent="HeartbeatUI"]
 anchors_preset = 15
