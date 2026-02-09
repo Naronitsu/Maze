@@ -1,13 +1,18 @@
+## Central hub for pathfinding, player tracking, and trail management.
+##
+## Provides cell-to-world conversions, walkability checks, BFS pathfinding,
+## and maintains player position history for AI spawning. Handles trail decay
+## for presence tracking mechanics.
 extends Node
 class_name GameController
 
-@export var maze_layer_path: NodePath
-
 # Optional convenience refs (you can also assign these at runtime).
+@export var maze_layer: DungeonMazeLayer
 @export var player: Node2D
 @export var presence: Node2D
 
-@onready var maze_layer: DungeonMazeLayer = $"../TileMap/MazeLayer" as DungeonMazeLayer
+# Backward compatibility with scene files
+@export var maze_layer_path: NodePath
 
 # --- State ---
 var trail: Dictionary = {}               # Vector2i -> float
@@ -15,7 +20,12 @@ var player_cell: Vector2i = Vector2i.ZERO
 var player_history: Array[Vector2i] = [] # oldest -> newest
 
 func _ready() -> void:
-	_refresh_refs()
+	# Initialize from NodePath export if direct reference not set (backward compatibility)
+	if maze_layer == null and maze_layer_path != NodePath():
+		maze_layer = get_node_or_null(maze_layer_path) as DungeonMazeLayer
+	
+	if maze_layer == null:
+		push_error("[GameController] maze_layer reference not found")
 
 func _process(delta: float) -> void:
 	_decay_trail(delta)
@@ -25,26 +35,19 @@ func reset_for_new_level() -> void:
 	player_history.clear()
 	player_cell = Vector2i.ZERO
 
-func _refresh_refs() -> void:
-	if maze_layer == null and maze_layer_path != NodePath():
-		maze_layer = get_node_or_null(maze_layer_path) as DungeonMazeLayer
-
 # --- conversions ---
 func cell_to_world_center(c: Vector2i) -> Vector2:
-	_refresh_refs()
 	if maze_layer == null:
 		return Vector2.ZERO
 	return maze_layer.to_global(maze_layer.map_to_local(c))
 
 func world_to_cell(world_pos: Vector2) -> Vector2i:
-	_refresh_refs()
 	if maze_layer == null:
 		return Vector2i.ZERO
 	return maze_layer.local_to_map(maze_layer.to_local(world_pos))
 
 # --- bounds helper: grid size in cells ---
 func grid_size_cells() -> Vector2i:
-	_refresh_refs()
 	if maze_layer == null or maze_layer.tile_set == null:
 		return Vector2i.ZERO
 	var b: Rect2 = maze_layer.get_world_bounds()
@@ -55,14 +58,12 @@ func grid_size_cells() -> Vector2i:
 
 # --- walkability ---
 func is_walkable(c: Vector2i) -> bool:
-	_refresh_refs()
 	if maze_layer == null:
 		return false
 	return maze_layer.is_floor(c)
 
 # --- trail ---
 func add_trail_at_world_pos(world_pos: Vector2, amount: float) -> void:
-	_refresh_refs()
 	if maze_layer == null:
 		return
 	var c := world_to_cell(world_pos)
@@ -91,7 +92,6 @@ func get_neighbors4(c: Vector2i) -> Array[Vector2i]:
 
 # --- BFS distance (Manhattan steps through walkable cells) ---
 func path_distance(a: Vector2i, b: Vector2i, max_nodes: int = 4000) -> int:
-	_refresh_refs()
 	if maze_layer == null:
 		return 999999
 	if a == b:
@@ -149,7 +149,6 @@ func is_door_closed(cell: Vector2i) -> bool:
 
 # Treat closed doors as passable for AI planning (because it can open them).
 func is_passable_for_presence(c: Vector2i) -> bool:
-	_refresh_refs()
 	if maze_layer == null:
 		return false
 	if maze_layer.is_floor(c):
@@ -159,7 +158,6 @@ func is_passable_for_presence(c: Vector2i) -> bool:
 
 # BFS distance that uses passable-for-presence instead of is_walkable
 func path_distance_presence(a: Vector2i, b: Vector2i, max_nodes: int = 4000) -> int:
-	_refresh_refs()
 	if maze_layer == null:
 		return 999999
 	if a == b:

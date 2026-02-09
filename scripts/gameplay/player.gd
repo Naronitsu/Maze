@@ -1,3 +1,8 @@
+## Player character with cell-based movement and vision mechanics.
+##
+## Handles grid navigation, FOV updates, and trail history for AI tracking.
+## Movement is interpolated between cells with configurable step time.
+## Supports independent look and move directions with eye-closing mechanic.
 # Player.gd (tilemap-cell movement + grid navigation)
 extends CharacterBody2D
 
@@ -25,18 +30,22 @@ var allow_hold_to_repeat: bool = false
 var vision_controller: VisionController = null
 
 func _ready() -> void:
-	# Core systems are now autoloads
+	# Validate required references
+	if maze == null:
+		push_error("[Player] Maze reference not found - player movement will not work")
+		return
+	if controller == null:
+		push_error("[Player] GameController reference not found - player tracking will not work")
+		return
 	
 	# Initialize position
-	if maze != null and maze.get_world_bounds().size != Vector2.ZERO:
+	if maze.get_world_bounds().size != Vector2.ZERO:
 		cell = maze.local_to_map(maze.to_local(global_position))
 	else:
-		cell = maze.get_spawn_cell() if maze != null else Vector2i.ZERO
+		cell = maze.get_spawn_cell()
 
 	global_position = _cell_to_global(cell)
-
-	if controller != null:
-		controller.record_player_cell(cell)
+	controller.record_player_cell(cell)
 
 	# Initialize vision facing (will be updated once vision_controller is set)
 	_update_vision_facing()
@@ -141,6 +150,9 @@ func _update_look_input() -> void:
 				vision_controller.reveal_now()
 
 func _try_step(dir: Vector2i) -> void:
+	if maze == null or controller == null:
+		return
+	
 	var target_cell: Vector2i = cell + dir
 
 	# If blocked, try opening a door
@@ -206,6 +218,8 @@ func reset_to_cell(new_cell: Vector2i) -> void:
 	_play_state_anim("idle", facing)
 
 func _cell_to_global(c: Vector2i) -> Vector2:
+	if maze == null:
+		return Vector2.ZERO
 	return maze.to_global(maze.map_to_local(c))
 
 func _update_vision_facing() -> void:

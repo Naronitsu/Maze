@@ -1,15 +1,26 @@
+## AI-controlled pursuing enemy that chases the player through the maze.
+##
+## Uses BFS pathfinding and can open doors. Spawns using configurable strategies
+## (history-based, room-based, or far-spawn). Supports water system integration
+## to modify behavior when water is present.
 extends Node2D
 class_name PresenceRW
 
-const PresenceSpawnStrategy = preload("res://scripts/core/presence_spawn_strategy.gd")
+@export_category("Dependencies")
+@export var controller: GameController
 
+# Backward compatibility with scene files
 @export var controller_path: NodePath
+
+@export_category("Movement")
 @export var move_interval: float = 0.45
 
+@export_category("Distance Thresholds")
 @export var near_cells: int = 4
 @export var far_cells: int = 25
 @export var catch_distance_cells: int = 0
 
+@export_category("Debug")
 @export var debug_draw: bool = false
 @export var debug_radius: float = 6.0
 @export var debug_color: Color = Color(1, 0, 0, 0.95)
@@ -27,10 +38,14 @@ var _rng := RandomNumberGenerator.new()
 var _last_player_cell: Vector2i = INVALID_CELL
 var water_system = null
 
-@onready var controller: GameController = _resolve_controller()
-
 func _ready() -> void:
-	# Core systems are now autoloads
+	# Initialize from NodePath export if direct reference not set (backward compatibility)
+	if controller == null and controller_path != NodePath():
+		controller = get_node_or_null(controller_path) as GameController
+	
+	if controller == null:
+		push_error("[PresenceRW] GameController reference not found")
+		return
 	
 	_rng.randomize()
 	if cell == INVALID_CELL:
@@ -38,8 +53,6 @@ func _ready() -> void:
 	
 	# Listen to events
 	EventBus.player_moved.connect(_on_player_moved)
-	EventBus.player_closed_eyes.connect(_on_player_closed_eyes)
-	EventBus.player_opened_eyes.connect(_on_player_opened_eyes)
 	EventBus.presence_should_spawn.connect(_on_presence_should_spawn)
 	call_deferred("_resolve_water_system")
 
@@ -62,14 +75,6 @@ func _process(delta: float) -> void:
 func _draw() -> void:
 	if debug_draw and _active:
 		draw_circle(Vector2.ZERO, debug_radius, debug_color)
-
-func _resolve_controller() -> GameController:
-	var gc: GameController = null
-	if controller_path != NodePath():
-		gc = get_node_or_null(controller_path) as GameController
-	if gc == null:
-		gc = get_node_or_null("../GameController") as GameController
-	return gc
 
 func _snap_to_cell() -> void:
 	if controller == null:
@@ -315,11 +320,3 @@ func _on_catch() -> void:
 func _on_player_moved(_from_cell: Vector2i, to_cell: Vector2i) -> void:
 	"""Called when player moves, so we can detect door opening."""
 	_last_player_cell = to_cell
-
-func _on_player_closed_eyes() -> void:
-	"""Called when player closes eyes."""
-	pass
-
-func _on_player_opened_eyes() -> void:
-	"""Called when player opens eyes."""
-	pass

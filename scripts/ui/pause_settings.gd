@@ -1,9 +1,11 @@
+## Settings menu UI for pause menu with keyboard navigation support.
+##
+## Provides controls for CRT effects, chromatic aberration, resolution,
+## window mode, and audio volumes. Supports both mouse and keyboard navigation
+## with configurable focus handling.
 extends Control
 
 signal back_pressed
-
-# Access the SettingsManager autoload singleton
-@onready var settings_manager: Node = get_node("/root/SettingsManager")
 
 @onready var back_button: Button = $Center/Panel/VBox/BackRow/BackButton
 @onready var crt_toggle: CheckBox = $Center/Panel/VBox/Grid/CrtToggle
@@ -60,7 +62,7 @@ func _input(event: InputEvent) -> void:
 		return
 	
 	if event is InputEventKey and event.is_pressed() and not event.echo:
-		var handled = false
+		var handled := false
 		
 		# Check which action this key corresponds to
 		if _event_matches_action(event, "move_up"):
@@ -78,13 +80,13 @@ func _input(event: InputEvent) -> void:
 			handled = true
 		elif _event_matches_action(event, "move_left"):
 			# Allow Range controls to process left arrow
-			var focused = get_viewport().gui_get_focus_owner()
+			var focused := get_viewport().gui_get_focus_owner()
 			if focused is Range:
 				_adjust_range_value(focused, -0.1)
 				handled = true
 		elif _event_matches_action(event, "move_right"):
 			# Allow Range controls to process right arrow
-			var focused = get_viewport().gui_get_focus_owner()
+			var focused := get_viewport().gui_get_focus_owner()
 			if focused is Range:
 				_adjust_range_value(focused, 0.1)
 				handled = true
@@ -94,12 +96,12 @@ func _input(event: InputEvent) -> void:
 				get_viewport().set_input_as_handled()
 
 func _event_matches_action(event: InputEvent, action_name: String) -> bool:
-	var events = InputMap.action_get_events(action_name)
+	var events := InputMap.action_get_events(action_name)
 	for ev in events:
 		if ev is InputEventKey:
 			# In Godot 4.x, physical_keycode is preferred over keycode
-			var event_key = event.physical_keycode if event.physical_keycode != 0 else event.keycode
-			var ev_key = ev.physical_keycode if ev.physical_keycode != 0 else ev.keycode
+			var event_key: int = event.physical_keycode if event.physical_keycode != 0 else event.keycode
+			var ev_key: int = ev.physical_keycode if ev.physical_keycode != 0 else ev.keycode
 			if event_key == ev_key:
 				return true
 	return false
@@ -186,43 +188,43 @@ func _build_window_mode_options() -> void:
 		window_mode_option.set_item_metadata(i, WINDOW_MODES[i])
 
 func _apply_current_settings() -> void:
-	crt_toggle.set_pressed_no_signal(settings_manager.crt_enabled)
-	aberration_toggle.set_pressed_no_signal(settings_manager.chromatic_aberration)
-	master_volume.set_value_no_signal(settings_manager.master_volume)
-	sfx_volume.set_value_no_signal(settings_manager.sfx_volume)
+	crt_toggle.set_pressed_no_signal(SettingsManager.crt_enabled)
+	aberration_toggle.set_pressed_no_signal(SettingsManager.chromatic_aberration)
+	master_volume.set_value_no_signal(SettingsManager.master_volume)
+	sfx_volume.set_value_no_signal(SettingsManager.sfx_volume)
 
 	var res_index := 0
 	for i in range(RESOLUTIONS.size()):
-		if RESOLUTIONS[i] == settings_manager.resolution:
+		if RESOLUTIONS[i] == SettingsManager.resolution:
 			res_index = i
 			break
 	resolution_option.select(res_index)
 
 	var mode_index := 0
 	for i in range(WINDOW_MODES.size()):
-		if WINDOW_MODES[i] == settings_manager.window_mode:
+		if WINDOW_MODES[i] == SettingsManager.window_mode:
 			mode_index = i
 			break
 	window_mode_option.select(mode_index)
 
 func _on_crt_toggled(pressed: bool) -> void:
-	settings_manager.set_crt_enabled(pressed)
+	SettingsManager.set_crt_enabled(pressed)
 
 func _on_aberration_toggled(pressed: bool) -> void:
-	settings_manager.set_chromatic_aberration(pressed)
+	SettingsManager.set_chromatic_aberration(pressed)
 
 func _on_resolution_selected(index: int) -> void:
-	var res: Variant = resolution_option.get_item_metadata(index)
-	if res is Vector2i:
-		settings_manager.set_resolution(res)
+	var res := resolution_option.get_item_metadata(index) as Vector2i
+	if res != null:
+		SettingsManager.set_resolution(res)
 
 func _on_window_mode_selected(index: int) -> void:
-	var mode: Variant = window_mode_option.get_item_metadata(index)
-	if typeof(mode) == TYPE_STRING:
-		settings_manager.set_window_mode(mode)
+	var mode := window_mode_option.get_item_metadata(index) as String
+	if mode != null and not mode.is_empty():
+		SettingsManager.set_window_mode(mode)
 
 func _on_master_volume_changed(value: float) -> void:
-	settings_manager.set_master_volume(value)
+	SettingsManager.set_master_volume(value)
 
 func _on_sfx_volume_changed(value: float) -> void:
-	settings_manager.set_sfx_volume(value)
+	SettingsManager.set_sfx_volume(value)

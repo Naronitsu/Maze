@@ -1,16 +1,24 @@
+## Fog of war system with vision rendering and explored memory.
+##
+## Uses raycasting to generate vision polygons based on player facing direction.
+## Maintains both current visibility (screen-sized) and explored memory (world-sized)
+## with shader-based darkening. Supports vision suspension (eyes-closed mechanic).
 extends Control
 class_name FogOfWarRW
 
+@export_category("Dependencies")
+@export var player: Node2D
+@export var cam: Camera2D
+@export var layer: TileMapLayer
+
+# Backward compatibility with scene files
 @export var player_path: NodePath
 @export var camera_path: NodePath
-
-@export var wall_mask: int = 1 << 0
 @export var layer_path: NodePath
-@export var show_mask_preview: bool = false
 
-@onready var player: Node2D = get_node(player_path)
-@onready var cam: Camera2D = get_node(camera_path) as Camera2D
-@onready var layer: TileMapLayer = get_node(layer_path)
+@export_category("Configuration")
+@export var wall_mask: int = 1 << 0
+@export var show_mask_preview: bool = false
 
 # Current (screen-sized) mask viewport
 @onready var viewport: SubViewport = $MaskViewport
@@ -40,6 +48,35 @@ const MASK_LAYER := 1 << MASK_LAYER_BIT
 
 func _ready() -> void:
 	set_anchors_preset(Control.PRESET_FULL_RECT)
+	
+	# Initialize from NodePath exports if direct references not set (backward compatibility)
+	if player == null and player_path != NodePath():
+		player = get_node_or_null(player_path) as Node2D
+	if cam == null and camera_path != NodePath():
+		cam = get_node_or_null(camera_path) as Camera2D
+	if layer == null and layer_path != NodePath():
+		layer = get_node_or_null(layer_path) as TileMapLayer
+	
+	# Validate required references
+	if layer == null:
+		# Try fallback to find TileMapLayer
+		layer = get_node_or_null("../TileMap/MazeLayer") as TileMapLayer
+		if layer == null:
+			push_error("[FogOfWar] TileMapLayer reference not found - fog system will not work")
+			return
+	
+	if player == null:
+		player = get_node_or_null("../Player") as Node2D
+		if player == null:
+			push_error("[FogOfWar] Player reference not found - fog system will not work")
+			return
+	
+	if cam == null:
+		cam = get_node_or_null("../Camera2D") as Camera2D
+		if cam == null:
+			push_error("[FogOfWar] Camera reference not found - fog system will not work")
+			return
+	
 	# Keep fog frozen until the level is fully ready.
 	suspended = true
 	_awaiting_level_start = true
@@ -107,6 +144,10 @@ func reveal_now() -> void:
 # -------------------------
 
 func _compute_layer_bounds() -> void:
+	if layer == null:
+		push_error("[FogOfWar._compute_layer_bounds] layer is null")
+		return
+	
 	var used: Rect2i = layer.get_used_rect()
 
 	var ts := layer.tile_set
@@ -169,6 +210,9 @@ func _setup_darkness_shader() -> void:
 	mat.set_shader_parameter("enable_memory", GameConfig.fog_enable_memory)
 
 func _push_shader_uniforms() -> void:
+	if cam == null:
+		return
+	
 	var mat := darkness.material as ShaderMaterial
 	if mat == null:
 		return
@@ -192,6 +236,9 @@ func _push_shader_uniforms() -> void:
 # -------------------------
 
 func _update_masks() -> void:
+	if player == null or cam == null:
+		return
+	
 	if suspended or _awaiting_level_start:
 		vision_poly.polygon = PackedVector2Array()
 		halo_poly.polygon = PackedVector2Array()
@@ -244,6 +291,9 @@ func _update_masks() -> void:
 		explored_vision.polygon = cone_exp
 
 func _cast_ray_to_world(dir: Vector2) -> Vector2:
+	if player == null:
+		return Vector2.ZERO
+	
 	var origin_world: Vector2 = player.global_position + dir * 6.0
 	var to_world: Vector2 = origin_world + dir * GameConfig.fog_vision_range
 
@@ -279,6 +329,10 @@ func _make_circle(center: Vector2, radius: float) -> PackedVector2Array:
 # -------------------------
 
 func _wait_for_tiles() -> void:
+	if layer == null:
+		push_error("[FogOfWar._wait_for_tiles] layer is null")
+		return
+	
 	for i in range(240):
 		var used := layer.get_used_rect()
 		if used.size.x > 0 and used.size.y > 0:
