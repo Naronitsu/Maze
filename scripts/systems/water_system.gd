@@ -31,7 +31,13 @@ func _ready() -> void:
 	z_index = 0  # Same level as tilemap, below player
 	bucket_amount = clampf(GameConfig.water_bucket_start_amount, 0.0, GameConfig.water_bucket_capacity)
 	print("[WaterSystem] Ready. Bucket amount: %.2f (z_index: %d)" % [bucket_amount, z_index])
-	print("[WaterSystem] Parent: %s, Owner: %s" % [get_parent().name if get_parent() else "NONE", owner.name if owner else "NONE"])
+	var parent_name: String = "NONE"
+	if get_parent():
+		parent_name = get_parent().name
+	var owner_name: String = "NONE"
+	if owner:
+		owner_name = owner.name
+	print("[WaterSystem] Parent: %s, Owner: %s" % [parent_name, owner_name])
 	EventBus.level_started.connect(_on_level_started)
 	call_deferred("_resolve_refs")
 	set_process(true)
@@ -114,8 +120,8 @@ func _evaporate_water(step: float) -> void:
 
 	for c in water_cells.keys():
 		# Defensive: stored reference may have been freed elsewhere
-		var raw := water_cells[c] as WaterDroplet
-		if raw == null or not is_instance_valid(raw):
+		var raw = water_cells[c]  # Get raw reference without casting
+		if not is_instance_valid(raw):
 			to_erase.append(c)
 			continue
 		var droplet := raw as WaterDroplet
@@ -178,7 +184,12 @@ func get_preferred_target_cell() -> Vector2i:
 		var best_cell := INVALID_CELL
 		var best_amount := -1.0
 		for c in water_cells.keys():
-			var droplet := water_cells[c] as WaterDroplet
+			var raw = water_cells[c]
+			if not is_instance_valid(raw):
+				continue
+			var droplet := raw as WaterDroplet
+			if droplet == null:
+				continue
 			var amt := droplet.amount
 			if amt <= GameConfig.water_puddle_min_amount:
 				continue
@@ -246,16 +257,32 @@ func _toggle_bucket_placement() -> void:
 		bucket_cell = c
 		_ensure_bucket_node()
 		if water_cells.has(bucket_cell):
-			_update_water_visual(bucket_cell, water_cells[bucket_cell] as WaterDroplet, false)
+			var raw = water_cells[bucket_cell]
+			if is_instance_valid(raw):
+				var droplet := raw as WaterDroplet
+				if droplet != null:
+					_update_water_visual(bucket_cell, droplet, false)
 
 func _get_or_create_water(cell: Vector2i) -> WaterDroplet:
 	if water_cells.has(cell):
-		return water_cells[cell] as WaterDroplet
+		var raw = water_cells[cell]
+		if is_instance_valid(raw):
+			var droplet := raw as WaterDroplet
+			if droplet != null:
+				return droplet
+		# Invalid reference, clean it up
+		water_cells.erase(cell)
 	return _get_or_create_droplet(water_cells, cell)
 
 func _get_or_create_droplet(store: Dictionary, cell: Vector2i) -> WaterDroplet:
 	if store.has(cell):
-		return store[cell] as WaterDroplet
+		var raw = store[cell]
+		if is_instance_valid(raw):
+			var stored_droplet := raw as WaterDroplet
+			if stored_droplet != null:
+				return stored_droplet
+		# Invalid reference, clean it up
+		store.erase(cell)
 	var existing := _find_water_node_at_cell(cell)
 	if existing != null:
 		store[cell] = existing
@@ -271,10 +298,12 @@ func _get_or_create_droplet(store: Dictionary, cell: Vector2i) -> WaterDroplet:
 func _remove_droplet(store: Dictionary, cell: Vector2i) -> void:
 	if not store.has(cell):
 		return
-	var droplet := store[cell] as WaterDroplet
+	var raw = store[cell]
 	store.erase(cell)
-	if is_instance_valid(droplet):
-		droplet.queue_free()
+	if is_instance_valid(raw):
+		var droplet := raw as WaterDroplet
+		if droplet != null:
+			droplet.queue_free()
 
 func _clear_droplets(store: Dictionary) -> void:
 	for cell in store.keys():
@@ -294,10 +323,6 @@ func _find_water_node_at_cell(cell: Vector2i) -> WaterDroplet:
 	return null
 
 func _update_water_visual(cell: Vector2i, droplet: WaterDroplet, use_evap_alpha: bool) -> void:
-	var max_amount := maxf(GameConfig.water_puddle_alpha_max_amount, 0.001)
-	var max_amount_local := max_amount
-	if bucket_placed and cell == bucket_cell:
-		max_amount_local = max_amount * 0.25
 	var sprite_max_amount := WATER_SPRITE_MAX_AMOUNT
 	if bucket_placed and cell == bucket_cell:
 		sprite_max_amount = WATER_SPRITE_MAX_AMOUNT * 0.75

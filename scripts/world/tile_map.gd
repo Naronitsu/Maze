@@ -1,4 +1,9 @@
 # MazeLayer.gd
+# 
+# REFACTORED: Now generates into a GridModel first, then renders to TileMap.
+# All public APIs preserved for backward compatibility.
+# Access the logical model via get_grid_model() if needed.
+#
 extends TileMapLayer
 class_name DungeonMazeLayer
 
@@ -46,6 +51,10 @@ var exit_cell: Vector2i = Vector2i.ZERO
 var _grid_w: int = 0
 var _grid_h: int = 0
 
+# NEW: Logical grid model (generation happens here first)
+var _grid_model: GridModel = null
+
+# LEGACY: Maintained for backward compatibility and internal rendering
 # 0 = wall, 1 = floor
 var _grid: PackedByteArray = PackedByteArray()
 
@@ -62,6 +71,33 @@ var _door_closed_mask: PackedByteArray = PackedByteArray()
 # --------------------------------------------------------------------
 # Public API
 # --------------------------------------------------------------------
+
+## Get the logical grid model (optional; for advanced queries)
+## Returns null if generation hasn't run yet.
+func get_grid_model() -> GridModel:
+	return _grid_model
+
+## Debug helper: Verify GridModel matches legacy PackedByteArray representation
+## Returns true if they match, false otherwise. Prints mismatches if found.
+func _verify_grid_model_sync() -> bool:
+	if _grid_model == null:
+		return true  # Nothing to verify yet
+	
+	var mismatches: int = 0
+	for y in range(_grid_h):
+		for x in range(_grid_w):
+			var legacy_is_floor: bool = (_grid[_idx(x, y, _grid_w)] == 1)
+			var model_is_floor: bool = _grid_model.is_floor(x, y)
+			
+			if legacy_is_floor != model_is_floor:
+				mismatches += 1
+				if mismatches <= 10:  # Limit output
+					print("[GridModel Mismatch] at (%d,%d): legacy=%s, model=%s" % [x, y, legacy_is_floor, model_is_floor])
+	
+	if mismatches > 0:
+		push_warning("[GridModel] Found %d mismatches between legacy grid and GridModel" % mismatches)
+		return false
+	return true
 
 func set_level_and_run(p_level: int, p_run: int) -> void:
 	level = max(1, p_level)
@@ -88,6 +124,10 @@ func _generate_once() -> Dictionary:
 	_grid_w = w
 	_grid_h = h
 
+	# Initialize GridModel
+	_grid_model = GridModel.new(w, h)
+
+	# Initialize legacy arrays (kept in sync for backward compatibility)
 	_door_closed_mask = PackedByteArray()
 	_door_closed_mask.resize(w * h) # defaults to 0
 
@@ -135,12 +175,16 @@ func _generate_once() -> Dictionary:
 	_set_corridor_floor(exit_in, w)
 
 	# --- Rooms ---
+	# Rooms spawn more consistently now, with minimal difficulty scaling.
+	# Base room count is higher, ensuring rooms appear even at low difficulty.
 	var area: int = w * h
-	var rooms_target: int = roundi(lerpf(0.0, clamp(float(area) / 260.0, 2.0, 10.0), difficulty))
-	rooms_target = clamp(rooms_target, 0, 12)
+	var base_room_count: float = clamp(float(area) / 300.0, 2.0, 6.0)
+	var difficulty_bonus: float = difficulty * 2.0  # Small bonus (max +2 rooms)
+	var rooms_target: int = roundi(base_room_count + difficulty_bonus)
+	rooms_target = clamp(rooms_target, 2, 8)  # Tighter range, less variance
 
 	var carved_rooms: int = 0
-	var max_room_attempts: int = rooms_target * 18
+	var max_room_attempts: int = rooms_target * 20  # More attempts to ensure rooms spawn
 
 	for _i: int in range(max_room_attempts):
 		if carved_rooms >= rooms_target:
@@ -150,8 +194,10 @@ func _generate_once() -> Dictionary:
 
 		var anchor: Vector2i = spine[rng.randi_range(0, spine.size() - 1)]
 
-		var rw: int = rng.randi_range(5, clamp(roundi(lerpf(7.0, 11.0, difficulty)), 7, 13))
-		var rh: int = rng.randi_range(5, clamp(roundi(lerpf(7.0, 11.0, difficulty)), 7, 13))
+		# Room size is now capped at 5x5 regardless of difficulty.
+		# This keeps rooms compact and prevents large open spaces.
+		var rw: int = rng.randi_range(3, 5)
+		var rh: int = rng.randi_range(3, 5)
 		rw = _odd(rw)
 		rh = _odd(rh)
 
@@ -197,8 +243,12 @@ func _generate_once() -> Dictionary:
 		carved_rooms += 1
 
 	# --- Branch corridors / dead ends ---
-	var branch_density: float = clamp((difficulty - 0.10) / 0.90, 0.0, 1.0)
-	var branches_target: int = clamp(roundi(lerpf(0.0, clamp(float(area) / 150.0, 1.0, 14.0), branch_density)), 0, 18)
+	# Difficulty now primarily affects maze complexity through more dead ends.
+	# Even at low difficulty, we want some branching for exploration.
+	var branch_density: float = clamp((difficulty - 0.05) / 0.95, 0.0, 1.0)  # Starts earlier
+	var base_branches: float = clamp(float(area) / 200.0, 2.0, 8.0)  # Baseline branches
+	var difficulty_multiplier: float = 1.0 + (branch_density * 2.5)  # Up to 3.5x at max difficulty
+	var branches_target: int = clamp(roundi(base_branches * difficulty_multiplier), 2, 25)
 
 	for _b: int in range(branches_target):
 		if spine.is_empty():
@@ -217,8 +267,10 @@ func _generate_once() -> Dictionary:
 		if dir == Vector2i.ZERO:
 			continue
 
-		var max_branch_len: int = clamp(roundi(lerpf(3.0, 10.0, branch_density)), 3, 12)
-		var branch_len: int = rng.randi_range(3, max_branch_len)
+		# Branch length also increases with difficulty for more complex mazes.
+		var min_branch_len: int = clamp(roundi(lerpf(2.0, 4.0, branch_density)), 2, 4)
+		var max_branch_len: int = clamp(roundi(lerpf(4.0, 14.0, branch_density)), 4, 14)
+		var branch_len: int = rng.randi_range(min_branch_len, max_branch_len)
 
 		var cur: Vector2i = start_branch
 		var first: Vector2i = cur + dir
@@ -240,6 +292,11 @@ func _generate_once() -> Dictionary:
 	_rebuild_room_doors()
 
 	_render_grid()
+
+	# Debug verification that GridModel matches legacy arrays
+	if OS.is_debug_build() and debug_dump_on_fail:
+		if not _verify_grid_model_sync():
+			push_warning("[MazeGen] GridModel sync check failed!")
 
 	return {
 		"w": w,
@@ -301,12 +358,18 @@ func _is_floor(grid: PackedByteArray, x: int, y: int, w: int) -> bool:
 
 func _set_floor(grid: PackedByteArray, x: int, y: int, w: int) -> void:
 	grid[_idx(x, y, w)] = 1
+	# Update GridModel
+	if _grid_model != null:
+		_grid_model.set_floor(x, y)
 
 func _is_room(c: Vector2i, w: int) -> bool:
 	return _room_mask[_idx(c.x, c.y, w)] == 1
 
 func _set_room(c: Vector2i, w: int) -> void:
 	_room_mask[_idx(c.x, c.y, w)] = 1
+	# Update GridModel
+	if _grid_model != null:
+		_grid_model.add_tag(c.x, c.y, GridModel.CellTag.ROOM)
 
 func _is_corridor_floor(c: Vector2i, w: int) -> bool:
 	return _grid[_idx(c.x, c.y, w)] == 1 and _room_mask[_idx(c.x, c.y, w)] == 0
@@ -314,6 +377,10 @@ func _is_corridor_floor(c: Vector2i, w: int) -> bool:
 func _set_corridor_floor(c: Vector2i, w: int) -> void:
 	_grid[_idx(c.x, c.y, w)] = 1
 	_room_mask[_idx(c.x, c.y, w)] = 0
+	# Update GridModel
+	if _grid_model != null:
+		_grid_model.set_floor(c.x, c.y)
+		_grid_model.add_tag(c.x, c.y, GridModel.CellTag.CORRIDOR)
 
 
 # --------------------------------------------------------------------
@@ -343,6 +410,10 @@ func _fill_rect_walls(rect: Rect2i, w: int) -> void:
 			if _in_bounds(x, y, _grid_w, _grid_h):
 				_grid[_idx(x, y, w)] = 0
 				_room_mask[_idx(x, y, w)] = 0
+				# Update GridModel
+				if _grid_model != null:
+					_grid_model.set_wall(x, y)
+					_grid_model.clear_tags(x, y)
 
 func _carve_room_rect(rect: Rect2i, w: int) -> void:
 	for y: int in range(rect.position.y, rect.end.y):
@@ -370,11 +441,17 @@ func _add_open_door(cell: Vector2i) -> void:
 	# Ensure logic agrees with visuals
 	if _door_closed_mask.size() > 0:
 		_door_closed_mask[_idx(cell.x, cell.y, _grid_w)] = 0
+	# Update GridModel
+	if _grid_model != null:
+		_grid_model.add_tag(cell.x, cell.y, GridModel.CellTag.DOOR)
 
 func _add_closed_door(cell: Vector2i) -> void:
 	if not _doors_closed.has(cell):
 		_doors_closed.append(cell)
 	_set_door_closed(cell, true)
+	# Update GridModel
+	if _grid_model != null:
+		_grid_model.add_tag(cell.x, cell.y, GridModel.CellTag.DOOR)
 
 func _enforce_two_border_doors_and_floors(grid: PackedByteArray, w: int, h: int, start: Vector2i, exit: Vector2i) -> void:
 	var s_in := _step_inside(start, w, h)
@@ -523,7 +600,7 @@ func _carve_corridor_path(
 	return carved
 
 func _carve_line_corridor(
-	p_grid_unused: PackedByteArray,
+	_p_grid_unused: PackedByteArray,
 	w: int,
 	h: int,
 	a: Vector2i,
@@ -896,6 +973,10 @@ func _force_line_carve(a: Vector2i, b: Vector2i) -> void:
 			break
 		_grid[_idx(p.x, p.y, _grid_w)] = 1
 		_room_mask[_idx(p.x, p.y, _grid_w)] = 0
+		# Update GridModel
+		if _grid_model != null:
+			_grid_model.set_floor(p.x, p.y)
+			_grid_model.add_tag(p.x, p.y, GridModel.CellTag.CORRIDOR)
 
 func _dump_grid_debug(tag: String) -> void:
 	print("[MazeGen] dump:", tag, " w=", _grid_w, " h=", _grid_h, " level=", level, " run=", run, " seed=", rng_seed)
