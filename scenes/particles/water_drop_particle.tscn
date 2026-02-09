@@ -1,0 +1,13 @@
+[gd_scene format=3 uid="uid://dx1281obo7prs"]
+
+[ext_resource type="Script" uid="uid://dx1281obo7prt" path="res://scripts/entities/water_drop_particle.gd" id="1_drop"]
+[ext_resource type="Texture2D" uid="uid://d4e665xk8kk0t" path="res://sprites/water.png" id="2_hrh7u"]
+
+[node name="WaterDropParticle" type="Node2D" unique_id=1650568968]
+script = ExtResource("1_drop")
+
+[node name="Sprite2D" type="Sprite2D" parent="." unique_id=1646145809]
+scale = Vector2(0.5, 0.5)
+texture = ExtResource("2_hrh7u")
+region_enabled = true
+region_rect = Rect2(0, 0, 32, 32)

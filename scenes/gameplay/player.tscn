@@ -1,6 +1,6 @@
-[gd_scene load_steps=19 format=3 uid="uid://delbacveiqkqj"]
+[gd_scene format=3 uid="uid://4pam0hesbas4"]
 
-[ext_resource type="Script" path="res://scripts/player.gd" id="1_cvnsp"]
+[ext_resource type="Script" uid="uid://ctp00nwakxtgv" path="res://scripts/gameplay/player.gd" id="1_cvnsp"]
 [ext_resource type="Texture2D" uid="uid://cldrc0pxbq6uj" path="res://sprites/new_player.png" id="2_g2els"]
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_3dryh"]
@@ -139,6 +139,7 @@ animations = [{
 [node name="Player" type="CharacterBody2D"]
 z_index = 1
 script = ExtResource("1_cvnsp")
+allow_hold_to_repeat = true
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="."]
 shape = SubResource("RectangleShape2D_3dryh")

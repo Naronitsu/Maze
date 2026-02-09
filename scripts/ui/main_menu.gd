@@ -50,6 +50,68 @@ func _ready() -> void:
 	# Ensure it draws on top
 	_fade_rect.z_index = 999
 
+func _unhandled_input(event: InputEvent) -> void:
+	if event is InputEventKey and event.is_pressed() and not event.echo:
+		# WASD / arrow actions already mapped to move_up/down/left/right
+		if Input.is_action_just_pressed("move_up"):
+			_navigate_menu(-1)
+		elif Input.is_action_just_pressed("move_down"):
+			_navigate_menu(1)
+		elif Input.is_action_just_pressed("ui_accept") or Input.is_action_just_pressed("ui_select"):
+			_activate_focused()
+		# Esc / cancel closes settings if open
+		elif Input.is_action_just_pressed("ui_cancel"):
+			if settings_panel and settings_panel.visible:
+				_on_settings_back()
+
+func _get_menu_buttons() -> Array:
+	# If settings panel active, prefer its buttons (recurses into child Controls)
+	if settings_panel and settings_panel.visible:
+		return _collect_buttons_from_control(settings_panel)
+	# Otherwise use main menu container
+	var container := $CenterContainer/VBoxContainer
+	var buttons: Array = []
+	for child in container.get_children():
+		if child is Button and child.visible and not child.disabled:
+			buttons.append(child)
+	return buttons
+
+func _collect_buttons_from_control(ctrl: Control) -> Array:
+	var buttons: Array = []
+	for child in ctrl.get_children():
+		if child is Button and child.visible and not child.disabled:
+			buttons.append(child)
+		elif child is Control:
+			buttons += _collect_buttons_from_control(child)
+	return buttons
+
+func _navigate_menu(delta: int) -> void:
+	var buttons := _get_menu_buttons()
+	if buttons.is_empty():
+		return
+	# Find focused index
+	var idx := -1
+	for i in range(buttons.size()):
+		if buttons[i].has_focus():
+			idx = i
+			break
+	# If none focused, focus first
+	if idx == -1:
+		buttons[0].grab_focus()
+		return
+	# Move
+	idx = (idx + delta) % buttons.size()
+	if idx < 0:
+		idx = buttons.size() - 1
+	buttons[idx].grab_focus()
+
+func _activate_focused() -> void:
+	var buttons := _get_menu_buttons()
+	for b in buttons:
+		if b.has_focus():
+			b.emit_signal("pressed")
+			return
+
 func _on_settings_pressed() -> void:
 	if settings_panel == null:
 		return
@@ -66,6 +128,21 @@ func _settings_set_active(active: bool) -> void:
 	continue_btn.disabled = active
 	settings_btn.disabled = active
 	quit_btn.disabled = active
+
+	if active:
+		# focus first available control in settings
+		var btns := _get_menu_buttons()
+		if not btns.is_empty():
+			btns[0].grab_focus()
+	else:
+		# restore focus to main menu first available button
+		var main_buttons := []
+		var container := $CenterContainer/VBoxContainer
+		for child in container.get_children():
+			if child is Button and child.visible and not child.disabled:
+				main_buttons.append(child)
+		if not main_buttons.is_empty():
+			main_buttons[0].grab_focus()
 
 func _start_game() -> void:
 	if _transitioning:

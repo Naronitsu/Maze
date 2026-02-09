@@ -113,7 +113,15 @@ func _evaporate_water(step: float) -> void:
 	var to_erase: Array[Vector2i] = []
 
 	for c in water_cells.keys():
-		var droplet := water_cells[c] as WaterDroplet
+		# Defensive: stored reference may have been freed elsewhere
+		var raw := water_cells[c] as WaterDroplet
+		if raw == null or not is_instance_valid(raw):
+			to_erase.append(c)
+			continue
+		var droplet := raw as WaterDroplet
+		if droplet == null:
+			to_erase.append(c)
+			continue
 		var amt: float = droplet.amount
 		var mult := 1.0 + _presence_evap_bonus(c)
 		if presence != null and presence.is_active():

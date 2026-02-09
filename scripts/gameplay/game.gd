@@ -160,6 +160,16 @@ func _physics_process(_delta: float) -> void:
 
 	if (player.cell as Vector2i) == maze.exit_cell:
 		print("[Game] Player reached exit at %s" % player.cell)
+		# Require bucket to be placed before allowing level progression
+		var ws := water_system
+		# If a water system exists, require its `bucket_placed` flag to be true
+		if ws != null:
+			# Block progression when the bucket is placed in the world
+			if ws.bucket_placed:
+				print("[Game] Cannot progress: bucket is placed in the world")
+				call_deferred("_display_temp_panel", "Pick up the bucket before progressing")
+				return
+		# Proceed with transition
 		_is_transitioning = true
 		GameState.current = GameState.State.TRANSITIONING
 		EventBus.level_transitioning.emit()
@@ -201,6 +211,30 @@ func _show_intro_sequence() -> void:
 	await t2.finished
 	
 	panel.visible = false
+
+func _display_temp_panel(msg: String, delay: float = 1.5, fade_time: float = 0.6) -> void:
+	# Deferred async helper to show a one-off panel message then hide it
+	if SceneReferences.level_intro_panel == null or SceneReferences.level_intro_text == null:
+		return
+	var panel := SceneReferences.level_intro_panel
+	var label := SceneReferences.level_intro_text
+	label.text = msg
+	# Ensure both panel and label are visible and fully opaque
+	panel.visible = true
+	panel.modulate = Color(1, 1, 1, 1)
+	label.visible = true
+	label.modulate = Color(1, 1, 1, 1)
+	# Wait, then fade both panel and label together
+	await get_tree().create_timer(delay).timeout
+	# If a transition started meanwhile, don't hide the intro panel (transition controller manages it)
+	if _is_transitioning:
+		return
+	var t := create_tween()
+	t.tween_property(panel, "modulate:a", 0.0, fade_time)
+	t.tween_property(label, "modulate:a", 0.0, fade_time)
+	await t.finished
+	panel.visible = false
+	label.visible = false
 
 # ========================================
 # Level / player setup

@@ -1,4 +1,4 @@
-[gd_scene load_steps=34 format=3 uid="uid://cynmmfn4ux1dd"]
+[gd_scene format=3 uid="uid://cynmmfn4ux1dd"]
 
 [ext_resource type="Script" uid="uid://bbvhcofrcxrrs" path="res://scripts/gameplay/game.gd" id="1_3dryh"]
 [ext_resource type="Texture2D" uid="uid://bvxffpi0ecbj8" path="res://sprites/urizen_onebit_tileset__v2d0.png" id="1_qxrlw"]

@@ -1,6 +1,7 @@
-[gd_scene load_steps=2 format=3 uid="uid://pause_menu_01"]
+[gd_scene load_steps=3 format=3 uid="uid://pause_menu_01"]
 
 [ext_resource type="Script" path="res://scripts/ui/pause_menu.gd" id="1_pause_menu"]
+[ext_resource type="PackedScene" uid="uid://pause_settings_01" path="res://scenes/ui/pause_settings.tscn" id="2_pause_settings"]
 
 [node name="PauseMenu" type="Control"]
 visible = false
@@ -57,3 +58,4 @@ size_flags_horizontal = 3
 [node name="QuitButton" type="Button" parent="Center/Panel/VBox"]
 text = "Quit to Menu"
 size_flags_horizontal = 3
+[node name="SettingsPanel" parent="." instance=ExtResource("2_pause_settings")]
