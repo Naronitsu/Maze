@@ -1,10 +1,9 @@
-[gd_scene load_steps=34 format=3 uid="uid://cynmmfn4ux1dd"]
+[gd_scene load_steps=35 format=3 uid="uid://cynmmfn4ux1dd"]
 
 [ext_resource type="Script" uid="uid://bbvhcofrcxrrs" path="res://scripts/gameplay/game.gd" id="1_3dryh"]
 [ext_resource type="Texture2D" uid="uid://bvxffpi0ecbj8" path="res://sprites/urizen_onebit_tileset__v2d0.png" id="1_qxrlw"]
 [ext_resource type="Script" uid="uid://rpjnts3dwysw" path="res://scripts/gameplay/presence_spawn_manager.gd" id="2_1kice"]
 [ext_resource type="Script" uid="uid://5f4rasa4k0ni" path="res://scripts/systems/audio_manager.gd" id="2_ca42v"]
-[ext_resource type="FontFile" uid="uid://dt4f3qlbs2g3u" path="res://fonts/Jacquard24-Regular.ttf" id="2_dinhu"]
 [ext_resource type="Shader" uid="uid://dtp8ym7kbljwb" path="res://shaders/crt_warp.gdshader" id="2_trtic"]
 [ext_resource type="Script" uid="uid://cwnx1sov5ax5p" path="res://scripts/world/tile_map.gd" id="2_wrm1d"]
 [ext_resource type="Script" uid="uid://ddr62so3onguo" path="res://scripts/gameplay/level_transition_manager.gd" id="3_5newe"]
@@ -26,6 +25,10 @@
 [ext_resource type="Script" uid="uid://dx1281opfedsk" path="res://scripts/ui/water_hud.gd" id="15_water_hud"]
 [ext_resource type="PackedScene" path="res://scenes/ui/pause_menu.tscn" id="16_pause_menu"]
 [ext_resource type="PackedScene" path="res://scenes/ui/pause_settings.tscn" id="17_pause_settings"]
+
+[sub_resource type="Theme" id="Theme_mapnw"]
+
+[sub_resource type="Theme" id="Theme_an6ph"]
 
 [sub_resource type="OccluderPolygon2D" id="OccluderPolygon2D_3dryh"]
 polygon = PackedVector2Array(-6, -6, 6, -6, 6, 6, -6, 6)
@@ -7189,8 +7192,6 @@ offset_right = 400.0
 offset_bottom = 50.0
 grow_horizontal = 2
 grow_vertical = 2
-theme_override_colors/font_color = Color(1, 1, 1, 1)
-theme_override_fonts/font = ExtResource("2_dinhu")
 horizontal_alignment = 1
 vertical_alignment = 1
 autowrap_mode = 2

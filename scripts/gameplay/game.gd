@@ -10,6 +10,7 @@ var fog: FogOfWarRW
 var transition_controller: TransitionController
 var vision_controller: VisionController
 var water_system: Node
+var markings_spawner: Node
 
 var _is_transitioning: bool = false
 var _ready_complete: bool = false
@@ -39,6 +40,12 @@ func _ready() -> void:
 	player = SceneReferences.player
 	fog = SceneReferences.fog
 	water_system = SceneReferences.water_system
+
+	# Decorative floor markings (non-colliding sprites)
+	markings_spawner = preload("res://scripts/gameplay/markings_spawner.gd").new()
+	add_child(markings_spawner)
+	if markings_spawner.has_method("set_refs"):
+		markings_spawner.call("set_refs", maze, controller)
 	print("[Game._ready()] Water system ref: %s" % water_system)
 	SettingsManager.apply_visuals_to_scene(self)
 	

@@ -116,45 +116,24 @@ theme_override_constants/separation = 10
 
 [node name="GameTitle" type="Label" parent="CenterContainer/VBoxContainer"]
 layout_mode = 2
-theme_override_fonts/font = ExtResource("3_uhagc")
 text = "Maze"
 horizontal_alignment = 1
 
 [node name="PlayButton" type="Button" parent="CenterContainer/VBoxContainer"]
 layout_mode = 2
-theme_override_fonts/font = ExtResource("3_uhagc")
-theme_override_styles/normal = SubResource("StyleBoxTexture_uhagc")
-theme_override_styles/pressed = SubResource("StyleBoxTexture_btxxm")
-theme_override_styles/hover = SubResource("StyleBoxTexture_wb0q5")
-theme_override_styles/disabled = SubResource("StyleBoxTexture_x2yvf")
 text = "Play"
 icon_alignment = 1
 
 [node name="ContinueButton" type="Button" parent="CenterContainer/VBoxContainer"]
 layout_mode = 2
-theme_override_fonts/font = ExtResource("3_uhagc")
-theme_override_styles/normal = SubResource("StyleBoxTexture_uhagc")
-theme_override_styles/pressed = SubResource("StyleBoxTexture_btxxm")
-theme_override_styles/hover = SubResource("StyleBoxTexture_wb0q5")
-theme_override_styles/disabled = SubResource("StyleBoxTexture_x2yvf")
 text = "Continue"
 
 [node name="SettingsButton" type="Button" parent="CenterContainer/VBoxContainer"]
 layout_mode = 2
-theme_override_fonts/font = ExtResource("3_uhagc")
-theme_override_styles/normal = SubResource("StyleBoxTexture_uhagc")
-theme_override_styles/pressed = SubResource("StyleBoxTexture_btxxm")
-theme_override_styles/hover = SubResource("StyleBoxTexture_wb0q5")
-theme_override_styles/disabled = SubResource("StyleBoxTexture_x2yvf")
 text = "Settings"
 
 [node name="QuitButton" type="Button" parent="CenterContainer/VBoxContainer"]
 layout_mode = 2
-theme_override_fonts/font = ExtResource("3_uhagc")
-theme_override_styles/normal = SubResource("StyleBoxTexture_uhagc")
-theme_override_styles/pressed = SubResource("StyleBoxTexture_btxxm")
-theme_override_styles/hover = SubResource("StyleBoxTexture_wb0q5")
-theme_override_styles/disabled = SubResource("StyleBoxTexture_x2yvf")
 text = "Quit"
 icon_alignment = 1
 

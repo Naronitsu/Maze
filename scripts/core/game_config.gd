@@ -34,6 +34,14 @@ var maze_base_height: int = 25
 var maze_size_growth_per_level: int = 2
 var maze_run_growth: float = 0.12
 
+# Decorations (markings.png)
+var markings_density_per_floor: float = 0.008
+var markings_min_per_level: int = 30
+var markings_max_per_level: int = 40
+var markings_min_spacing_cells: int = 2
+var markings_avoid_spawn_radius_cells: int = 2
+var markings_avoid_exit_radius_cells: int = 2
+
 # GameController tuning
 var controller_trail_add_walk: float = 1.0
 var controller_trail_add_run: float = 2.0

@@ -100,29 +100,13 @@ theme_override_constants/separation = 10
 [node name="Title" type="Label" parent="Center/Panel/VBox"]
 text = "Paused"
 horizontal_alignment = 1
-theme_override_fonts/font = ExtResource("4_jacquard24")
 
 [node name="ResumeButton" type="Button" parent="Center/Panel/VBox"]
 text = "Resume"
-theme_override_fonts/font = ExtResource("4_jacquard24")
-theme_override_styles/normal = SubResource("StyleBoxTexture_pause_normal")
-theme_override_styles/pressed = SubResource("StyleBoxTexture_pause_pressed")
-theme_override_styles/hover = SubResource("StyleBoxTexture_pause_hover")
-theme_override_styles/disabled = SubResource("StyleBoxTexture_pause_disabled")
 
 [node name="SettingsButton" type="Button" parent="Center/Panel/VBox"]
 text = "Settings"
-theme_override_fonts/font = ExtResource("4_jacquard24")
-theme_override_styles/normal = SubResource("StyleBoxTexture_pause_normal")
-theme_override_styles/pressed = SubResource("StyleBoxTexture_pause_pressed")
-theme_override_styles/hover = SubResource("StyleBoxTexture_pause_hover")
-theme_override_styles/disabled = SubResource("StyleBoxTexture_pause_disabled")
 
 [node name="QuitButton" type="Button" parent="Center/Panel/VBox"]
 text = "Quit to Menu"
-theme_override_fonts/font = ExtResource("4_jacquard24")
-theme_override_styles/normal = SubResource("StyleBoxTexture_pause_normal")
-theme_override_styles/pressed = SubResource("StyleBoxTexture_pause_pressed")
-theme_override_styles/hover = SubResource("StyleBoxTexture_pause_hover")
-theme_override_styles/disabled = SubResource("StyleBoxTexture_pause_disabled")
 [node name="SettingsPanel" parent="." instance=ExtResource("2_pause_settings")]

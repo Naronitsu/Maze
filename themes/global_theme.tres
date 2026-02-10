@@ -1,20 +1,79 @@
-[gd_resource type="Theme" format=3]
+[gd_resource type="Theme" load_steps=8 format=3 uid="uid://vkyikbobqfb2"]
 
-[ext_resource type="FontFile" path="res://fonts/Jacquard24-Regular.ttf" id="1_jacquard24"]
+[ext_resource type="FontFile" uid="uid://bqy5p2kflj3sw" path="res://fonts/Quintessential-Regular.ttf" id="1_6gghl"]
+[ext_resource type="FontFile" uid="uid://dt4f3qlbs2g3u" path="res://fonts/Jacquard24-Regular.ttf" id="1_jacquard24"]
+[ext_resource type="Texture2D" uid="uid://bwb1asyjxke0m" path="res://sprites/button.png" id="2_button_tex"]
+
+[sub_resource type="StyleBoxTexture" id="StyleBoxTexture_button_disabled"]
+texture = ExtResource("2_button_tex")
+texture_margin_left = 3.0
+texture_margin_top = 3.0
+texture_margin_right = 3.0
+texture_margin_bottom = 3.0
+expand_margin_left = 3.0
+expand_margin_top = 3.0
+expand_margin_right = 3.0
+expand_margin_bottom = 3.0
+region_rect = Rect2(0, 64, 96, 32)
+
+[sub_resource type="StyleBoxTexture" id="StyleBoxTexture_button_hover"]
+texture = ExtResource("2_button_tex")
+texture_margin_left = 3.0
+texture_margin_top = 3.0
+texture_margin_right = 3.0
+texture_margin_bottom = 3.0
+expand_margin_left = 3.0
+expand_margin_top = 3.0
+expand_margin_right = 3.0
+expand_margin_bottom = 3.0
+region_rect = Rect2(0, 32, 96, 32)
+
+[sub_resource type="StyleBoxTexture" id="StyleBoxTexture_button_normal"]
+texture = ExtResource("2_button_tex")
+texture_margin_left = 3.0
+texture_margin_top = 3.0
+texture_margin_right = 3.0
+texture_margin_bottom = 3.0
+expand_margin_left = 3.0
+expand_margin_top = 3.0
+expand_margin_right = 3.0
+expand_margin_bottom = 3.0
+region_rect = Rect2(0, 0, 96, 32)
+
+[sub_resource type="StyleBoxTexture" id="StyleBoxTexture_button_pressed"]
+texture = ExtResource("2_button_tex")
+texture_margin_left = 3.0
+texture_margin_top = 3.0
+texture_margin_right = 3.0
+texture_margin_bottom = 3.0
+expand_margin_left = 3.0
+expand_margin_top = 3.0
+expand_margin_right = 3.0
+expand_margin_bottom = 3.0
+region_rect = Rect2(0, 64, 96, 32)
 
 [resource]
-# Global fallback font for all Controls
 default_font = ExtResource("1_jacquard24")
 default_font_size = 16
-
-# Explicitly set common text controls to ensure consistent inheritance
-Button/fonts/font = ExtResource("1_jacquard24")
+Button/colors/font_color = Color(1, 1, 1, 1)
+Button/colors/font_disabled_color = Color(1, 1, 1, 0.5)
 Button/font_sizes/font_size = 16
-Label/fonts/font = ExtResource("1_jacquard24")
-Label/font_sizes/font_size = 16
-CheckBox/fonts/font = ExtResource("1_jacquard24")
+Button/fonts/font = ExtResource("1_6gghl")
+Button/styles/disabled = SubResource("StyleBoxTexture_button_disabled")
+Button/styles/hover = SubResource("StyleBoxTexture_button_hover")
+Button/styles/normal = SubResource("StyleBoxTexture_button_normal")
+Button/styles/pressed = SubResource("StyleBoxTexture_button_pressed")
+CheckBox/colors/font_color = Color(1, 1, 1, 1)
+CheckBox/colors/font_disabled_color = Color(1, 1, 1, 0.5)
 CheckBox/font_sizes/font_size = 16
-OptionButton/fonts/font = ExtResource("1_jacquard24")
+CheckBox/fonts/font = ExtResource("1_jacquard24")
+Label/colors/font_color = Color(1, 1, 1, 1)
+Label/font_sizes/font_size = 16
+Label/fonts/font = ExtResource("1_jacquard24")
+OptionButton/colors/font_color = Color(1, 1, 1, 1)
+OptionButton/colors/font_disabled_color = Color(1, 1, 1, 0.5)
 OptionButton/font_sizes/font_size = 16
-RichTextLabel/fonts/normal_font = ExtResource("1_jacquard24")
+OptionButton/fonts/font = ExtResource("1_jacquard24")
+RichTextLabel/colors/default_color = Color(1, 1, 1, 1)
 RichTextLabel/font_sizes/normal_font_size = 16
+RichTextLabel/fonts/normal_font = ExtResource("1_jacquard24")

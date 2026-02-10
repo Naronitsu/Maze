@@ -98,7 +98,6 @@ alignment = 1
 [node name="Title" type="Label" parent="Center/Panel/VBox"]
 text = "Settings"
 horizontal_alignment = 1
-theme_override_fonts/font = ExtResource("3_jacquard24")
 
 [node name="Grid" type="GridContainer" parent="Center/Panel/VBox"]
 columns = 2
@@ -107,39 +106,30 @@ size_flags_vertical = 3
 
 [node name="CrtLabel" type="Label" parent="Center/Panel/VBox/Grid"]
 text = "CRT"
-theme_override_fonts/font = ExtResource("3_jacquard24")
 
 [node name="CrtToggle" type="CheckBox" parent="Center/Panel/VBox/Grid"]
 text = "Enabled"
-theme_override_fonts/font = ExtResource("3_jacquard24")
 
 [node name="AberrationLabel" type="Label" parent="Center/Panel/VBox/Grid"]
 text = "Chromatic Aberration"
-theme_override_fonts/font = ExtResource("3_jacquard24")
 
 [node name="AberrationToggle" type="CheckBox" parent="Center/Panel/VBox/Grid"]
 text = "Enabled"
-theme_override_fonts/font = ExtResource("3_jacquard24")
 
 [node name="ResolutionLabel" type="Label" parent="Center/Panel/VBox/Grid"]
 text = "Resolution"
-theme_override_fonts/font = ExtResource("3_jacquard24")
 
 [node name="ResolutionOption" type="OptionButton" parent="Center/Panel/VBox/Grid"]
 size_flags_horizontal = 3
-theme_override_fonts/font = ExtResource("3_jacquard24")
 
 [node name="WindowModeLabel" type="Label" parent="Center/Panel/VBox/Grid"]
 text = "Window Mode"
-theme_override_fonts/font = ExtResource("3_jacquard24")
 
 [node name="WindowModeOption" type="OptionButton" parent="Center/Panel/VBox/Grid"]
 size_flags_horizontal = 3
-theme_override_fonts/font = ExtResource("3_jacquard24")
 
 [node name="MasterLabel" type="Label" parent="Center/Panel/VBox/Grid"]
 text = "Master Volume"
-theme_override_fonts/font = ExtResource("3_jacquard24")
 
 [node name="MasterVolume" type="HSlider" parent="Center/Panel/VBox/Grid"]
 min_value = 0.0
@@ -149,7 +139,6 @@ size_flags_horizontal = 3
 
 [node name="SfxLabel" type="Label" parent="Center/Panel/VBox/Grid"]
 text = "SFX Volume"
-theme_override_fonts/font = ExtResource("3_jacquard24")
 
 [node name="SfxVolume" type="HSlider" parent="Center/Panel/VBox/Grid"]
 min_value = 0.0
@@ -162,8 +151,3 @@ alignment = 1
 
 [node name="BackButton" type="Button" parent="Center/Panel/VBox/BackRow"]
 text = "Back"
-theme_override_fonts/font = ExtResource("3_jacquard24")
-theme_override_styles/normal = SubResource("StyleBoxTexture_settings_normal")
-theme_override_styles/pressed = SubResource("StyleBoxTexture_settings_pressed")
-theme_override_styles/hover = SubResource("StyleBoxTexture_settings_hover")
-theme_override_styles/disabled = SubResource("StyleBoxTexture_settings_disabled")
