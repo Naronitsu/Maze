@@ -17,7 +17,8 @@ var presence_min_history_steps: int = 8
 var presence_wait_history_max_seconds: float = 6.0
 
 # Player movement
-var player_step_time: float = 0.10
+var player_step_time: float = 0.22
+var player_sprite_scale: float = 0.75
 var player_close_eyes_action: StringName = &"close_eyes"
 var player_run_grace_time: float = 0.20
 var player_interact_action: StringName = &"interact"
@@ -66,11 +67,11 @@ var water_puddle_alpha_max_amount: float = 20.0
 var water_bucket_marker_radius_world: float = 3.0
 
 # FOV/Vision
-var fog_vision_range: float = 128.0
+var fog_vision_range: float = 64
 var fog_half_angle_deg: float = 35.0
 var fog_rays: int = 81
 var fog_halo_rays: int = 64
-var fog_halo_world_radius: float = 48.0
+var fog_halo_world_radius: float = 16
 var fog_halo_segments: int = 24
 var fog_darkness_alpha: float = 1.0
 var fog_explored_alpha: float = 0.60

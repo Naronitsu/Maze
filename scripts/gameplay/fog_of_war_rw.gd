@@ -37,6 +37,7 @@ var facing: Vector2 = Vector2.RIGHT
 var suspended: bool = false
 var _awaiting_level_start: bool = true
 var _pending_reveal: bool = false
+var _needs_reset_on_next_start: bool = false
 var _explored_base: Sprite2D
 
 var maze_origin_world: Vector2
@@ -45,6 +46,11 @@ var tile_size: Vector2
 
 const MASK_LAYER_BIT := 19
 const MASK_LAYER := 1 << MASK_LAYER_BIT
+
+const HIT_INSET_PX := 2.0
+
+const DOOR_STEP_MIN_PX := 2.0
+const DOOR_STEP_FRACTION_OF_TILE := 0.25
 
 func _ready() -> void:
 	set_anchors_preset(Control.PRESET_FULL_RECT)
@@ -109,6 +115,9 @@ func _ready() -> void:
 
 func _on_level_started(_spawn_cell: Vector2i, _maze: DungeonMazeLayer) -> void:
 	_awaiting_level_start = false
+	if _needs_reset_on_next_start:
+		_needs_reset_on_next_start = false
+		await reset_fog_for_level()
 	_pending_reveal = true
 	_resume_after_level_start()
 
@@ -116,6 +125,7 @@ func _on_level_transitioning() -> void:
 	suspended = true
 	_awaiting_level_start = true
 	_pending_reveal = false
+	_needs_reset_on_next_start = true
 
 func _process(_dt: float) -> void:
 	_push_shader_uniforms()
@@ -294,8 +304,21 @@ func _cast_ray_to_world(dir: Vector2) -> Vector2:
 	if player == null:
 		return Vector2.ZERO
 	
-	var origin_world: Vector2 = player.global_position + dir * 6.0
-	var to_world: Vector2 = origin_world + dir * GameConfig.fog_vision_range
+	var n_dir := dir
+	if n_dir.length_squared() > 0.0:
+		n_dir = n_dir.normalized()
+	else:
+		n_dir = Vector2.RIGHT
+
+	var origin_world: Vector2 = player.global_position + n_dir * 6.0
+	var to_world: Vector2 = origin_world + n_dir * GameConfig.fog_vision_range
+	var max_dist: float = origin_world.distance_to(to_world)
+
+	# 1) Find first CLOSED door along the ray (doors are non-colliding, so physics won't hit them).
+	var door_hit_world: Variant = _first_closed_door_hit_world(origin_world, n_dir, max_dist)
+
+	# 2) Find first wall collider along the ray.
+	var wall_hit_world: Variant = null
 
 	var query := PhysicsRayQueryParameters2D.create(origin_world, to_world)
 	query.collision_mask = wall_mask
@@ -305,9 +328,30 @@ func _cast_ray_to_world(dir: Vector2) -> Vector2:
 	query.collide_with_bodies = true
 
 	var res := get_world_2d().direct_space_state.intersect_ray(query)
-	if res.is_empty():
+	if not res.is_empty():
+		wall_hit_world = res.position
+
+	# Choose the nearer occluder (closed doors block vision, walls still block too).
+	var best_hit_world: Variant = null
+	var best_dist: float = INF
+
+	if door_hit_world != null:
+		var d: float = origin_world.distance_to(door_hit_world)
+		if d < best_dist:
+			best_dist = d
+			best_hit_world = door_hit_world
+
+	if wall_hit_world != null:
+		var d2: float = origin_world.distance_to(wall_hit_world)
+		if d2 < best_dist:
+			best_dist = d2
+			best_hit_world = wall_hit_world
+
+	if best_hit_world == null:
 		return to_world
-	return res.position - dir * 2.0
+
+	# Nudge slightly *into* the hit surface so the blocking tile itself becomes visible.
+	return best_hit_world + n_dir * HIT_INSET_PX
 
 func _cast_ray_to_screen(dir: Vector2) -> Vector2:
 	return _world_to_fog_local(_cast_ray_to_world(dir))
@@ -355,9 +399,17 @@ func _build_occluded_halo_world(origin_world: Vector2, radius: float, n_rays: in
 	for i in range(n_rays):
 		var a := TAU * float(i) / float(n_rays)
 		var dir := Vector2(cos(a), sin(a))
+		var n_dir := dir
+		if n_dir.length_squared() > 0.0:
+			n_dir = n_dir.normalized()
+		else:
+			n_dir = Vector2.RIGHT
 
-		var from := origin_world + dir * 2.0
-		var to := origin_world + dir * radius
+		var from := origin_world + n_dir * 2.0
+		var to := origin_world + n_dir * radius
+		var max_dist: float = from.distance_to(to)
+
+		var door_hit_world: Variant = _first_closed_door_hit_world(from, n_dir, max_dist)
 
 		var query := PhysicsRayQueryParameters2D.create(from, to)
 		query.collision_mask = wall_mask
@@ -367,12 +419,59 @@ func _build_occluded_halo_world(origin_world: Vector2, radius: float, n_rays: in
 		query.collide_with_bodies = true
 
 		var res := get_world_2d().direct_space_state.intersect_ray(query)
-		var hit_pos: Vector2 = to
+		var wall_hit_world: Variant = null
 		if not res.is_empty():
-			hit_pos = res.position - dir * 2.0
+			wall_hit_world = res.position
+
+		var best_hit_world: Variant = null
+		var best_dist: float = INF
+
+		if door_hit_world != null:
+			var d: float = from.distance_to(door_hit_world)
+			if d < best_dist:
+				best_dist = d
+				best_hit_world = door_hit_world
+
+		if wall_hit_world != null:
+			var d2: float = from.distance_to(wall_hit_world)
+			if d2 < best_dist:
+				best_dist = d2
+				best_hit_world = wall_hit_world
+
+		var hit_pos: Vector2 = to
+		if best_hit_world != null:
+			hit_pos = best_hit_world + n_dir * HIT_INSET_PX
 
 		pts.append(hit_pos)
 	return pts
+
+func _first_closed_door_hit_world(from_world: Vector2, dir: Vector2, max_dist: float) -> Variant:
+	if layer == null:
+		return null
+	if not layer.has_method("is_door_closed"):
+		return null
+
+	var step: float = 4.0
+	if tile_size.x > 0.0 and tile_size.y > 0.0:
+		step = max(DOOR_STEP_MIN_PX, min(tile_size.x, tile_size.y) * DOOR_STEP_FRACTION_OF_TILE)
+	else:
+		step = max(DOOR_STEP_MIN_PX, 4.0)
+
+	var traveled: float = 0.0
+	var last_cell: Vector2i = Vector2i(2147483647, 2147483647)
+
+	while traveled <= max_dist:
+		var p_world: Vector2 = from_world + dir * traveled
+		var p_local: Vector2 = layer.to_local(p_world)
+		var cell: Vector2i = layer.local_to_map(p_local)
+		if cell != last_cell:
+			last_cell = cell
+			if bool(layer.call("is_door_closed", cell)):
+				# Return the first point that enters the closed door cell.
+				return p_world
+		traveled += step
+
+	return null
 	
 func reset_fog_for_level() -> void:
 	await _wait_for_tiles()

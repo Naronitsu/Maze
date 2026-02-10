@@ -14,6 +14,7 @@ var water_system: Node
 var _is_transitioning: bool = false
 var _ready_complete: bool = false
 var _is_continuing: bool = false
+var _did_restore_fog: bool = false
 var _continue_fog_path: String = ""
 var _continue_fog_size: Vector2i = Vector2i.ZERO
 
@@ -122,9 +123,13 @@ func _ready() -> void:
 	# Skip intro if continuing from save
 	if _is_continuing:
 		print("[Game] Skipping intro for continue game")
+		# Prevent SaveManager auto-save on initial level_started from overwriting
+		# the just-loaded water/bucket state before we reapply it.
+		SaveManager._auto_save_enabled = false
 		GameState.current = GameState.State.PLAYING
 		EventBus.level_started.emit(player.cell if "cell" in player else Vector2i.ZERO, maze)
 		print("[Game] level_started signal emitted")
+		call_deferred("_apply_continued_water_state", save_data)
 		_ready_complete = true
 		return
 
@@ -140,6 +145,51 @@ func _ready() -> void:
 	EventBus.level_started.emit(player.cell if "cell" in player else Vector2i.ZERO, maze)
 	print("[Game] level_started signal emitted")
 	_ready_complete = true
+
+
+func _apply_continued_water_state(save_data: Dictionary) -> void:
+	# Reapply saved water/bucket state after the initial level_started resets.
+	var ws := water_system
+	if ws != null:
+		# Prefer WaterSystem helper to also recreate/remove bucket visuals.
+		if ws.has_method("apply_persistent_state"):
+			var merged := save_data.duplicate(true)
+			if not merged.has("bucket_cell"):
+				merged["bucket_cell"] = save_data.get("player_cell", Vector2i.ZERO)
+			ws.call("apply_persistent_state", merged)
+		else:
+			var amt: float = float(save_data.get("bucket_amount", GameConfig.water_bucket_start_amount))
+			var placed: bool = bool(save_data.get("bucket_placed", false))
+			var cell: Vector2i = save_data.get("bucket_cell", save_data.get("player_cell", Vector2i.ZERO))
+			if "bucket_amount" in ws:
+				ws.bucket_amount = clampf(amt, 0.0, GameConfig.water_bucket_capacity)
+			if "bucket_placed" in ws:
+				ws.bucket_placed = placed
+			if "bucket_cell" in ws:
+				ws.bucket_cell = cell
+			if ws.has_method("_sync_bucket_node"):
+				ws.call("_sync_bucket_node")
+			elif ws.has_method("_remove_bucket_node") and not placed:
+				ws.call("_remove_bucket_node")
+
+	# Now that runtime state is correct, write it back once and re-enable autosave.
+	var fog_path: String = save_data.get("fog_path", "")
+	var fog_size: Vector2i = save_data.get("fog_size", Vector2i.ZERO)
+	var ws_state: Dictionary = {}
+	if ws != null and ws.has_method("get_persistent_state"):
+		ws_state = ws.call("get_persistent_state")
+	SaveManager.save_game(
+		maze.level,
+		maze.run,
+		player.cell if "cell" in player else Vector2i.ZERO,
+		maze.rng_seed,
+		fog_path,
+		fog_size,
+		float(ws_state.get("bucket_amount", NAN)) if not ws_state.is_empty() else NAN,
+		ws_state.get("bucket_placed", null) if not ws_state.is_empty() else null,
+		ws_state.get("bucket_cell", SaveManager.INVALID_CELL) if not ws_state.is_empty() else SaveManager.INVALID_CELL
+	)
+	SaveManager._auto_save_enabled = true
 
 
 func _input(event: InputEvent) -> void:
@@ -246,6 +296,8 @@ func _start_new_level(_info: Dictionary) -> void:
 	
 	# Use spawn override if provided (from save file)
 	var spawn: Vector2i = _info.get("spawn_override", maze.get_spawn_cell())
+	# Safety: if a saved cell is no longer valid (e.g. generator changed), don't spawn in a wall.
+	spawn = _coerce_spawn_to_walkable(spawn)
 
 	# Keep player script synced
 	if "maze_path" in player:
@@ -264,6 +316,32 @@ func _start_new_level(_info: Dictionary) -> void:
 		gc.presence = presence
 		gc.record_player_cell(spawn)
 
+	# Update camera limits for the newly generated maze.
+	_update_camera_limits_for_current_maze()
+
+
+func _coerce_spawn_to_walkable(desired: Vector2i) -> Vector2i:
+	if maze == null:
+		return desired
+	if maze.is_floor(desired):
+		return desired
+
+	var fallback := maze.get_spawn_cell()
+	if maze.is_floor(fallback):
+		return fallback
+
+	# Last resort: search a small radius for any walkable floor.
+	var max_r := 10
+	for r in range(1, max_r + 1):
+		for dy in range(-r, r + 1):
+			for dx in range(-r, r + 1):
+				if abs(dx) != r and abs(dy) != r:
+					continue
+				var c := Vector2i(desired.x + dx, desired.y + dy)
+				if maze.is_floor(c):
+					return c
+	return desired
+
 	# Fog should match new maze size and reset per level
 	# But defer fog updates during transition to avoid visual flash
 	if not _is_transitioning:
@@ -275,23 +353,30 @@ func _start_new_level(_info: Dictionary) -> void:
 	_after_maze_generated()
 
 func _after_maze_generated() -> void:
-	var bounds: Rect2 = maze.get_world_bounds()
-
-	cam.limit_left   = int(floor(bounds.position.x))
-	cam.limit_top    = int(floor(bounds.position.y))
-	cam.limit_right  = int(ceil(bounds.position.x + bounds.size.x))
-	cam.limit_bottom = int(ceil(bounds.position.y + bounds.size.y))
+	_update_camera_limits_for_current_maze()
 	
 	if fog and fog.has_method("reset_fog_for_level"):
 		fog.reset_fog_for_level()
 		# Wait a frame for fog to settle
 		await get_tree().process_frame
 
-	if _is_continuing and _continue_fog_path != "":
+	if _is_continuing and (not _did_restore_fog) and _continue_fog_path != "":
 		if fog and fog.has_method("load_explored_from_file"):
 			fog.load_explored_from_file(_continue_fog_path, _continue_fog_size)
 		# Only restore explored fog once on initial continue.
-		_is_continuing = false
+		_did_restore_fog = true
+
+func _update_camera_limits_for_current_maze() -> void:
+	if maze == null or cam == null:
+		return
+	var bounds: Rect2 = maze.get_world_bounds()
+	cam.limit_left = int(floor(bounds.position.x))
+	cam.limit_top = int(floor(bounds.position.y))
+	cam.limit_right = int(ceil(bounds.position.x + bounds.size.x))
+	cam.limit_bottom = int(ceil(bounds.position.y + bounds.size.y))
+	# Avoid smoothing artifacts after teleports / limit changes.
+	if cam.has_method("reset_smoothing"):
+		cam.reset_smoothing()
 
 func _return_to_main_menu() -> void:
 	print("[Game] Returning to main menu")

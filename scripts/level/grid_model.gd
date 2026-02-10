@@ -12,6 +12,14 @@ enum CellType {
 	FLOOR = 1
 }
 
+## Room classification for rooms-first generation.
+## Kept separate from CellTag.ROOM so callers can distinguish MINOR vs REWARD.
+enum RoomKind {
+	NONE = 0,
+	MINOR = 1,
+	REWARD = 2
+}
+
 ## Optional cell tags for maze features
 enum CellTag {
 	NONE = 0,
@@ -44,7 +52,13 @@ func _allocate_grid() -> void:
 		var row: Array = []
 		row.resize(width)
 		for x in range(width):
-			row[x] = {"type": CellType.WALL, "tags": CellTag.NONE}
+			row[x] = {
+				"type": CellType.WALL,
+				"is_floor": false,
+				"tags": CellTag.NONE,
+				"room_kind": RoomKind.NONE,
+				"door_mark": false,
+			}
 		cells[y] = row
 
 # --------------------------------------------------------------------
@@ -56,13 +70,20 @@ func in_bounds(x: int, y: int) -> bool:
 
 func get_cell(x: int, y: int) -> Dictionary:
 	if not in_bounds(x, y):
-		return {"type": CellType.WALL, "tags": CellTag.NONE}
+		return {
+			"type": CellType.WALL,
+			"is_floor": false,
+			"tags": CellTag.NONE,
+			"room_kind": RoomKind.NONE,
+			"door_mark": false,
+		}
 	return cells[y][x]
 
 func is_floor(x: int, y: int) -> bool:
 	if not in_bounds(x, y):
 		return false
-	return cells[y][x]["type"] == CellType.FLOOR
+	# Prefer the explicit bool field (rooms-first spec), but keep type in sync.
+	return bool(cells[y][x].get("is_floor", cells[y][x]["type"] == CellType.FLOOR))
 
 func is_wall(x: int, y: int) -> bool:
 	return not is_floor(x, y)
@@ -88,10 +109,12 @@ func is_door(x: int, y: int) -> bool:
 func set_floor(x: int, y: int) -> void:
 	if in_bounds(x, y):
 		cells[y][x]["type"] = CellType.FLOOR
+		cells[y][x]["is_floor"] = true
 
 func set_wall(x: int, y: int) -> void:
 	if in_bounds(x, y):
 		cells[y][x]["type"] = CellType.WALL
+		cells[y][x]["is_floor"] = false
 
 func set_solid(x: int, y: int) -> void:
 	set_wall(x, y)
@@ -107,6 +130,41 @@ func remove_tag(x: int, y: int, tag: CellTag) -> void:
 func clear_tags(x: int, y: int) -> void:
 	if in_bounds(x, y):
 		cells[y][x]["tags"] = CellTag.NONE
+		cells[y][x]["room_kind"] = RoomKind.NONE
+		cells[y][x]["door_mark"] = false
+
+# --------------------------------------------------------------------
+# Rooms-first helpers (non-breaking additions)
+# --------------------------------------------------------------------
+
+func get_room_kind(x: int, y: int) -> RoomKind:
+	if not in_bounds(x, y):
+		return RoomKind.NONE
+	return cells[y][x].get("room_kind", RoomKind.NONE) as RoomKind
+
+func set_room_kind(x: int, y: int, kind: RoomKind) -> void:
+	if not in_bounds(x, y):
+		return
+	cells[y][x]["room_kind"] = int(kind)
+	# Keep the higher-level ROOM tag aligned with kind.
+	if kind == RoomKind.NONE:
+		remove_tag(x, y, CellTag.ROOM)
+	else:
+		add_tag(x, y, CellTag.ROOM)
+
+func is_door_marked(x: int, y: int) -> bool:
+	if not in_bounds(x, y):
+		return false
+	return bool(cells[y][x].get("door_mark", false))
+
+func set_door_mark(x: int, y: int, marked: bool = true) -> void:
+	if not in_bounds(x, y):
+		return
+	cells[y][x]["door_mark"] = marked
+
+func set_room_floor_kind(x: int, y: int, kind: RoomKind) -> void:
+	set_room_floor(x, y)
+	set_room_kind(x, y, kind)
 
 func set_room_floor(x: int, y: int) -> void:
 	set_floor(x, y)
@@ -182,7 +240,10 @@ func clear_all() -> void:
 	for y in range(height):
 		for x in range(width):
 			cells[y][x]["type"] = CellType.WALL
+			cells[y][x]["is_floor"] = false
 			cells[y][x]["tags"] = CellTag.NONE
+			cells[y][x]["room_kind"] = RoomKind.NONE
+			cells[y][x]["door_mark"] = false
 
 # --------------------------------------------------------------------
 # Debug/visualization

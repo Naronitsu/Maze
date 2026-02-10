@@ -1,10 +1,10 @@
-[gd_scene format=3 uid="uid://cynmmfn4ux1dd"]
+[gd_scene load_steps=34 format=3 uid="uid://cynmmfn4ux1dd"]
 
 [ext_resource type="Script" uid="uid://bbvhcofrcxrrs" path="res://scripts/gameplay/game.gd" id="1_3dryh"]
 [ext_resource type="Texture2D" uid="uid://bvxffpi0ecbj8" path="res://sprites/urizen_onebit_tileset__v2d0.png" id="1_qxrlw"]
 [ext_resource type="Script" uid="uid://rpjnts3dwysw" path="res://scripts/gameplay/presence_spawn_manager.gd" id="2_1kice"]
 [ext_resource type="Script" uid="uid://5f4rasa4k0ni" path="res://scripts/systems/audio_manager.gd" id="2_ca42v"]
-[ext_resource type="FontFile" uid="uid://bqy5p2kflj3sw" path="res://fonts/Quintessential-Regular.ttf" id="2_dinhu"]
+[ext_resource type="FontFile" uid="uid://dt4f3qlbs2g3u" path="res://fonts/Jacquard24-Regular.ttf" id="2_dinhu"]
 [ext_resource type="Shader" uid="uid://dtp8ym7kbljwb" path="res://shaders/crt_warp.gdshader" id="2_trtic"]
 [ext_resource type="Script" uid="uid://cwnx1sov5ax5p" path="res://scripts/world/tile_map.gd" id="2_wrm1d"]
 [ext_resource type="Script" uid="uid://ddr62so3onguo" path="res://scripts/gameplay/level_transition_manager.gd" id="3_5newe"]
@@ -7110,7 +7110,6 @@ texture_region_size = Vector2i(32, 32)
 2:7/0/terrains_peering_bit/top_side = 0
 3:7/0 = 0
 4:7/0 = 0
-4:7/0/physics_layer_0/polygon_0/points = PackedVector2Array(-9.558922, -16, 10.8334465, -16, 11.470707, 16, -8.921659, 16)
 5:7/0 = 0
 6:7/0 = 0
 7:7/0 = 0
@@ -7205,17 +7204,18 @@ layout_mode = 3
 
 [node name="GameController" type="Node2D" parent="." node_paths=PackedStringArray("player", "presence")]
 script = ExtResource("13_kvuet")
-maze_layer_path = NodePath("../TileMap/MazeLayer")
 player = NodePath("../Player")
 presence = NodePath("../PresenceRW")
+maze_layer_path = NodePath("../TileMap/MazeLayer")
 
 [node name="WaterSystem" type="Node2D" parent="."]
 script = ExtResource("14_water")
 
 [node name="Player" parent="." instance=ExtResource("4_3dryh")]
+scale = Vector2(0.75, 0.75)
 
 [node name="Camera" type="Camera2D" parent="Player"]
-zoom = Vector2(2.5, 2.5)
+zoom = Vector2(3.5, 3.5)
 position_smoothing_enabled = true
 drag_left_margin = 0.0
 drag_top_margin = 0.0

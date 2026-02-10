@@ -157,6 +157,7 @@ func _start_game() -> void:
 	if continue_btn:
 		continue_btn.disabled = true
 	play_btn.disabled = true
+	settings_btn.disabled = true
 	quit_btn.disabled = true
 
 	# Fade to black

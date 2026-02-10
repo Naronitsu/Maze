@@ -1,7 +1,59 @@
-[gd_scene load_steps=3 format=3 uid="uid://pause_menu_01"]
+[gd_scene load_steps=10 format=3 uid="uid://pause_menu_01"]
 
 [ext_resource type="Script" path="res://scripts/ui/pause_menu.gd" id="1_pause_menu"]
 [ext_resource type="PackedScene" uid="uid://pause_settings_01" path="res://scenes/ui/pause_settings.tscn" id="2_pause_settings"]
+[ext_resource type="Texture2D" uid="uid://bwb1asyjxke0m" path="res://sprites/button.png" id="3_button_tex"]
+[ext_resource type="FontFile" uid="uid://dt4f3qlbs2g3u" path="res://fonts/Jacquard24-Regular.ttf" id="4_jacquard24"]
+
+[sub_resource type="StyleBoxTexture" id="StyleBoxTexture_pause_normal"]
+texture = ExtResource("3_button_tex")
+texture_margin_left = 3.0
+texture_margin_top = 3.0
+texture_margin_right = 3.0
+texture_margin_bottom = 3.0
+expand_margin_left = 3.0
+expand_margin_top = 3.0
+expand_margin_right = 3.0
+expand_margin_bottom = 3.0
+region_rect = Rect2(0, 0, 96, 32)
+
+[sub_resource type="StyleBoxTexture" id="StyleBoxTexture_pause_hover"]
+texture = ExtResource("3_button_tex")
+texture_margin_left = 3.0
+texture_margin_top = 3.0
+texture_margin_right = 3.0
+texture_margin_bottom = 3.0
+expand_margin_left = 3.0
+expand_margin_top = 3.0
+expand_margin_right = 3.0
+expand_margin_bottom = 3.0
+region_rect = Rect2(0, 32, 96, 32)
+
+[sub_resource type="StyleBoxTexture" id="StyleBoxTexture_pause_pressed"]
+texture = ExtResource("3_button_tex")
+texture_margin_left = 3.0
+texture_margin_top = 3.0
+texture_margin_right = 3.0
+texture_margin_bottom = 3.0
+expand_margin_left = 3.0
+expand_margin_top = 3.0
+expand_margin_right = 3.0
+expand_margin_bottom = 3.0
+region_rect = Rect2(0, 64, 96, 32)
+
+[sub_resource type="StyleBoxTexture" id="StyleBoxTexture_pause_disabled"]
+texture = ExtResource("3_button_tex")
+texture_margin_left = 3.0
+texture_margin_top = 3.0
+texture_margin_right = 3.0
+texture_margin_bottom = 3.0
+expand_margin_left = 3.0
+expand_margin_top = 3.0
+expand_margin_right = 3.0
+expand_margin_bottom = 3.0
+region_rect = Rect2(0, 64, 96, 32)
+
+[sub_resource type="StyleBoxEmpty" id="StyleBoxEmpty_pause_panel"]
 
 [node name="PauseMenu" type="Control"]
 visible = false
@@ -32,6 +84,7 @@ mouse_filter = 1
 
 [node name="Panel" type="Panel" parent="Center"]
 custom_minimum_size = Vector2(320, 220)
+theme_override_styles/panel = SubResource("StyleBoxEmpty_pause_panel")
 
 [node name="VBox" type="VBoxContainer" parent="Center/Panel"]
 anchors_preset = 15
@@ -42,20 +95,34 @@ grow_vertical = 2
 size_flags_horizontal = 3
 size_flags_vertical = 3
 alignment = 1
+theme_override_constants/separation = 10
 
 [node name="Title" type="Label" parent="Center/Panel/VBox"]
 text = "Paused"
 horizontal_alignment = 1
+theme_override_fonts/font = ExtResource("4_jacquard24")
 
 [node name="ResumeButton" type="Button" parent="Center/Panel/VBox"]
 text = "Resume"
-size_flags_horizontal = 3
+theme_override_fonts/font = ExtResource("4_jacquard24")
+theme_override_styles/normal = SubResource("StyleBoxTexture_pause_normal")
+theme_override_styles/pressed = SubResource("StyleBoxTexture_pause_pressed")
+theme_override_styles/hover = SubResource("StyleBoxTexture_pause_hover")
+theme_override_styles/disabled = SubResource("StyleBoxTexture_pause_disabled")
 
 [node name="SettingsButton" type="Button" parent="Center/Panel/VBox"]
 text = "Settings"
-size_flags_horizontal = 3
+theme_override_fonts/font = ExtResource("4_jacquard24")
+theme_override_styles/normal = SubResource("StyleBoxTexture_pause_normal")
+theme_override_styles/pressed = SubResource("StyleBoxTexture_pause_pressed")
+theme_override_styles/hover = SubResource("StyleBoxTexture_pause_hover")
+theme_override_styles/disabled = SubResource("StyleBoxTexture_pause_disabled")
 
 [node name="QuitButton" type="Button" parent="Center/Panel/VBox"]
 text = "Quit to Menu"
-size_flags_horizontal = 3
+theme_override_fonts/font = ExtResource("4_jacquard24")
+theme_override_styles/normal = SubResource("StyleBoxTexture_pause_normal")
+theme_override_styles/pressed = SubResource("StyleBoxTexture_pause_pressed")
+theme_override_styles/hover = SubResource("StyleBoxTexture_pause_hover")
+theme_override_styles/disabled = SubResource("StyleBoxTexture_pause_disabled")
 [node name="SettingsPanel" parent="." instance=ExtResource("2_pause_settings")]

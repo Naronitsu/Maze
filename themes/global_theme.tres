@@ -1,0 +1,20 @@
+[gd_resource type="Theme" format=3]
+
+[ext_resource type="FontFile" path="res://fonts/Jacquard24-Regular.ttf" id="1_jacquard24"]
+
+[resource]
+# Global fallback font for all Controls
+default_font = ExtResource("1_jacquard24")
+default_font_size = 16
+
+# Explicitly set common text controls to ensure consistent inheritance
+Button/fonts/font = ExtResource("1_jacquard24")
+Button/font_sizes/font_size = 16
+Label/fonts/font = ExtResource("1_jacquard24")
+Label/font_sizes/font_size = 16
+CheckBox/fonts/font = ExtResource("1_jacquard24")
+CheckBox/font_sizes/font_size = 16
+OptionButton/fonts/font = ExtResource("1_jacquard24")
+OptionButton/font_sizes/font_size = 16
+RichTextLabel/fonts/normal_font = ExtResource("1_jacquard24")
+RichTextLabel/font_sizes/normal_font_size = 16

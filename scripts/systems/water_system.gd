@@ -48,6 +48,82 @@ func set_refs(p_controller: GameController, p_player: CharacterBody2D, p_presenc
 	player = p_player
 	presence = p_presence
 
+
+func get_persistent_state() -> Dictionary:
+	var serialized_cells: Array[Dictionary] = []
+	for c in water_cells.keys():
+		if typeof(c) != TYPE_VECTOR2I:
+			continue
+		var raw = water_cells[c]
+		if not is_instance_valid(raw):
+			continue
+		var droplet := raw as WaterDroplet
+		if droplet == null:
+			continue
+		var amt := float(droplet.amount)
+		if amt <= 0.0:
+			continue
+		serialized_cells.append({"x": c.x, "y": c.y, "a": amt})
+	return {
+		"bucket_amount": bucket_amount,
+		"bucket_placed": bucket_placed,
+		"bucket_cell": bucket_cell,
+		"water_cells": serialized_cells
+	}
+
+
+func apply_persistent_state(state: Dictionary) -> void:
+	# Apply saved bucket state and ensure visuals match immediately.
+	var amt: float = float(state.get("bucket_amount", GameConfig.water_bucket_start_amount))
+	var placed: bool = bool(state.get("bucket_placed", false))
+	var cell: Vector2i = state.get("bucket_cell", bucket_cell)
+
+	bucket_amount = clampf(amt, 0.0, GameConfig.water_bucket_capacity)
+
+	# Validate/repair the target cell.
+	_resolve_refs()
+	if controller != null:
+		if cell == INVALID_CELL:
+			if player != null:
+				cell = controller.world_to_cell(player.global_position)
+			else:
+				cell = Vector2i.ZERO
+		# If the bucket is supposed to be placed, ensure it's placeable.
+		if placed and not controller.is_walkable(cell):
+			placed = false
+
+	bucket_cell = cell
+	bucket_placed = placed
+
+	# Sync bucket visuals immediately.
+	if bucket_placed:
+		_ensure_bucket_node()
+		_sync_bucket_node()
+	else:
+		_remove_bucket_node()
+
+	# Rebuild persisted puddles/droplets.
+	var cells_raw: Variant = state.get("water_cells", [])
+	if typeof(cells_raw) == TYPE_ARRAY:
+		# Clear existing droplets first (level_started normally does this anyway).
+		_clear_droplets(water_cells)
+		for entry in (cells_raw as Array):
+			if typeof(entry) != TYPE_DICTIONARY:
+				continue
+			var d: Dictionary = entry
+			var cx := int(d.get("x", 0))
+			var cy := int(d.get("y", 0))
+			var a: float = float(d.get("a", d.get("amount", 0.0)))
+			a = clampf(a, 0.0, GameConfig.water_bucket_capacity)
+			if a <= 0.0:
+				continue
+			var c2 := Vector2i(cx, cy)
+			if controller != null and not controller.is_walkable(c2):
+				continue
+			var droplet := _get_or_create_droplet(water_cells, c2)
+			droplet.amount = a
+			_update_water_visual(c2, droplet, false)
+
 func _process(delta: float) -> void:
 	if GameState.current != GameState.State.PLAYING:
 		return

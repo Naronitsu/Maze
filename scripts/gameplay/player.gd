@@ -24,7 +24,7 @@ var _run_grace: float = 0.0
 
 var trail_history: Array[Vector2i] = []
 
-var allow_hold_to_repeat: bool = false
+var allow_hold_to_repeat: bool = true
 
 # Will be set by game.gd
 var vision_controller: VisionController = null
@@ -44,12 +44,13 @@ func _ready() -> void:
 	else:
 		cell = maze.get_spawn_cell()
 
+	_apply_sprite_scale()
 	global_position = _cell_to_global(cell)
 	controller.record_player_cell(cell)
 
 	# Initialize vision facing (will be updated once vision_controller is set)
 	_update_vision_facing()
-	_play_state_anim("idle", facing)
+	_play_movement_anim(false, facing)
 
 func _physics_process(delta: float) -> void:
 	# Only allow input during active gameplay
@@ -73,13 +74,9 @@ func _physics_process(delta: float) -> void:
 	# Update looking direction FIRST (independent of movement)
 	_update_look_input()
 
-	# Run grace countdown
-	if _run_grace > 0.0:
-		_run_grace = maxf(_run_grace - delta, 0.0)
-
 	# If currently moving (interpolating between cells)
 	if _moving:
-		_play_state_anim("run", _move_facing)
+		_play_movement_anim(true, _move_facing)
 
 		_t += delta / GameConfig.player_step_time
 		if _t >= 1.0:
@@ -95,32 +92,26 @@ func _physics_process(delta: float) -> void:
 	if Input.is_action_just_pressed(GameConfig.player_interact_action):
 		_try_toggle_door()
 
-	# Not currently interpolating, but still within grace window -> keep run playing
-	if _run_grace > 0.0:
-		_play_state_anim("run", facing)
-	else:
-		_play_state_anim("idle", facing)
+	# Keep walk looping while movement input is held, even between grid steps.
+	var move_input_held := (
+		Input.is_action_pressed("move_up")
+		or Input.is_action_pressed("move_down")
+		or Input.is_action_pressed("move_left")
+		or Input.is_action_pressed("move_right")
+	)
+	_play_movement_anim(move_input_held, facing)
 
-	# Movement input is separate from look input now
+	# Movement input is separate from look input now.
+	# Hold-to-walk: repeated steps happen naturally because we ignore input while _moving.
 	var move_dir := Vector2i.ZERO
-	if allow_hold_to_repeat:
-		if Input.is_action_pressed("move_up"):
-			move_dir = Vector2i(0, -1)
-		elif Input.is_action_pressed("move_down"):
-			move_dir = Vector2i(0, 1)
-		elif Input.is_action_pressed("move_left"):
-			move_dir = Vector2i(-1, 0)
-		elif Input.is_action_pressed("move_right"):
-			move_dir = Vector2i(1, 0)
-	else:
-		if Input.is_action_just_pressed("move_up"):
-			move_dir = Vector2i(0, -1)
-		elif Input.is_action_just_pressed("move_down"):
-			move_dir = Vector2i(0, 1)
-		elif Input.is_action_just_pressed("move_left"):
-			move_dir = Vector2i(-1, 0)
-		elif Input.is_action_just_pressed("move_right"):
-			move_dir = Vector2i(1, 0)
+	if Input.is_action_pressed("move_up"):
+		move_dir = Vector2i(0, -1)
+	elif Input.is_action_pressed("move_down"):
+		move_dir = Vector2i(0, 1)
+	elif Input.is_action_pressed("move_left"):
+		move_dir = Vector2i(-1, 0)
+	elif Input.is_action_pressed("move_right"):
+		move_dir = Vector2i(1, 0)
 
 	if move_dir != Vector2i.ZERO:
 		_try_step(move_dir)
@@ -191,7 +182,7 @@ func _try_step(dir: Vector2i) -> void:
 	_to = target_pos
 	_t = 0.0
 	_moving = true
-	_run_grace = GameConfig.player_run_grace_time
+	_run_grace = 0.0
 
 	# Write trail for the Presence to follow
 	if controller != null:
@@ -208,6 +199,7 @@ func reset_to_cell(new_cell: Vector2i) -> void:
 	_moving = false
 	_t = 0.0
 	_run_grace = 0.0
+	_apply_sprite_scale()
 	global_position = _cell_to_global(cell)
 
 	_update_sprite_facing(facing)
@@ -215,12 +207,23 @@ func reset_to_cell(new_cell: Vector2i) -> void:
 	if vision_controller != null:
 		vision_controller.reveal_now()
 
-	_play_state_anim("idle", facing)
+	_play_movement_anim(false, facing)
 
 func _cell_to_global(c: Vector2i) -> Vector2:
+	if controller != null:
+		return controller.cell_to_world_center(c)
 	if maze == null:
 		return Vector2.ZERO
 	return maze.to_global(maze.map_to_local(c))
+
+func _apply_sprite_scale() -> void:
+	if anim == null:
+		return
+	# Keep the physics/collision unscaled; only shrink visuals.
+	anim.scale = Vector2.ONE * GameConfig.player_sprite_scale
+	anim.position = Vector2.ZERO
+	if "centered" in anim:
+		anim.centered = true
 
 func _update_vision_facing() -> void:
 	if vision_controller == null:
@@ -232,10 +235,22 @@ func _update_sprite_facing(dir: Vector2i) -> void:
 	# Sideways animations are authored as "moving right"
 	if anim == null:
 		return
+	# Only change flip when we actually have a horizontal direction.
+	# Vertical movement should keep the last horizontal facing.
 	if dir.x != 0:
 		anim.flip_h = (dir.x < 0)
-	else:
-		anim.flip_h = false
+
+func _play_movement_anim(walking: bool, dir: Vector2i) -> void:
+	if anim == null:
+		return
+	_update_sprite_facing(dir)
+	if anim.sprite_frames == null:
+		return
+	var desired: StringName = &"walk_sideways" if walking else &"idle_sideways"
+	# Back-compat: older player frames used run_sideways.
+	if walking and not anim.sprite_frames.has_animation(desired) and anim.sprite_frames.has_animation(&"run_sideways"):
+		desired = &"run_sideways"
+	_play_anim(desired)
 
 func _play_anim(p_name: StringName) -> void:
 	if anim == null:
@@ -247,29 +262,7 @@ func _play_anim(p_name: StringName) -> void:
 	if anim.animation != p_name or not anim.is_playing():
 		anim.play(p_name)
 
-func _play_state_anim(state: String, dir: Vector2i) -> void:
-	var a := _anim_name_for(state, dir)
-	_play_anim(a)
 
-func _anim_name_for(state: String, dir_in: Vector2i) -> StringName:
-	var dir := dir_in
-	if dir == Vector2i.ZERO:
-		dir = facing
-
-	# Sideways: right is default, left is flip
-	if dir.x != 0:
-		if anim != null:
-			anim.flip_h = (dir.x < 0)
-		return StringName(state + "_sideways")
-
-	# Vertical: no flip
-	if anim != null:
-		anim.flip_h = false
-
-	if dir.y < 0:
-		return StringName(state + "_up")
-	else:
-		return StringName(state + "_down")
 		
 func _try_toggle_door() -> void:
 	# Option A: only the cell you're facing (feels intentional)
