@@ -7235,6 +7235,7 @@ controller_path = NodePath("../GameController")
 move_interval = 0.2
 
 [node name="Sprite2D" type="Sprite2D" parent="PresenceRW"]
+visible = false
 z_index = 4096
 texture = ExtResource("3_trtic")
 region_enabled = true
