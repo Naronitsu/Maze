@@ -9,7 +9,6 @@ var player: CharacterBody2D
 var fog: FogOfWarRW
 var transition_controller: TransitionController
 var vision_controller: VisionController
-var water_system: Node
 var markings_spawner: Node
 
 var _is_transitioning: bool = false
@@ -39,14 +38,12 @@ func _ready() -> void:
 	cam = SceneReferences.camera
 	player = SceneReferences.player
 	fog = SceneReferences.fog
-	water_system = SceneReferences.water_system
 
 	# Decorative floor markings (non-colliding sprites)
 	markings_spawner = preload("res://scripts/gameplay/markings_spawner.gd").new()
 	add_child(markings_spawner)
 	if markings_spawner.has_method("set_refs"):
 		markings_spawner.call("set_refs", maze, controller)
-	print("[Game._ready()] Water system ref: %s" % water_system)
 	SettingsManager.apply_visuals_to_scene(self)
 	
 	# Create and initialize transition controller
@@ -80,9 +77,6 @@ func _ready() -> void:
 	if heartbeat_ui != null:
 		heartbeat_ui.vision_controller = vision_controller
 		heartbeat_ui.fog = fog
-
-	if water_system != null:
-		water_system.set_refs(controller, player, presence)
 	
 	# Check if loading from save
 	var save_data = SaveManager.current_save_data
@@ -130,13 +124,9 @@ func _ready() -> void:
 	# Skip intro if continuing from save
 	if _is_continuing:
 		print("[Game] Skipping intro for continue game")
-		# Prevent SaveManager auto-save on initial level_started from overwriting
-		# the just-loaded water/bucket state before we reapply it.
-		SaveManager._auto_save_enabled = false
 		GameState.current = GameState.State.PLAYING
 		EventBus.level_started.emit(player.cell if "cell" in player else Vector2i.ZERO, maze)
 		print("[Game] level_started signal emitted")
-		call_deferred("_apply_continued_water_state", save_data)
 		_ready_complete = true
 		return
 
@@ -152,51 +142,6 @@ func _ready() -> void:
 	EventBus.level_started.emit(player.cell if "cell" in player else Vector2i.ZERO, maze)
 	print("[Game] level_started signal emitted")
 	_ready_complete = true
-
-
-func _apply_continued_water_state(save_data: Dictionary) -> void:
-	# Reapply saved water/bucket state after the initial level_started resets.
-	var ws := water_system
-	if ws != null:
-		# Prefer WaterSystem helper to also recreate/remove bucket visuals.
-		if ws.has_method("apply_persistent_state"):
-			var merged := save_data.duplicate(true)
-			if not merged.has("bucket_cell"):
-				merged["bucket_cell"] = save_data.get("player_cell", Vector2i.ZERO)
-			ws.call("apply_persistent_state", merged)
-		else:
-			var amt: float = float(save_data.get("bucket_amount", GameConfig.water_bucket_start_amount))
-			var placed: bool = bool(save_data.get("bucket_placed", false))
-			var cell: Vector2i = save_data.get("bucket_cell", save_data.get("player_cell", Vector2i.ZERO))
-			if "bucket_amount" in ws:
-				ws.bucket_amount = clampf(amt, 0.0, GameConfig.water_bucket_capacity)
-			if "bucket_placed" in ws:
-				ws.bucket_placed = placed
-			if "bucket_cell" in ws:
-				ws.bucket_cell = cell
-			if ws.has_method("_sync_bucket_node"):
-				ws.call("_sync_bucket_node")
-			elif ws.has_method("_remove_bucket_node") and not placed:
-				ws.call("_remove_bucket_node")
-
-	# Now that runtime state is correct, write it back once and re-enable autosave.
-	var fog_path: String = save_data.get("fog_path", "")
-	var fog_size: Vector2i = save_data.get("fog_size", Vector2i.ZERO)
-	var ws_state: Dictionary = {}
-	if ws != null and ws.has_method("get_persistent_state"):
-		ws_state = ws.call("get_persistent_state")
-	SaveManager.save_game(
-		maze.level,
-		maze.run,
-		player.cell if "cell" in player else Vector2i.ZERO,
-		maze.rng_seed,
-		fog_path,
-		fog_size,
-		float(ws_state.get("bucket_amount", NAN)) if not ws_state.is_empty() else NAN,
-		ws_state.get("bucket_placed", null) if not ws_state.is_empty() else null,
-		ws_state.get("bucket_cell", SaveManager.INVALID_CELL) if not ws_state.is_empty() else SaveManager.INVALID_CELL
-	)
-	SaveManager._auto_save_enabled = true
 
 
 func _input(event: InputEvent) -> void:
@@ -217,15 +162,6 @@ func _physics_process(_delta: float) -> void:
 
 	if (player.cell as Vector2i) == maze.exit_cell:
 		print("[Game] Player reached exit at %s" % player.cell)
-		# Require bucket to be placed before allowing level progression
-		var ws := water_system
-		# If a water system exists, require its `bucket_placed` flag to be true
-		if ws != null:
-			# Block progression when the bucket is placed in the world
-			if ws.bucket_placed:
-				print("[Game] Cannot progress: bucket is placed in the world")
-				call_deferred("_display_temp_panel", "Pick up the bucket before progressing")
-				return
 		# Proceed with transition
 		_is_transitioning = true
 		GameState.current = GameState.State.TRANSITIONING
@@ -347,8 +283,7 @@ func _coerce_spawn_to_walkable(desired: Vector2i) -> Vector2i:
 				var c := Vector2i(desired.x + dx, desired.y + dy)
 				if maze.is_floor(c):
 					return c
-	return desired
-
+	
 	# Fog should match new maze size and reset per level
 	# But defer fog updates during transition to avoid visual flash
 	if not _is_transitioning:
@@ -358,6 +293,8 @@ func _coerce_spawn_to_walkable(desired: Vector2i) -> Vector2i:
 			fog.call_deferred("reveal_now")
 
 	_after_maze_generated()
+	
+	return desired
 
 func _after_maze_generated() -> void:
 	_update_camera_limits_for_current_maze()

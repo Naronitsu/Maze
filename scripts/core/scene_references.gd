@@ -9,7 +9,6 @@ var presence: Node2D
 var controller: Node
 var camera: Camera2D
 var fog: Node
-var water_system: Node2D
 var ui_layer: CanvasLayer
 var level_intro_panel: ColorRect
 var level_intro_text: Label
@@ -30,7 +29,6 @@ func validate_all(scene_root: Node2D) -> bool:
 	controller = game.get_node_or_null("GameController")
 	camera = game.get_node_or_null("Player/Camera")
 	fog = game.get_node_or_null("Overlay/FogOfWarRW")
-	water_system = game.get_node_or_null("WaterSystem")
 	ui_layer = game.get_node_or_null("UI")
 	level_intro_panel = game.get_node_or_null("UI/LevelIntro")
 	level_intro_text = game.get_node_or_null("UI/LevelIntro/Text")
@@ -50,8 +48,6 @@ func validate_all(scene_root: Node2D) -> bool:
 		errors.append("camera (Player/Camera)")
 	if fog == null:
 		errors.append("fog (Overlay/FogOfWarRW)")
-	if water_system == null:
-		errors.append("water_system (WaterSystem)")
 	if ui_layer == null:
 		errors.append("ui_layer (UI)")
 	if level_intro_panel == null:
@@ -76,7 +72,6 @@ func get_safe(node_name: String) -> Node:
 		"controller": return controller
 		"camera": return camera
 		"fog": return fog
-		"water_system": return water_system
 		"ui_layer": return ui_layer
 		"level_intro_panel": return level_intro_panel
 		"level_intro_text": return level_intro_text

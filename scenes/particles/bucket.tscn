@@ -1,8 +1,0 @@
-[gd_scene format=3 uid="uid://duhxbk6a4gbxo"]
-
-[ext_resource type="Texture2D" uid="uid://bsuq5egocn55n" path="res://sprites/bucket.png" id="1_m2sg1"]
-
-[node name="Bucket" type="Node2D" unique_id=2056211096]
-
-[node name="Sprite2D" type="Sprite2D" parent="." unique_id=362414449]
-texture = ExtResource("1_m2sg1")

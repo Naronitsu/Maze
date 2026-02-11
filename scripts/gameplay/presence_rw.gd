@@ -1,8 +1,7 @@
 ## AI-controlled pursuing enemy that chases the player through the maze.
 ##
-## Uses BFS pathfinding and can open doors. Spawns using configurable strategies
-## (history-based, room-based, or far-spawn). Supports water system integration
-## to modify behavior when water is present.
+## Uses A* pathfinding (via BFS) and can open doors. Spawns using configurable
+## strategies (history-based, room-based, or far-spawn).
 extends Node2D
 class_name PresenceRW
 
@@ -36,7 +35,6 @@ var _timer: float = 0.0
 var _rng := RandomNumberGenerator.new()
 
 var _last_player_cell: Vector2i = INVALID_CELL
-var water_system = null
 
 func _ready() -> void:
 	# Initialize from NodePath export if direct reference not set (backward compatibility)
@@ -54,7 +52,6 @@ func _ready() -> void:
 	# Listen to events
 	EventBus.player_moved.connect(_on_player_moved)
 	EventBus.presence_should_spawn.connect(_on_presence_should_spawn)
-	call_deferred("_resolve_water_system")
 
 func _process(delta: float) -> void:
 	if not _active or GameState.current != GameState.State.PLAYING:
@@ -172,9 +169,6 @@ func _step() -> void:
 		return
 	if cell == INVALID_CELL:
 		return
-	if water_system != null and water_system.has_method("has_water_at"):
-		if bool(water_system.call("has_water_at", cell)):
-			return
 
 	var target_cell := _get_target_cell()
 	if target_cell == INVALID_CELL:
@@ -235,25 +229,9 @@ func _best_step_toward_target(neighbors: Array[Vector2i], target_cell: Vector2i)
 	return best
 
 func _get_target_cell() -> Vector2i:
-	if water_system == null:
-		_resolve_water_system()
-
-	if water_system != null:
-		return water_system.get_preferred_target_cell()
-
 	if controller == null or controller.player == null:
 		return INVALID_CELL
 	return controller.world_to_cell(controller.player.global_position)
-
-func _resolve_water_system() -> void:
-	if water_system != null:
-		return
-	if SceneReferences.water_system != null:
-		water_system = SceneReferences.water_system
-		return
-	var ws := get_node_or_null("../WaterSystem")
-	if ws != null:
-		water_system = ws
 
 # -----------------------------------------------------------------------------
 # Door + passability helpers

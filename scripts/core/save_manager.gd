@@ -14,11 +14,7 @@ var current_save_data: Dictionary = {
 	"maze_seed": 0,
 	"timestamp": 0,
 	"fog_path": "",
-	"fog_size": Vector2i.ZERO,
-	"bucket_amount": 0.0,
-	"bucket_placed": false,
-	"bucket_cell": Vector2i.ZERO,
-	"water_cells": []
+	"fog_size": Vector2i.ZERO
 }
 
 var _auto_save_enabled: bool = true
@@ -39,42 +35,10 @@ func save_game(
 	player_cell: Vector2i = Vector2i.ZERO,
 	maze_seed: int = 0,
 	fog_path: String = "",
-	fog_size: Vector2i = Vector2i.ZERO,
-	bucket_amount: float = NAN,
-	bucket_placed: Variant = null,
-	bucket_cell: Vector2i = INVALID_CELL
+	fog_size: Vector2i = Vector2i.ZERO
 ) -> bool:
 	var fog_size_dict := {"w": fog_size.x, "h": fog_size.y}
 
-	var ws_state: Dictionary = {}
-	if SceneReferences.water_system != null and SceneReferences.water_system.has_method("get_persistent_state"):
-		ws_state = SceneReferences.water_system.call("get_persistent_state")
-
-	var bucket_amount_to_save := bucket_amount
-	if is_nan(bucket_amount_to_save):
-		if not ws_state.is_empty() and ws_state.has("bucket_amount"):
-			bucket_amount_to_save = float(ws_state.get("bucket_amount"))
-		else:
-			bucket_amount_to_save = clampf(GameConfig.water_bucket_start_amount, 0.0, GameConfig.water_bucket_capacity)
-	bucket_amount_to_save = clampf(bucket_amount_to_save, 0.0, GameConfig.water_bucket_capacity)
-
-	var bucket_placed_to_save := false
-	if bucket_placed != null and typeof(bucket_placed) == TYPE_BOOL:
-		bucket_placed_to_save = bool(bucket_placed)
-	elif not ws_state.is_empty() and ws_state.has("bucket_placed"):
-		bucket_placed_to_save = bool(ws_state.get("bucket_placed"))
-
-	var bucket_cell_to_save := bucket_cell
-	if bucket_cell_to_save == INVALID_CELL:
-		if not ws_state.is_empty() and ws_state.has("bucket_cell"):
-			bucket_cell_to_save = ws_state.get("bucket_cell")
-		else:
-			bucket_cell_to_save = player_cell
-
-	var bucket_cell_dict := {"x": bucket_cell_to_save.x, "y": bucket_cell_to_save.y}
-	var water_cells_to_save: Array = []
-	if not ws_state.is_empty() and ws_state.has("water_cells") and typeof(ws_state.get("water_cells")) == TYPE_ARRAY:
-		water_cells_to_save = ws_state.get("water_cells")
 	var save_dict = {
 		"level": level,
 		"run": run,
@@ -82,11 +46,7 @@ func save_game(
 		"maze_seed": maze_seed,
 		"timestamp": Time.get_unix_time_from_system(),
 		"fog_path": fog_path,
-		"fog_size": fog_size_dict,
-		"bucket_amount": bucket_amount_to_save,
-		"bucket_placed": bucket_placed_to_save,
-		"bucket_cell": bucket_cell_dict,
-		"water_cells": water_cells_to_save
+		"fog_size": fog_size_dict
 	}
 	
 	var json_string = JSON.stringify(save_dict, "\t")
@@ -103,10 +63,6 @@ func save_game(
 	# Keep runtime copy in native types
 	current_save_data.fog_path = fog_path
 	current_save_data.fog_size = fog_size
-	current_save_data.bucket_amount = bucket_amount_to_save
-	current_save_data.bucket_placed = bucket_placed_to_save
-	current_save_data.bucket_cell = bucket_cell_to_save
-	current_save_data.water_cells = water_cells_to_save
 	print("[SaveManager] Game saved: Level %d, Run %d" % [level, run])
 	return true
 
@@ -149,28 +105,6 @@ func load_game() -> Dictionary:
 		data.fog_size = Vector2i(fs.get("w", 0), fs.get("h", 0))
 	else:
 		data.fog_size = Vector2i.ZERO
-
-	# Convert bucket_cell dict back to Vector2i
-	if data.has("bucket_cell") and typeof(data.bucket_cell) == TYPE_DICTIONARY:
-		var bc = data.bucket_cell
-		data.bucket_cell = Vector2i(bc.get("x", 0), bc.get("y", 0))
-	else:
-		data.bucket_cell = Vector2i.ZERO
-
-	# Water (backward-compatible)
-	var default_bucket := clampf(GameConfig.water_bucket_start_amount, 0.0, GameConfig.water_bucket_capacity)
-	var raw_bucket: Variant = data.get("bucket_amount", default_bucket)
-	if typeof(raw_bucket) == TYPE_INT or typeof(raw_bucket) == TYPE_FLOAT:
-		data.bucket_amount = clampf(float(raw_bucket), 0.0, GameConfig.water_bucket_capacity)
-	else:
-		data.bucket_amount = default_bucket
-	data.bucket_placed = bool(data.get("bucket_placed", false))
-	# Droplet puddles
-	var wc: Variant = data.get("water_cells", [])
-	if typeof(wc) != TYPE_ARRAY:
-		data.water_cells = []
-	else:
-		data.water_cells = wc
 	
 	current_save_data = data
 	print("[SaveManager] Game loaded: Level %d, Run %d, Position: %s" % [data.get("level", 1), data.get("run", 1), data.get("player_cell", Vector2i.ZERO)])
@@ -188,11 +122,7 @@ func delete_save() -> void:
 		"maze_seed": 0,
 		"timestamp": 0,
 		"fog_path": "",
-		"fog_size": Vector2i.ZERO,
-		"bucket_amount": clampf(GameConfig.water_bucket_start_amount, 0.0, GameConfig.water_bucket_capacity),
-		"bucket_placed": false,
-		"bucket_cell": Vector2i.ZERO,
-		"water_cells": []
+		"fog_size": Vector2i.ZERO
 	}
 
 func get_save_info() -> Dictionary:

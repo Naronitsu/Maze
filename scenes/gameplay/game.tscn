@@ -21,8 +21,6 @@
 [ext_resource type="AudioStream" uid="uid://csb54cceyeuin" path="res://sounds/heartbeat-loop-96879.mp3" id="11_kvpfn"]
 [ext_resource type="PackedScene" uid="uid://bm38rhriwppcc" path="res://scenes/gameplay/presence_rw.tscn" id="12_dinhu"]
 [ext_resource type="Script" uid="uid://dy5tva3fep1ra" path="res://scripts/gameplay/game_controller.gd" id="13_kvuet"]
-[ext_resource type="Script" uid="uid://dx1281opqisrs" path="res://scripts/systems/water_system.gd" id="14_water"]
-[ext_resource type="Script" uid="uid://dx1281opfedsk" path="res://scripts/ui/water_hud.gd" id="15_water_hud"]
 [ext_resource type="PackedScene" path="res://scenes/ui/pause_menu.tscn" id="16_pause_menu"]
 [ext_resource type="PackedScene" path="res://scenes/ui/pause_settings.tscn" id="17_pause_settings"]
 
@@ -7209,9 +7207,6 @@ player = NodePath("../Player")
 presence = NodePath("../PresenceRW")
 maze_layer_path = NodePath("../TileMap/MazeLayer")
 
-[node name="WaterSystem" type="Node2D" parent="."]
-script = ExtResource("14_water")
-
 [node name="Player" parent="." instance=ExtResource("4_3dryh")]
 scale = Vector2(0.75, 0.75)
 
@@ -7267,9 +7262,6 @@ expand_mode = 1
 
 [node name="HeartbeatAudio" type="AudioStreamPlayer2D" parent="HeartbeatUI"]
 stream = ExtResource("11_kvpfn")
-
-[node name="WaterHUD" type="CanvasLayer" parent="."]
-script = ExtResource("15_water_hud")
 
 [node name="CRT" type="CanvasLayer" parent="."]
 layer = 999
