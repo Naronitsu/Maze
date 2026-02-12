@@ -18,6 +18,8 @@ var _did_restore_fog: bool = false
 var _continue_fog_path: String = ""
 var _continue_fog_size: Vector2i = Vector2i.ZERO
 
+var _exit_shrine_hint_shown: bool = false
+
 const FOG_SAVE_PATH := "user://fog_explored.png"
 
 func _ready() -> void:
@@ -160,7 +162,20 @@ func _physics_process(_delta: float) -> void:
 	if not ("cell" in player):
 		return
 
-	if (player.cell as Vector2i) == maze.exit_cell:
+	var on_exit := (player.cell as Vector2i) == maze.exit_cell
+	if not on_exit:
+		_exit_shrine_hint_shown = false
+		return
+
+	# Gate progression: must fully charge all spawned shrines before leaving.
+	var shrine_progress := _get_shrine_progress()
+	if shrine_progress[0] < shrine_progress[1]:
+		if not _exit_shrine_hint_shown:
+			_exit_shrine_hint_shown = true
+			_display_temp_panel("Charge all shrines to escape (%d/%d)." % [shrine_progress[0], shrine_progress[1]], 1.6, 0.5)
+		return
+
+	if on_exit:
 		print("[Game] Player reached exit at %s" % player.cell)
 		# Proceed with transition
 		_is_transitioning = true
@@ -169,6 +184,23 @@ func _physics_process(_delta: float) -> void:
 		# Transition controller listens to this signal
 		if transition_controller != null:
 			transition_controller.start_transition()
+
+
+func _get_shrine_progress() -> Vector2i:
+	var pillars := get_tree().get_nodes_in_group("pillars")
+	var total := 0
+	var completed := 0
+	for n in pillars:
+		if not is_instance_valid(n):
+			continue
+		if n.has_method("is_completed"):
+			total += 1
+			if bool(n.call("is_completed")):
+				completed += 1
+	# Avoid softlock if something went wrong and no shrines exist.
+	if total <= 0:
+		return Vector2i(0, 0)
+	return Vector2i(completed, total)
 
 # ========================================
 # Intro Sequence

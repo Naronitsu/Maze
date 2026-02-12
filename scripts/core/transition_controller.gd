@@ -100,16 +100,26 @@ func _advance_phase() -> void:
 func _fade_in_text(msg: String, fade_time: float) -> void:
 	if level_intro_text == null:
 		return
-	
+
 	level_intro_text.text = msg
 	level_intro_text.visible = true
 	level_intro_text.modulate = Color(1, 1, 1, 0)
-	
+
+	# Ensure the font and size match the UI theme
+	var theme := level_intro_text.get_theme()
+	if theme != null:
+		var font := theme.get_font("font", "Label")
+		var font_size := theme.get_font_size("font_size", "Label")
+		if font != null:
+			level_intro_text.add_theme_font_override("font", font)
+		if font_size > 0:
+			level_intro_text.add_theme_font_size_override("font_size", font_size)
+
 	GameState.current = GameState.State.PAUSED
-	
+
 	# Wait one frame for UI to settle
 	await get_tree().process_frame
-	
+
 	var t := create_tween()
 	t.tween_property(level_intro_text, "modulate:a", 1.0, fade_time)
 	await t.finished

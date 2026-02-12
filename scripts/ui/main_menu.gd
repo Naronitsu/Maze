@@ -18,25 +18,6 @@ var _crt_saved_curvature: float = 0.0
 var _crt_has_saved_curvature: bool = false
 
 func _ready() -> void:
-	continue_btn.pressed.connect(_on_continue_pressed)
-	play_btn.pressed.connect(_on_play_pressed)
-	settings_btn.pressed.connect(_on_settings_pressed)
-	quit_btn.pressed.connect(_on_quit_pressed)
-	if settings_panel:
-		settings_panel.connect("back_pressed", _on_settings_back)
-	_crt_overlay = get_node_or_null("CRT/CRTOverlay") as ColorRect
-	_cache_crt_curvature()
-	SettingsManager.apply_visuals_to_scene(self)
-
-	# Show/hide continue button based on save existence
-	if SaveManager.has_save():
-		var save_info = SaveManager.get_save_info()
-		continue_btn.visible = true
-		if "level" in save_info and "run" in save_info:
-			continue_btn.text = "Continue (Level %d, Run %d)" % [save_info.level, save_info.run]
-	else:
-		continue_btn.visible = false
-
 	# Create a guaranteed full-screen black overlay on top
 	_fade_rect = ColorRect.new()
 	_fade_rect.name = "FadeRectRuntime"
@@ -45,6 +26,32 @@ func _ready() -> void:
 	_fade_rect.visible = true
 	_fade_rect.modulate.a = 0.0
 	add_child(_fade_rect)
+
+	# Ensure it fills the screen
+	_fade_rect.set_anchors_preset(Control.PRESET_FULL_RECT)
+	_fade_rect.offset_left = 0
+	_fade_rect.offset_top = 0
+	_fade_rect.offset_right = 0
+	_fade_rect.offset_bottom = 0
+
+	# Ensure it draws on top
+	_fade_rect.z_index = 999
+	continue_btn.pressed.connect(_on_continue_pressed)
+	play_btn.pressed.connect(_on_play_pressed)
+	settings_btn.pressed.connect(_on_settings_pressed)
+	quit_btn.pressed.connect(_on_quit_pressed)
+
+	# UI sound connections
+	for btn in [continue_btn, play_btn, settings_btn, quit_btn]:
+		btn.mouse_entered.connect(_on_button_hover)
+		btn.focus_entered.connect(_on_button_hover)
+		btn.pressed.connect(_on_button_select)
+
+func _on_button_hover() -> void:
+	UI_SoundPlayer.play_hover()
+
+func _on_button_select() -> void:
+	UI_SoundPlayer.play_select()
 
 	# Ensure it fills the screen
 	_fade_rect.set_anchors_preset(Control.PRESET_FULL_RECT)

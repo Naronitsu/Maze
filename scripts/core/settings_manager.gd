@@ -11,6 +11,7 @@ var resolution: Vector2i = DEFAULT_RESOLUTION
 var window_mode: String = "windowed"
 var master_volume: float = 1.0
 var sfx_volume: float = 1.0
+var music_volume: float = 1.0
 var minimap_size_px: int = DEFAULT_MINIMAP_SIZE_PX
 
 func _ready() -> void:
@@ -29,6 +30,7 @@ func load_settings() -> void:
 		window_mode = config.get_value("video", "window_mode", "windowed")
 		master_volume = config.get_value("audio", "master_volume", 1.0)
 		sfx_volume = config.get_value("audio", "sfx_volume", 1.0)
+		music_volume = config.get_value("audio", "music_volume", 1.0)
 		minimap_size_px = int(config.get_value("ui", "minimap_size_px", DEFAULT_MINIMAP_SIZE_PX))
 	else:
 		save_settings()
@@ -44,8 +46,13 @@ func save_settings() -> void:
 	config.set_value("video", "window_mode", window_mode)
 	config.set_value("audio", "master_volume", master_volume)
 	config.set_value("audio", "sfx_volume", sfx_volume)
+	config.set_value("audio", "music_volume", music_volume)
 	config.set_value("ui", "minimap_size_px", minimap_size_px)
 	config.save(SETTINGS_PATH)
+func set_music_volume(v: float) -> void:
+	music_volume = clamp(v, 0.0, 1.0)
+	save_settings()
+	apply_audio()
 
 func set_crt_enabled(v: bool) -> void:
 	crt_enabled = v
@@ -106,6 +113,7 @@ func apply_display() -> void:
 func apply_audio() -> void:
 	_set_bus_volume("Master", master_volume)
 	_set_bus_volume("SFX", sfx_volume)
+	_set_bus_volume("Music", music_volume)
 
 func apply_visuals_to_scene(scene_root: Node) -> void:
 	if scene_root == null:

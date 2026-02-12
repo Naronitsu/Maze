@@ -1,0 +1,17 @@
+[remap]
+
+importer="com.timothyqiu.gdfxr.importer"
+type="AudioStreamWAV"
+uid="uid://dupnc5h4yj2is"
+path="res://.godot/imported/ui_hover.sfxr-69fa6209d20b10d978e12fe60ddeb05c.sample"
+
+[deps]
+
+source_file="res://sounds/ui_hover.sfxr"
+dest_files=["res://.godot/imported/ui_hover.sfxr-69fa6209d20b10d978e12fe60ddeb05c.sample"]
+
+[params]
+
+loop=false
+bit_depth=0
+sample_rate=0

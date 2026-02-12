@@ -28,8 +28,8 @@ var player_trail_history_max: int = 80
 var max_levels_before_reset: int = 10
 
 # Maze generation
-var maze_base_width: int = 25
-var maze_base_height: int = 25
+var maze_base_width: int = 40
+var maze_base_height: int = 40
 var maze_size_growth_per_level: int = 2
 var maze_run_growth: float = 0.12
 

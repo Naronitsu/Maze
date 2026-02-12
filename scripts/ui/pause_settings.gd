@@ -7,6 +7,9 @@ extends Control
 
 signal back_pressed
 
+# Reference the UI_SoundPlayer autoload singleton
+# Use UI_SoundPlayer autoload singleton directly
+
 @onready var back_button: Button = $Center/Panel/VBox/BackRow/BackButton
 @onready var crt_toggle: CheckBox = $Center/Panel/VBox/Grid/CrtToggle
 @onready var aberration_toggle: CheckBox = $Center/Panel/VBox/Grid/AberrationToggle
@@ -14,6 +17,7 @@ signal back_pressed
 @onready var window_mode_option: OptionButton = $Center/Panel/VBox/Grid/WindowModeOption
 @onready var master_volume: HSlider = $Center/Panel/VBox/Grid/MasterVolume
 @onready var sfx_volume: HSlider = $Center/Panel/VBox/Grid/SfxVolume
+@onready var music_volume: HSlider = $Center/Panel/VBox/Grid/MusicVolume
 @onready var minimap_size: HSlider = $Center/Panel/VBox/Grid/MinimapSize
 
 const RESOLUTIONS: Array[Vector2i] = [
@@ -42,23 +46,51 @@ func _ready() -> void:
 	window_mode_option.focus_mode = Control.FOCUS_ALL
 	master_volume.focus_mode = Control.FOCUS_ALL
 	sfx_volume.focus_mode = Control.FOCUS_ALL
+	music_volume.focus_mode = Control.FOCUS_ALL
 	minimap_size.focus_mode = Control.FOCUS_ALL
-	
-	back_button.pressed.connect(_on_back_pressed)
-	crt_toggle.toggled.connect(_on_crt_toggled)
-	aberration_toggle.toggled.connect(_on_aberration_toggled)
-	resolution_option.item_selected.connect(_on_resolution_selected)
-	window_mode_option.item_selected.connect(_on_window_mode_selected)
-	master_volume.value_changed.connect(_on_master_volume_changed)
-	sfx_volume.value_changed.connect(_on_sfx_volume_changed)
-	minimap_size.value_changed.connect(_on_minimap_size_changed)
 
-	_build_resolution_options()
-	_build_window_mode_options()
-	_apply_current_settings()
-	
-	# Connect visibility changed to set focus
-	visibility_changed.connect(_on_visibility_changed)
+	back_button.pressed.connect(_on_back_pressed)
+	back_button.mouse_entered.connect(_on_button_hover)
+	back_button.focus_entered.connect(_on_button_hover)
+	back_button.pressed.connect(_on_button_select)
+	crt_toggle.toggled.connect(_on_crt_toggled)
+	crt_toggle.mouse_entered.connect(_on_button_hover)
+	crt_toggle.focus_entered.connect(_on_button_hover)
+	crt_toggle.pressed.connect(_on_button_select)
+	aberration_toggle.toggled.connect(_on_aberration_toggled)
+	aberration_toggle.mouse_entered.connect(_on_button_hover)
+	aberration_toggle.focus_entered.connect(_on_button_hover)
+	aberration_toggle.pressed.connect(_on_button_select)
+	resolution_option.item_selected.connect(_on_resolution_selected)
+	resolution_option.mouse_entered.connect(_on_button_hover)
+	resolution_option.focus_entered.connect(_on_button_hover)
+	resolution_option.pressed.connect(_on_button_select)
+	window_mode_option.item_selected.connect(_on_window_mode_selected)
+	window_mode_option.mouse_entered.connect(_on_button_hover)
+	window_mode_option.focus_entered.connect(_on_button_hover)
+	window_mode_option.pressed.connect(_on_button_select)
+	master_volume.value_changed.connect(_on_master_volume_changed)
+	master_volume.mouse_entered.connect(_on_button_hover)
+	master_volume.focus_entered.connect(_on_button_hover)
+	master_volume.value_changed.connect(_on_button_select)
+	sfx_volume.value_changed.connect(_on_sfx_volume_changed)
+	sfx_volume.mouse_entered.connect(_on_button_hover)
+	sfx_volume.focus_entered.connect(_on_button_hover)
+	sfx_volume.value_changed.connect(_on_button_select)
+	music_volume.value_changed.connect(_on_music_volume_changed)
+	music_volume.mouse_entered.connect(_on_button_hover)
+	music_volume.focus_entered.connect(_on_button_hover)
+	music_volume.value_changed.connect(_on_button_select)
+	minimap_size.value_changed.connect(_on_minimap_size_changed)
+	minimap_size.mouse_entered.connect(_on_button_hover)
+	minimap_size.focus_entered.connect(_on_button_hover)
+	minimap_size.value_changed.connect(_on_button_select)
+func _on_button_hover() -> void:
+	# Reference the UI_SoundPlayer singleton (autoload)
+	UI_SoundPlayer.play_hover()
+
+func _on_button_select(_dummy: float = 0.0) -> void:
+	UI_SoundPlayer.play_select()
 
 func _input(event: InputEvent) -> void:
 	# Only handle input when visible
@@ -196,7 +228,10 @@ func _apply_current_settings() -> void:
 	aberration_toggle.set_pressed_no_signal(SettingsManager.chromatic_aberration)
 	master_volume.set_value_no_signal(SettingsManager.master_volume)
 	sfx_volume.set_value_no_signal(SettingsManager.sfx_volume)
+	music_volume.set_value_no_signal(SettingsManager.music_volume)
 	minimap_size.set_value_no_signal(float(SettingsManager.minimap_size_px))
+func _on_music_volume_changed(value: float) -> void:
+	SettingsManager.set_music_volume(value)
 
 	var res_index := 0
 	for i in range(RESOLUTIONS.size()):

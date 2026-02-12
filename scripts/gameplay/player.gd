@@ -7,6 +7,7 @@
 extends CharacterBody2D
 
 @onready var anim: AnimatedSprite2D = $AnimatedSprite2D
+@onready var footstep_player: AudioStreamPlayer2D = $FootstepPlayer
 @onready var maze: DungeonMazeLayer = get_node_or_null(NodePath("../TileMap/MazeLayer")) as DungeonMazeLayer
 @onready var controller: GameController = get_node_or_null(NodePath("../GameController")) as GameController
 
@@ -143,7 +144,7 @@ func _update_look_input() -> void:
 func _try_step(dir: Vector2i) -> void:
 	if maze == null or controller == null:
 		return
-	
+
 	var target_cell: Vector2i = cell + dir
 
 	# If blocked, try opening a door
@@ -183,6 +184,12 @@ func _try_step(dir: Vector2i) -> void:
 	_t = 0.0
 	_moving = true
 	_run_grace = 0.0
+
+	# Play footstep sound with random pitch
+	if footstep_player:
+		footstep_player.stop()
+		footstep_player.pitch_scale = randf_range(0.85, 1.15)
+		footstep_player.play()
 
 	# Write trail for the Presence to follow
 	if controller != null:

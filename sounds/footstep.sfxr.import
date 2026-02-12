@@ -1,0 +1,17 @@
+[remap]
+
+importer="com.timothyqiu.gdfxr.importer"
+type="AudioStreamWAV"
+uid="uid://j5l5j0idumip"
+path="res://.godot/imported/footstep.sfxr-8bb434978efe239b5c32b307ec95fafa.sample"
+
+[deps]
+
+source_file="res://sounds/footstep.sfxr"
+dest_files=["res://.godot/imported/footstep.sfxr-8bb434978efe239b5c32b307ec95fafa.sample"]
+
+[params]
+
+loop=false
+bit_depth=0
+sample_rate=0

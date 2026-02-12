@@ -1,9 +1,10 @@
-[gd_scene load_steps=33 format=3 uid="uid://cynmmfn4ux1dd"]
+[gd_scene load_steps=35 format=3 uid="uid://cynmmfn4ux1dd"]
 
 [ext_resource type="Script" uid="uid://bbvhcofrcxrrs" path="res://scripts/gameplay/game.gd" id="1_3dryh"]
 [ext_resource type="Texture2D" uid="uid://bvxffpi0ecbj8" path="res://sprites/urizen_onebit_tileset__v2d0.png" id="1_qxrlw"]
 [ext_resource type="Script" uid="uid://rpjnts3dwysw" path="res://scripts/gameplay/presence_spawn_manager.gd" id="2_1kice"]
 [ext_resource type="Script" uid="uid://5f4rasa4k0ni" path="res://scripts/systems/audio_manager.gd" id="2_ca42v"]
+[ext_resource type="AudioStream" uid="uid://drq41iksxhsvb" path="res://sounds/music/three.mp3" id="2_lupr0"]
 [ext_resource type="Shader" uid="uid://dtp8ym7kbljwb" path="res://shaders/crt_warp.gdshader" id="2_trtic"]
 [ext_resource type="Script" uid="uid://cwnx1sov5ax5p" path="res://scripts/world/tile_map.gd" id="2_wrm1d"]
 [ext_resource type="Script" uid="uid://ddr62so3onguo" path="res://scripts/gameplay/level_transition_manager.gd" id="3_5newe"]
@@ -16,6 +17,7 @@
 [ext_resource type="AudioStream" uid="uid://j1s8cp2jaact" path="res://sounds/door_close.sfxr" id="7_mapnw"]
 [ext_resource type="Script" uid="uid://cehyhu8wpclx3" path="res://scripts/ui/ui_manager.gd" id="8_37s47"]
 [ext_resource type="Script" uid="uid://8c1oudx1h1es" path="res://scripts/ui/heartbeat_ui.gd" id="9_0tnpc"]
+[ext_resource type="Theme" uid="uid://vkyikbobqfb2" path="res://themes/global_theme.tres" id="10_mapnw"]
 [ext_resource type="Texture2D" uid="uid://dv8o46w3suf8s" path="res://sprites/Veins.png" id="10_vtaks"]
 [ext_resource type="Texture2D" uid="uid://5k7vb75wpv0i" path="res://sprites/Ground_new.png" id="11_ir15t"]
 [ext_resource type="PackedScene" uid="uid://bm38rhriwppcc" path="res://scenes/gameplay/presence_rw.tscn" id="12_dinhu"]
@@ -7145,6 +7147,10 @@ shader_parameter/glow = 0.12
 [node name="Game" type="Node2D"]
 script = ExtResource("1_3dryh")
 
+[node name="IngameMusic" type="AudioStreamPlayer" parent="."]
+stream = ExtResource("2_lupr0")
+autoplay = true
+
 [node name="PresenceSpawnManager" type="Node" parent="."]
 script = ExtResource("2_1kice")
 
@@ -7176,6 +7182,7 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
+theme = ExtResource("10_mapnw")
 color = Color(0, 0, 0, 1)
 
 [node name="Text" type="Label" parent="UI/LevelIntro"]
@@ -7214,7 +7221,6 @@ presence = NodePath("../PresenceRW")
 maze_layer_path = NodePath("../TileMap/MazeLayer")
 
 [node name="Player" parent="." instance=ExtResource("4_3dryh")]
-scale = Vector2(0.75, 0.75)
 
 [node name="Camera" type="Camera2D" parent="Player"]
 zoom = Vector2(3.5, 3.5)

@@ -22,6 +22,7 @@ var _charge_duration: float = 0.0
 
 var _last_stage_idx: int = 0
 var _full_charge_burst_fired: bool = false
+var _completed: bool = false
 
 var _charge_loop_player: AudioStreamPlayer2D
 var _charge_stage_player: AudioStreamPlayer2D
@@ -154,11 +155,15 @@ func _is_fully_charged() -> bool:
 	var duration := maxf(_charge_duration, 0.001)
 	return _charge_elapsed >= duration
 
+func is_completed() -> bool:
+	return _completed
+
 func _reset_charge() -> void:
 	_started_charging = false
 	_charge_elapsed = 0.0
 	_last_stage_idx = 0
 	_full_charge_burst_fired = false
+	_completed = false
 	_stop_charge_loop_fade_out()
 	set_process(false)
 	_set_idle_visual()
@@ -215,6 +220,7 @@ func _process(delta: float) -> void:
 	if _charge_elapsed >= duration:
 		if not _full_charge_burst_fired:
 			_full_charge_burst_fired = true
+			_completed = true
 			_play_charge_finish_sfx()
 			_burst_room_particles_full()
 			_stop_charge_loop_fade_out()

@@ -13,7 +13,8 @@ func _on_level_started(spawn_cell: Vector2i, maze: DungeonMazeLayer) -> void:
 	if maze == null:
 		return
 
-	var room_rects: Array[Rect2i] = maze.get_room_rects()
+	# Spawn pillars only in the smaller minor rooms. Leave the larger reward room empty.
+	var room_rects: Array[Rect2i] = maze.get_minor_room_rects()
 	for rect: Rect2i in room_rects:
 		var center_cell := rect.position + Vector2i(rect.size.x / 2, rect.size.y / 2)
 		var pillar := PILLAR_SCENE.instantiate() as Node2D

@@ -23,23 +23,38 @@ func _ready() -> void:
 	quit_button = find_child("QuitButton", true, false) as Button
 	settings_panel = find_child("SettingsPanel", true, false) as Control
 
+
 	if resume_button:
 		resume_button.pressed.connect(_on_resume_pressed)
 		resume_button.focus_mode = Control.FOCUS_ALL
+		resume_button.mouse_entered.connect(_on_button_hover)
+		resume_button.focus_entered.connect(_on_button_hover)
+		resume_button.pressed.connect(_on_button_select)
 	else:
 		push_warning("PauseMenu: ResumeButton not found")
 
 	if settings_button:
 		settings_button.pressed.connect(_on_settings_pressed)
 		settings_button.focus_mode = Control.FOCUS_ALL
+		settings_button.mouse_entered.connect(_on_button_hover)
+		settings_button.focus_entered.connect(_on_button_hover)
+		settings_button.pressed.connect(_on_button_select)
 	else:
 		push_warning("PauseMenu: SettingsButton not found")
 
 	if quit_button:
 		quit_button.pressed.connect(_on_quit_pressed)
 		quit_button.focus_mode = Control.FOCUS_ALL
+		quit_button.mouse_entered.connect(_on_button_hover)
+		quit_button.focus_entered.connect(_on_button_hover)
+		quit_button.pressed.connect(_on_button_select)
 	else:
 		push_warning("PauseMenu: QuitButton not found")
+func _on_button_hover() -> void:
+	UI_SoundPlayer.play_hover()
+
+func _on_button_select() -> void:
+	UI_SoundPlayer.play_select()
 
 	if settings_panel:
 		settings_panel.connect("back_pressed", _on_settings_back)

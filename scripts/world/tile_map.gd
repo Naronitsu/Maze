@@ -139,9 +139,10 @@ func _generate_once() -> Dictionary:
 	else:
 		rng.seed = int(rng_seed + level * 1009 + run * 7919)
 
-	# Raise baseline difficulty so early mazes are less trivial.
-	var raw: float = clamp(0.22 + (float(level - 1) * 0.06) + (float(run - 1) * run_growth), 0.0, 1.0)
-	var difficulty: float = pow(raw, 0.65)
+	# Difficulty curve: start easier on level 1 and ramp up gradually.
+	# raw in [0,1] then exponent skews early levels lower.
+	var raw: float = clamp(0.08 + (float(level - 1) * 0.045) + (float(run - 1) * run_growth), 0.0, 1.0)
+	var difficulty: float = pow(raw, 0.85)
 
 	var w: int = _odd(base_width + (level - 1) * size_growth_per_level + (run - 1) * 2)
 	var h: int = _odd(base_height + (level - 1) * size_growth_per_level + (run - 1) * 2)
