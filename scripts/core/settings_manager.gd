@@ -3,6 +3,7 @@ extends Node
 const SETTINGS_PATH := "user://settings.cfg"
 const DEFAULT_RESOLUTION := Vector2i(960, 540)
 const DEFAULT_ABERRATION_PX := 1.0
+const DEFAULT_MINIMAP_SIZE_PX := 200
 
 var crt_enabled: bool = true
 var chromatic_aberration: bool = true
@@ -10,6 +11,7 @@ var resolution: Vector2i = DEFAULT_RESOLUTION
 var window_mode: String = "windowed"
 var master_volume: float = 1.0
 var sfx_volume: float = 1.0
+var minimap_size_px: int = DEFAULT_MINIMAP_SIZE_PX
 
 func _ready() -> void:
 	add_to_group("persist")
@@ -27,8 +29,12 @@ func load_settings() -> void:
 		window_mode = config.get_value("video", "window_mode", "windowed")
 		master_volume = config.get_value("audio", "master_volume", 1.0)
 		sfx_volume = config.get_value("audio", "sfx_volume", 1.0)
+		minimap_size_px = int(config.get_value("ui", "minimap_size_px", DEFAULT_MINIMAP_SIZE_PX))
 	else:
 		save_settings()
+
+	minimap_size_px = clampi(minimap_size_px, 120, 400)
+	_apply_ui()
 
 func save_settings() -> void:
 	var config := ConfigFile.new()
@@ -38,6 +44,7 @@ func save_settings() -> void:
 	config.set_value("video", "window_mode", window_mode)
 	config.set_value("audio", "master_volume", master_volume)
 	config.set_value("audio", "sfx_volume", sfx_volume)
+	config.set_value("ui", "minimap_size_px", minimap_size_px)
 	config.save(SETTINGS_PATH)
 
 func set_crt_enabled(v: bool) -> void:
@@ -69,6 +76,11 @@ func set_sfx_volume(v: float) -> void:
 	sfx_volume = clamp(v, 0.0, 1.0)
 	save_settings()
 	apply_audio()
+
+func set_minimap_size_px(v: int) -> void:
+	minimap_size_px = clampi(v, 120, 400)
+	save_settings()
+	_apply_ui()
 
 func apply_display() -> void:
 	var win := get_tree().root as Window
@@ -119,3 +131,9 @@ func _linear_to_db(value: float) -> float:
 	if v <= 0.0001:
 		return -80.0
 	return linear_to_db(v)
+
+func _apply_ui() -> void:
+	# GameConfig is the single source of truth for runtime tuning.
+	GameConfig.minimap_size = Vector2(float(minimap_size_px), float(minimap_size_px))
+	# Broadcast for any live UI components (e.g., in-game minimap).
+	EventBus.minimap_size_changed.emit(GameConfig.minimap_size)

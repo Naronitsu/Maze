@@ -13,6 +13,10 @@ var _transitioning := false
 var _fade_rect: ColorRect
 var _is_continue := false
 
+var _crt_overlay: ColorRect
+var _crt_saved_curvature: float = 0.0
+var _crt_has_saved_curvature: bool = false
+
 func _ready() -> void:
 	continue_btn.pressed.connect(_on_continue_pressed)
 	play_btn.pressed.connect(_on_play_pressed)
@@ -20,6 +24,8 @@ func _ready() -> void:
 	quit_btn.pressed.connect(_on_quit_pressed)
 	if settings_panel:
 		settings_panel.connect("back_pressed", _on_settings_back)
+	_crt_overlay = get_node_or_null("CRT/CRTOverlay") as ColorRect
+	_cache_crt_curvature()
 	SettingsManager.apply_visuals_to_scene(self)
 
 	# Show/hide continue button based on save existence
@@ -124,10 +130,39 @@ func _on_settings_back() -> void:
 
 func _settings_set_active(active: bool) -> void:
 	settings_panel.visible = active
+	settings_panel.mouse_filter = Control.MOUSE_FILTER_STOP if active else Control.MOUSE_FILTER_IGNORE
+	_set_ui_mouse_mode(active)
 	play_btn.disabled = active
 	continue_btn.disabled = active
 	settings_btn.disabled = active
 	quit_btn.disabled = active
+
+func _cache_crt_curvature() -> void:
+	if _crt_overlay == null:
+		return
+	if not (_crt_overlay.material is ShaderMaterial):
+		return
+	var mat := _crt_overlay.material as ShaderMaterial
+	if mat == null:
+		return
+	var v: Variant = mat.get_shader_parameter("curvature")
+	if v is float:
+		_crt_saved_curvature = float(v)
+		_crt_has_saved_curvature = true
+
+func _set_ui_mouse_mode(active: bool) -> void:
+	if _crt_overlay == null or not (_crt_overlay.material is ShaderMaterial):
+		return
+	var mat := _crt_overlay.material as ShaderMaterial
+	if mat == null:
+		return
+	if active:
+		if not _crt_has_saved_curvature:
+			_cache_crt_curvature()
+		mat.set_shader_parameter("curvature", 0.0)
+	else:
+		if _crt_has_saved_curvature:
+			mat.set_shader_parameter("curvature", _crt_saved_curvature)
 
 	if active:
 		# focus first available control in settings

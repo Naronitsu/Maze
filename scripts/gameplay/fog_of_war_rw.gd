@@ -44,6 +44,15 @@ var maze_origin_world: Vector2
 var maze_size_world: Vector2
 var tile_size: Vector2
 
+const _EXPLORED_DECAY_SHADER: Shader = preload("res://shaders/fog_explored_decay_mul.gdshader")
+
+var _explored_decay_sprite: Sprite2D
+var _explored_decay_mat: ShaderMaterial
+var _explored_decay_white_tex: Texture2D
+
+const _EXPLORED_DECAY_STEP_SEC := 0.10
+var _explored_decay_accum_sec: float = 0.0
+
 const MASK_LAYER_BIT := 19
 const MASK_LAYER := 1 << MASK_LAYER_BIT
 
@@ -95,6 +104,7 @@ func _ready() -> void:
 	_setup_viewports()
 	_setup_darkness_shader()
 	_ensure_explored_base()
+	_ensure_explored_decay_sprite()
 
 	# Make mask "ink" explicitly white
 	vision_poly.color = Color(1, 1, 1, 1)
@@ -127,9 +137,92 @@ func _on_level_transitioning() -> void:
 	_pending_reveal = false
 	_needs_reset_on_next_start = true
 
-func _process(_dt: float) -> void:
+func _process(dt: float) -> void:
 	_push_shader_uniforms()
+	_update_explored_decay(dt)
 	_update_masks()
+
+func _get_explored_decay_white_tex() -> Texture2D:
+	if _explored_decay_white_tex != null:
+		return _explored_decay_white_tex
+
+	var img := Image.create(1, 1, false, Image.FORMAT_RGBA8)
+	img.fill(Color(1, 1, 1, 1))
+	_explored_decay_white_tex = ImageTexture.create_from_image(img)
+	return _explored_decay_white_tex
+
+func _ensure_explored_decay_sprite() -> void:
+	if explored_viewport == null:
+		return
+	if _explored_decay_sprite != null and is_instance_valid(_explored_decay_sprite):
+		return
+
+	_explored_decay_mat = ShaderMaterial.new()
+	_explored_decay_mat.shader = _EXPLORED_DECAY_SHADER
+	_explored_decay_mat.set_shader_parameter("amount", 0.0)
+
+	_explored_decay_sprite = Sprite2D.new()
+	_explored_decay_sprite.name = "ExploredDecay"
+	_explored_decay_sprite.centered = false
+	_explored_decay_sprite.position = Vector2.ZERO
+	# Draw AFTER the explored mask polygons so it decays the accumulated explored texture.
+	# (Current-vision areas will be re-stamped next frame, so they won't "disappear".)
+	_explored_decay_sprite.z_index = 1000
+	_explored_decay_sprite.texture = _get_explored_decay_white_tex()
+	_explored_decay_sprite.material = _explored_decay_mat
+
+	var root := explored_viewport.get_node_or_null("MaskRoot") as Node2D
+	if root != null:
+		root.add_child(_explored_decay_sprite)
+	else:
+		explored_viewport.add_child(_explored_decay_sprite)
+	_update_explored_decay_sprite_size()
+
+func _update_explored_decay_sprite_size() -> void:
+	if explored_viewport == null:
+		return
+	if _explored_decay_sprite == null or not is_instance_valid(_explored_decay_sprite):
+		return
+	var s := explored_viewport.size
+	if s.x <= 0 or s.y <= 0:
+		return
+	# The decay sprite uses a 1x1 texture; scale directly to viewport pixels.
+	_explored_decay_sprite.scale = Vector2(float(s.x), float(s.y))
+
+func _update_explored_decay(dt: float) -> void:
+	if _explored_decay_sprite == null or not is_instance_valid(_explored_decay_sprite):
+		return
+	if _explored_decay_mat == null:
+		return
+
+	# Only decay while actively running and memory is enabled.
+	if suspended or _awaiting_level_start or not GameConfig.fog_enable_memory:
+		_explored_decay_sprite.visible = false
+		_explored_decay_accum_sec = 0.0
+		_explored_decay_mat.set_shader_parameter("amount", 0.0)
+		return
+
+	var rate := maxf(0.0, GameConfig.fog_memory_forget_rate_per_second)
+	if rate <= 0.0:
+		_explored_decay_sprite.visible = false
+		_explored_decay_accum_sec = 0.0
+		_explored_decay_mat.set_shader_parameter("amount", 0.0)
+		return
+
+	_explored_decay_sprite.visible = true
+
+	# SubViewport textures are typically 8-bit per channel, so tiny per-frame
+	# subtractions (e.g. rate=0.15 at 60fps => 0.0025) can quantize to "no change".
+	# Accumulate time and apply decay in small steps so it is visible and tuneable.
+	_explored_decay_accum_sec += dt
+	var steps := int(floor(_explored_decay_accum_sec / _EXPLORED_DECAY_STEP_SEC))
+	if steps <= 0:
+		_explored_decay_mat.set_shader_parameter("amount", 0.0)
+		return
+
+	_explored_decay_accum_sec -= float(steps) * _EXPLORED_DECAY_STEP_SEC
+	var amount := clampf(rate * _EXPLORED_DECAY_STEP_SEC * float(steps), 0.0, 1.0)
+	_explored_decay_mat.set_shader_parameter("amount", amount)
 
 func set_facing_cardinal(dir) -> void:
 	var v: Vector2
@@ -205,6 +298,8 @@ func _setup_viewports() -> void:
 	if mat != null:
 		mat.set_shader_parameter("current_tex", viewport.get_texture())
 		mat.set_shader_parameter("explored_tex", explored_viewport.get_texture())
+
+	_update_explored_decay_sprite_size()
 
 func _setup_darkness_shader() -> void:
 	var mat := darkness.material as ShaderMaterial

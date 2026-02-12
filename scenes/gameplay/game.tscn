@@ -7257,7 +7257,7 @@ tile_set = SubResource("TileSet_kvpfn")
 script = ExtResource("2_wrm1d")
 
 [node name="HeartbeatUI" type="CanvasLayer" parent="."]
-layer = 50
+layer = 4
 script = ExtResource("9_0tnpc")
 
 [node name="Veins" type="TextureRect" parent="HeartbeatUI"]
@@ -7268,6 +7268,7 @@ grow_horizontal = 2
 grow_vertical = 2
 texture = ExtResource("10_vtaks")
 expand_mode = 1
+mouse_filter = 2
 
 [node name="HeartbeatAudio" type="AudioStreamPlayer2D" parent="HeartbeatUI"]
 stream = ExtResource("11_kvpfn")

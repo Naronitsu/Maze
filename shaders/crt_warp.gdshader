@@ -38,38 +38,45 @@ void fragment()
 	// Outside the curved screen -> black
 	if (uv.x < 0.0 || uv.x > 1.0 || uv.y < 0.0 || uv.y > 1.0) {
 		COLOR = vec4(0.0, 0.0, 0.0, 1.0);
+	} else {
+		vec3 center = texture(screen_tex, uv).rgb;
+		float lum0 = max(max(center.r, center.g), center.b);
+		// For near-black pixels, disable effects that can bleed brightness from neighbors.
+		float fx_gate = smoothstep(0.03, 0.12, lum0);
+
+		// Chromatic aberration (tiny RGB split, in pixels)
+		float off = aberration_px * fx_gate;
+		vec3 col;
+		col.r = texture(screen_tex, uv + vec2(off, 0.0) * px).r;
+		col.g = texture(screen_tex, uv).g;
+		col.b = texture(screen_tex, uv - vec2(off, 0.0) * px).b;
+
+		// Cheap "glow": mix with a slightly blurred sample
+		vec3 blur = (
+			texture(screen_tex, uv + vec2( 1.0, 0.0) * px).rgb +
+			texture(screen_tex, uv + vec2(-1.0, 0.0) * px).rgb +
+			texture(screen_tex, uv + vec2( 0.0, 1.0) * px).rgb +
+			texture(screen_tex, uv + vec2( 0.0,-1.0) * px).rgb
+		) * 0.25;
+
+		col = mix(col, blur, glow * fx_gate);
+
+		// Scanlines (tied to screen pixels)
+		float line = sin((uv.y * tex_size.y) * 3.14159265);
+		float scan = mix(1.0, 0.85 + 0.15 * line, scanlines);
+		col *= scan;
+
+		// Vignette (soft edge darkening)
+		vec2 d = uv - 0.5;
+		float vig = 1.0 - vignette * smoothstep(0.15, 0.85, dot(d, d) * 1.8);
+		col *= vig;
+
+		// Subtle noise
+		float n = rand(uv * tex_size + TIME * 60.0) - 0.5;
+		// Don't lift pitch black: gate noise by the center brightness.
+		col += n * noise * fx_gate;
+		col = max(col, vec3(0.0));
+
+		COLOR = vec4(col, 1.0);
 	}
-
-	// Chromatic aberration (tiny RGB split, in pixels)
-	float off = aberration_px;
-	vec3 col;
-	col.r = texture(screen_tex, uv + vec2(off, 0.0) * px).r;
-	col.g = texture(screen_tex, uv).g;
-	col.b = texture(screen_tex, uv - vec2(off, 0.0) * px).b;
-
-	// Cheap "glow": mix with a slightly blurred sample
-	vec3 blur = (
-		texture(screen_tex, uv + vec2( 1.0, 0.0) * px).rgb +
-		texture(screen_tex, uv + vec2(-1.0, 0.0) * px).rgb +
-		texture(screen_tex, uv + vec2( 0.0, 1.0) * px).rgb +
-		texture(screen_tex, uv + vec2( 0.0,-1.0) * px).rgb
-	) * 0.25;
-
-	col = mix(col, blur, glow);
-
-	// Scanlines (tied to screen pixels)
-	float line = sin((uv.y * tex_size.y) * 3.14159265);
-	float scan = mix(1.0, 0.85 + 0.15 * line, scanlines);
-	col *= scan;
-
-	// Vignette (soft edge darkening)
-	vec2 d = uv - 0.5;
-	float vig = 1.0 - vignette * smoothstep(0.15, 0.85, dot(d, d) * 1.8);
-	col *= vig;
-
-	// Subtle noise
-	float n = rand(uv * tex_size + TIME * 60.0) - 0.5;
-	col += n * noise;
-
-	COLOR = vec4(col, 1.0);
 }

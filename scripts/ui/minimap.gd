@@ -5,6 +5,8 @@
 extends Control
 class_name Minimap
 
+enum MinimapMode { ZOOMED, FULL, DISABLED }
+
 @export_category("Dependencies")
 @export var layer: TileMapLayer
 @export var fog: FogOfWarRW
@@ -13,19 +15,22 @@ class_name Minimap
 @export_category("Configuration")
 @export var minimap_size: Vector2 = Vector2(200, 200)
 @export var border_padding: float = 10.0
-@export var floor_color: Color = Color(0.9, 0.9, 0.9, 1.0)  # Light gray for walkable areas
+@export var floor_color: Color = Color(1.0, 1.0, 0.0, 1.0)  # Yellow for walkable areas
 @export var wall_color: Color = Color(0.0, 0.0, 0.0, 1.0)  # Black for walls
-@export var door_closed_color: Color = Color(1.0, 1.0, 0.0, 1.0)  # Yellow for closed doors
-@export var door_open_color: Color = Color(1.0, 1.0, 1.0, 1.0)  # White for open doors
-@export var player_color: Color = Color(1.0, 0.0, 0.0, 1.0)
+@export var door_closed_color: Color = Color("#3f272b")
+@export var door_open_color: Color = Color("#3f272b")
+@export var player_color: Color = Color("#a62e36")
 @export var unexplored_color: Color = Color(0.0, 0.0, 0.0, 1.0)
 @export var update_interval: float = 0.5  # Update every 0.5 seconds
+
+const _ZOOM_FACTOR: float = 2.5
 
 var _map_texture: ImageTexture
 var _maze_bounds: Rect2i
 var _cell_size: Vector2  # Size of each cell in the minimap
 var _update_timer: float = 0.0
 var _shader_material: ShaderMaterial
+var _mode: MinimapMode = MinimapMode.DISABLED
 
 @onready var map_display: TextureRect = $MapDisplay
 @onready var player_marker: Control = $PlayerMarker
@@ -69,15 +74,13 @@ func _ready() -> void:
 	
 	print("[Minimap] References validated: layer=%s, fog=%s, player=%s" % [layer != null, fog != null, player != null])
 	
-	# Position in top right corner - use simple position+size instead of anchors
-	position = Vector2(get_viewport_rect().size.x - minimap_size.x - border_padding, border_padding)
-	size = minimap_size
-	custom_minimum_size = minimap_size
+	_apply_layout()
 	clip_contents = false  # Don't clip player marker
 	
 	# Setup map display - don't override size, let anchors handle it
 	map_display.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-	map_display.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	# Use direct UV mapping (required for shader-based fog + zoom to line up)
+	map_display.stretch_mode = TextureRect.STRETCH_SCALE
 	
 	# Setup player marker
 	player_marker.custom_minimum_size = Vector2(6, 6)
@@ -90,10 +93,14 @@ func _ready() -> void:
 	
 	# Setup shader for masking
 	_setup_shader()
+
+	# Ensure this node receives Tab even while hidden.
+	set_process_unhandled_input(true)
 	
 	# Wait for level to be ready
 	EventBus.level_started.connect(_on_level_started)
 	EventBus.player_moved.connect(_on_player_moved)
+	EventBus.minimap_size_changed.connect(_on_minimap_size_changed)
 	
 	# Listen for door events to update minimap
 	if layer and layer.has_signal("door_opened"):
@@ -102,8 +109,8 @@ func _ready() -> void:
 	# Don't initialize yet - wait for level_started signal
 	# _initialize_minimap()
 	
-	# Force visibility
-	visible = true
+	# Start hidden; Tab cycles: zoomed -> full -> disabled.
+	_set_mode(MinimapMode.DISABLED)
 	modulate = Color(1, 1, 1, 1)
 	
 	print("[Minimap] Ready complete, visible=%s, size=%s, position=%s" % [visible, size, position])
@@ -111,9 +118,44 @@ func _ready() -> void:
 
 func _unhandled_input(event: InputEvent) -> void:
 	if event.is_action_pressed("ui_focus_next"):  # Tab key
-		visible = !visible
+		match _mode:
+			MinimapMode.DISABLED:
+				_set_mode(MinimapMode.ZOOMED)
+			MinimapMode.ZOOMED:
+				_set_mode(MinimapMode.FULL)
+			MinimapMode.FULL:
+				_set_mode(MinimapMode.DISABLED)
 		get_viewport().set_input_as_handled()
-		print("[Minimap] Toggled visibility: %s" % visible)
+		print("[Minimap] Mode: %s" % ["ZOOMED", "FULL", "DISABLED"][_mode])
+
+func _set_mode(new_mode: MinimapMode) -> void:
+	_mode = new_mode
+
+	if _mode == MinimapMode.DISABLED:
+		visible = false
+		set_process(false)
+		if player_marker != null:
+			player_marker.visible = false
+		if _shader_material != null:
+			_shader_material.set_shader_parameter("zoom_enabled", 0.0)
+			_shader_material.set_shader_parameter("zoom", 1.0)
+		return
+
+	visible = true
+	set_process(true)
+	if player_marker != null:
+		player_marker.visible = true
+
+	# Ensure fog mask is bound immediately when turning the minimap on.
+	_update_explored_mask()
+
+	if _shader_material != null:
+		if _mode == MinimapMode.ZOOMED:
+			_shader_material.set_shader_parameter("zoom_enabled", 1.0)
+			_shader_material.set_shader_parameter("zoom", _ZOOM_FACTOR)
+		else:
+			_shader_material.set_shader_parameter("zoom_enabled", 0.0)
+			_shader_material.set_shader_parameter("zoom", 1.0)
 
 func _setup_shader() -> void:
 	_shader_material = ShaderMaterial.new()
@@ -125,6 +167,9 @@ func _setup_shader() -> void:
 	_shader_material.shader = shader
 	_shader_material.set_shader_parameter("unexplored_color", unexplored_color)
 	_shader_material.set_shader_parameter("explored_threshold", 0.1)
+	_shader_material.set_shader_parameter("zoom_enabled", 0.0)
+	_shader_material.set_shader_parameter("zoom", 1.0)
+	_shader_material.set_shader_parameter("zoom_center_uv", Vector2(0.5, 0.5))
 	map_display.material = _shader_material
 	print("[Minimap] Shader setup complete")
 
@@ -183,6 +228,11 @@ func _initialize_minimap() -> void:
 func _render_static_map() -> void:
 	if layer == null or _maze_bounds.size.x == 0 or _maze_bounds.size.y == 0:
 		push_warning("[Minimap] Cannot render - invalid bounds or no layer")
+		return
+
+	# Prefer rendering in world-pixel space to match FogOfWar explored_viewport.
+	if fog != null and fog.explored_viewport != null and fog.maze_size_world.x > 0.0 and fog.maze_size_world.y > 0.0 and fog.tile_size.x > 0.0 and fog.tile_size.y > 0.0:
+		_render_static_map_world()
 		return
 	
 	var map_pixel_width := int(_maze_bounds.size.x * _cell_size.x)
@@ -258,6 +308,68 @@ func _render_static_map() -> void:
 	if _shader_material != null:
 		_shader_material.set_shader_parameter("base_map", _map_texture)
 
+func _render_static_map_world() -> void:
+	if fog == null or fog.explored_viewport == null:
+		push_warning("[Minimap] Cannot render world map - fog explored viewport not ready")
+		return
+
+	var tex_size: Vector2i = fog.explored_viewport.size
+	if tex_size.x <= 0 or tex_size.y <= 0:
+		push_warning("[Minimap] Invalid explored viewport size: %s" % tex_size)
+		return
+
+	var img := Image.create(tex_size.x, tex_size.y, false, Image.FORMAT_RGBA8)
+	img.fill(wall_color)
+
+	var origin: Vector2 = fog.maze_origin_world
+	var ts: Vector2 = fog.tile_size
+
+	for y in range(_maze_bounds.size.y):
+		for x in range(_maze_bounds.size.x):
+			var cell := Vector2i(_maze_bounds.position.x + x, _maze_bounds.position.y + y)
+
+			var is_door := false
+			var door_color := door_closed_color
+			if layer.has_method("is_door_cell"):
+				is_door = bool(layer.call("is_door_cell", cell))
+				if is_door and layer.has_method("is_door_open") and bool(layer.call("is_door_open", cell)):
+					door_color = door_open_color
+
+			var is_floor: bool = layer.is_floor(cell)
+			if not is_floor and not is_door:
+				continue
+
+			# TileMapLayer.map_to_local() returns the cell center, not the top-left corner.
+			# Convert to a top-left corner in local space so the rendered base_map aligns
+			# with the explored viewport's world-pixel mapping.
+			var local_center: Vector2 = layer.map_to_local(cell)
+			var local_top_left: Vector2 = local_center - ts * 0.5
+			var world_top_left: Vector2 = layer.to_global(local_top_left)
+			var px0 := int(floor(world_top_left.x - origin.x))
+			var py0 := int(floor(world_top_left.y - origin.y))
+			var px1 := int(ceil(world_top_left.x + ts.x - origin.x))
+			var py1 := int(ceil(world_top_left.y + ts.y - origin.y))
+
+			px0 = clampi(px0, 0, tex_size.x)
+			py0 = clampi(py0, 0, tex_size.y)
+			px1 = clampi(px1, 0, tex_size.x)
+			py1 = clampi(py1, 0, tex_size.y)
+
+			if px1 <= px0 or py1 <= py0:
+				continue
+
+			var cell_color := door_color if is_door else floor_color
+			for py in range(py0, py1):
+				for px in range(px0, px1):
+					img.set_pixel(px, py, cell_color)
+
+	_map_texture = ImageTexture.create_from_image(img)
+	map_display.texture = _map_texture
+	if _shader_material != null:
+		_shader_material.set_shader_parameter("base_map", _map_texture)
+
+	print("[Minimap] World map rendered: %s" % img.get_size())
+
 func _update_explored_mask() -> void:
 	if fog == null or fog.explored_viewport == null:
 		push_warning("[Minimap] Cannot update mask - fog or viewport is null")
@@ -273,6 +385,9 @@ func _update_explored_mask() -> void:
 		_shader_material.set_shader_parameter("explored_mask", explored_tex)
 
 func _process(delta: float) -> void:
+	if _mode == MinimapMode.DISABLED:
+		return
+
 	_update_timer += delta
 	
 	# Update explored mask periodically
@@ -291,28 +406,62 @@ func _update_player_marker() -> void:
 	if _maze_bounds.size.x == 0 or _maze_bounds.size.y == 0:
 		return
 	
-	# Get player's cell position
 	var player_world_pos := player.global_position
 	var player_cell := layer.local_to_map(layer.to_local(player_world_pos))
-	
-	# Convert to minimap coordinates
-	var relative_x := float(player_cell.x - _maze_bounds.position.x) / float(_maze_bounds.size.x)
-	var relative_y := float(player_cell.y - _maze_bounds.position.y) / float(_maze_bounds.size.y)
-	
-	# Calculate actual rendered map size (not minimap_size, which is the full control size)
-	var actual_map_width := _maze_bounds.size.x * _cell_size.x
-	var actual_map_height := _maze_bounds.size.y * _cell_size.y
-	
-	# Position marker within the actual map, accounting for 2px border
-	var border_offset := 2.0
-	var marker_x := border_offset + relative_x * actual_map_width - 3.0  # Center 6px marker
-	var marker_y := border_offset + relative_y * actual_map_height - 3.0
-	
-	# Use offsets for Control nodes with layout_mode = 0
-	player_marker.set_position(Vector2(marker_x, marker_y))
-	player_marker.set_size(Vector2(6, 6))
+	var pan_world_pos := player_world_pos
+
+	# Prefer explored_viewport pixel space for minimap UVs.
+	# This matches how the explored mask and minimap base_map are generated.
+	var relative_x := 0.5
+	var relative_y := 0.5
+	if fog != null and fog.explored_viewport != null and fog.explored_viewport.size.x > 0 and fog.explored_viewport.size.y > 0:
+		var tex_size: Vector2 = Vector2(fog.explored_viewport.size)
+		var exp_pos: Vector2 = pan_world_pos - fog.maze_origin_world
+		relative_x = exp_pos.x / tex_size.x
+		relative_y = exp_pos.y / tex_size.y
+		relative_x = clamp(relative_x, 0.0, 1.0)
+		relative_y = clamp(relative_y, 0.0, 1.0)
+	else:
+		# Fallback to tilemap bounds (cell centers).
+		var local_x := player_cell.x - _maze_bounds.position.x
+		var local_y := player_cell.y - _maze_bounds.position.y
+		relative_x = (float(local_x) + 0.5) / float(_maze_bounds.size.x)
+		relative_y = (float(local_y) + 0.5) / float(_maze_bounds.size.y)
+
+	# Clamp in case the player is outside bounds during transitions.
+	relative_x = clamp(relative_x, 0.0, 1.0)
+	relative_y = clamp(relative_y, 0.0, 1.0)
+
+	# Update shader zoom center to follow the player.
+	if _shader_material != null and _mode == MinimapMode.ZOOMED:
+		_shader_material.set_shader_parameter("zoom_center_uv", Vector2(relative_x, relative_y))
+
+	# Marker behavior differs by mode:
+	# - FULL: marker moves over the full map
+	# - ZOOMED: marker stays centered; map pans under it via shader
+	var cell_px: float = min(
+		map_display.size.x / float(_maze_bounds.size.x),
+		map_display.size.y / float(_maze_bounds.size.y)
+	)
+	# Keep the marker within a tile so it doesn't visually spill into walls.
+	var marker_side := clampf(cell_px * 0.75, 2.0, 6.0)
+	var marker_size := Vector2(marker_side, marker_side)
+	var half_marker := marker_size * 0.5
+	# MapDisplay is inset in the scene (offset 2,2); position relative to it.
+	var origin := map_display.position
+	if _mode == MinimapMode.ZOOMED:
+		player_marker.position = origin + map_display.size * 0.5 - half_marker
+	else:
+		player_marker.position = origin + Vector2(relative_x * map_display.size.x, relative_y * map_display.size.y) - half_marker
+
+	# Clamp marker so it stays fully inside the map display.
+	var max_pos := origin + map_display.size - marker_size
+	player_marker.position.x = clamp(player_marker.position.x, origin.x, max_pos.x)
+	player_marker.position.y = clamp(player_marker.position.y, origin.y, max_pos.y)
+
+	player_marker.size = marker_size
 	player_marker.visible = true
-	player_marker.modulate = Color(1, 0, 0, 1)  # Force red color
+	player_marker.modulate = player_color
 
 func _on_level_started(_spawn_cell: Vector2i, _maze: DungeonMazeLayer) -> void:
 	# Reinitialize when level starts
@@ -320,6 +469,23 @@ func _on_level_started(_spawn_cell: Vector2i, _maze: DungeonMazeLayer) -> void:
 	await get_tree().create_timer(0.5).timeout  # Wait for fog to be ready
 	print("[Minimap] Initializing minimap now...")
 	_initialize_minimap()
+
+func _on_minimap_size_changed(new_size: Vector2) -> void:
+	minimap_size = new_size
+	_apply_layout()
+
+	# Re-render if already initialized and visible
+	if visible and layer != null:
+		_initialize_minimap()
+
+func _apply_layout() -> void:
+	# Use top-right anchors and offsets so resizing keeps border stable.
+	set_anchors_preset(Control.PRESET_TOP_RIGHT)
+	offset_right = -border_padding
+	offset_left = -border_padding - minimap_size.x
+	offset_top = border_padding
+	offset_bottom = border_padding + minimap_size.y
+	custom_minimum_size = minimap_size
 
 func _on_player_moved(_from: Vector2i, _to: Vector2i) -> void:
 	# Player marker updates every frame in _process, no need to do anything here
@@ -352,4 +518,4 @@ func _on_door_opened(cell: Vector2i) -> void:
 	
 	# Update texture
 	_map_texture.update(img)
-	print("[Minimap] Door opened at %s, updated to white" % cell)
+	print("[Minimap] Door opened at %s, updated" % cell)

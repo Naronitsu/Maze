@@ -14,6 +14,7 @@ signal back_pressed
 @onready var window_mode_option: OptionButton = $Center/Panel/VBox/Grid/WindowModeOption
 @onready var master_volume: HSlider = $Center/Panel/VBox/Grid/MasterVolume
 @onready var sfx_volume: HSlider = $Center/Panel/VBox/Grid/SfxVolume
+@onready var minimap_size: HSlider = $Center/Panel/VBox/Grid/MinimapSize
 
 const RESOLUTIONS: Array[Vector2i] = [
 	Vector2i(960, 540),
@@ -30,7 +31,8 @@ const WINDOW_MODES: Array[String] = [
 ]
 
 func _ready() -> void:
-	process_mode = Node.PROCESS_MODE_WHEN_PAUSED
+	# This panel is used both in main menu (not paused) and pause menu (paused).
+	process_mode = Node.PROCESS_MODE_ALWAYS
 	
 	# Ensure all interactive controls have proper focus modes
 	back_button.focus_mode = Control.FOCUS_ALL
@@ -40,6 +42,7 @@ func _ready() -> void:
 	window_mode_option.focus_mode = Control.FOCUS_ALL
 	master_volume.focus_mode = Control.FOCUS_ALL
 	sfx_volume.focus_mode = Control.FOCUS_ALL
+	minimap_size.focus_mode = Control.FOCUS_ALL
 	
 	back_button.pressed.connect(_on_back_pressed)
 	crt_toggle.toggled.connect(_on_crt_toggled)
@@ -48,6 +51,7 @@ func _ready() -> void:
 	window_mode_option.item_selected.connect(_on_window_mode_selected)
 	master_volume.value_changed.connect(_on_master_volume_changed)
 	sfx_volume.value_changed.connect(_on_sfx_volume_changed)
+	minimap_size.value_changed.connect(_on_minimap_size_changed)
 
 	_build_resolution_options()
 	_build_window_mode_options()
@@ -109,7 +113,7 @@ func _event_matches_action(event: InputEvent, action_name: String) -> bool:
 func _get_menu_controls() -> Array:
 	var controls: Array = []
 	# Collect all focusable interactive controls
-	for control in [crt_toggle, aberration_toggle, resolution_option, window_mode_option, master_volume, sfx_volume, back_button]:
+	for control in [crt_toggle, aberration_toggle, resolution_option, window_mode_option, master_volume, sfx_volume, minimap_size, back_button]:
 		if control.visible:
 			# Check if control is disabled (only for controls that have this property)
 			var is_disabled = false
@@ -192,6 +196,7 @@ func _apply_current_settings() -> void:
 	aberration_toggle.set_pressed_no_signal(SettingsManager.chromatic_aberration)
 	master_volume.set_value_no_signal(SettingsManager.master_volume)
 	sfx_volume.set_value_no_signal(SettingsManager.sfx_volume)
+	minimap_size.set_value_no_signal(float(SettingsManager.minimap_size_px))
 
 	var res_index := 0
 	for i in range(RESOLUTIONS.size()):
@@ -228,3 +233,6 @@ func _on_master_volume_changed(value: float) -> void:
 
 func _on_sfx_volume_changed(value: float) -> void:
 	SettingsManager.set_sfx_volume(value)
+
+func _on_minimap_size_changed(value: float) -> void:
+	SettingsManager.set_minimap_size_px(int(round(value)))

@@ -12,6 +12,10 @@ var game_over_panel: CanvasItem
 var pause_menu: Control
 var pause_settings: Control
 
+var _crt_overlay: ColorRect
+var _crt_saved_curvature: float = 0.0
+var _crt_has_saved_curvature: bool = false
+
 var _intro_running: bool = false
 
 func _ready() -> void:
@@ -25,6 +29,8 @@ func _ready() -> void:
 	game_over_panel = game.get_node_or_null("UI/GameOver")
 	pause_menu = game.get_node_or_null("UI/PauseMenu")
 	pause_settings = game.get_node_or_null("UI/PauseSettings")
+	_crt_overlay = game.get_node_or_null("CRT/CRTOverlay") as ColorRect
+	_cache_crt_curvature()
 
 	if pause_menu:
 		pause_menu.connect("resume_pressed", _on_pause_resume)
@@ -74,10 +80,12 @@ func _on_game_over() -> void:
 func _on_state_changed(from_state: String, to_state: String) -> void:
 	print("[UIManager] State changed: %s -> %s" % [from_state, to_state])
 	if to_state == "PAUSED" and get_tree().paused:
+		_set_ui_mouse_mode(true)
 		_show_pause_menu()
 	elif from_state == "PAUSED":
 		_hide_pause_menu()
 		_hide_settings_menu()
+		_set_ui_mouse_mode(false)
 
 func _on_pause_resume() -> void:
 	EventBus.resume_requested.emit()
@@ -92,6 +100,7 @@ func _on_settings_back() -> void:
 	_show_pause_menu()
 
 func _show_pause_menu() -> void:
+	_set_ui_mouse_mode(true)
 	if pause_settings:
 		pause_settings.visible = false
 	if pause_menu:
@@ -102,6 +111,7 @@ func _hide_pause_menu() -> void:
 		pause_menu.visible = false
 
 func _show_settings_menu() -> void:
+	_set_ui_mouse_mode(true)
 	if pause_menu:
 		pause_menu.visible = false
 	if pause_settings:
@@ -110,6 +120,35 @@ func _show_settings_menu() -> void:
 func _hide_settings_menu() -> void:
 	if pause_settings:
 		pause_settings.visible = false
+
+func _cache_crt_curvature() -> void:
+	if _crt_overlay == null:
+		return
+	if not (_crt_overlay.material is ShaderMaterial):
+		return
+	var mat := _crt_overlay.material as ShaderMaterial
+	if mat == null:
+		return
+	var v: Variant = mat.get_shader_parameter("curvature")
+	if v is float:
+		_crt_saved_curvature = float(v)
+		_crt_has_saved_curvature = true
+
+func _set_ui_mouse_mode(active: bool) -> void:
+	# CRT warp is a post-process visual distortion; it does not warp input hitboxes.
+	# While menus are open (mouse-driven), disable curvature so clicks align.
+	if _crt_overlay == null or not (_crt_overlay.material is ShaderMaterial):
+		return
+	var mat := _crt_overlay.material as ShaderMaterial
+	if mat == null:
+		return
+	if active:
+		if not _crt_has_saved_curvature:
+			_cache_crt_curvature()
+		mat.set_shader_parameter("curvature", 0.0)
+	else:
+		if _crt_has_saved_curvature:
+			mat.set_shader_parameter("curvature", _crt_saved_curvature)
 
 # ------------------------
 # Intro screen methods

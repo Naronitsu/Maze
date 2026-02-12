@@ -14,8 +14,8 @@ func _ready() -> void:
 	print("PauseMenu: _ready() called, visible=%s" % visible)
 	# ensure this UI still processes input while the scene is paused
 	process_mode = Node.PROCESS_MODE_WHEN_PAUSED
-	# make sure this Control captures mouse events so clicks are received
-	mouse_filter = Control.MOUSE_FILTER_STOP
+	# Allow child controls to receive mouse events normally.
+	mouse_filter = Control.MOUSE_FILTER_PASS
 
 	# safe lookup using find_child
 	resume_button = find_child("ResumeButton", true, false) as Button
@@ -130,7 +130,8 @@ func _on_visibility_changed() -> void:
 			push_warning("PauseMenu: No buttons found to focus")
 
 func _on_gui_focus_changed(control: Control) -> void:
-	print("PauseMenu: GUI focus changed to: %s" % (control.name if control else "null"))
+	var n := "null" if control == null else String(control.name)
+	print("PauseMenu: GUI focus changed to: %s" % n)
 
 func _get_menu_buttons() -> Array:
 	# If settings panel active, prefer its buttons (recurses into child Controls)

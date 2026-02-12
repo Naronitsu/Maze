@@ -62,8 +62,9 @@ var fog_halo_rays: int = 64
 var fog_halo_world_radius: float = 16
 var fog_halo_segments: int = 24
 var fog_darkness_alpha: float = 1.0
-var fog_explored_alpha: float = 0.60
+var fog_explored_alpha: float = 0.20
 var fog_enable_memory: bool = true
+var fog_memory_forget_rate_per_second: float = 0.1
 
 # Heartbeat UI
 var heartbeat_bpm_min: float = 48.0
