@@ -246,10 +246,18 @@ func _play_movement_anim(walking: bool, dir: Vector2i) -> void:
 	_update_sprite_facing(dir)
 	if anim.sprite_frames == null:
 		return
-	var desired: StringName = &"walk_sideways" if walking else &"idle_sideways"
-	# Back-compat: older player frames used run_sideways.
-	if walking and not anim.sprite_frames.has_animation(desired) and anim.sprite_frames.has_animation(&"run_sideways"):
-		desired = &"run_sideways"
+	
+	# Determine direction suffix based on facing
+	var dir_suffix: String = "sideways"
+	if dir.y < 0:
+		dir_suffix = "up"
+	elif dir.y > 0:
+		dir_suffix = "down"
+	
+	# Choose animation based on movement state and direction
+	var anim_prefix: String = "run" if walking else "idle"
+	var desired: StringName = StringName(anim_prefix + "_" + dir_suffix)
+	
 	_play_anim(desired)
 
 func _play_anim(p_name: StringName) -> void:

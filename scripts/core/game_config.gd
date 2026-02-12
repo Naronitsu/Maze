@@ -80,6 +80,12 @@ var heartbeat_cam_thump_zoom: float = 0.985
 var heartbeat_cam_thump_in: float = 0.03
 var heartbeat_cam_thump_out: float = 0.10
 
+# Minimap
+var minimap_enabled: bool = true
+var minimap_size: Vector2 = Vector2(200, 200)
+var minimap_border_padding: float = 10.0
+var minimap_update_interval: float = 0.5
+
 func _init() -> void:
 	pass
 

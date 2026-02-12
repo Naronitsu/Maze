@@ -1,4 +1,4 @@
-[gd_scene load_steps=35 format=3 uid="uid://cynmmfn4ux1dd"]
+[gd_scene load_steps=36 format=3 uid="uid://cynmmfn4ux1dd"]
 
 [ext_resource type="Script" uid="uid://bbvhcofrcxrrs" path="res://scripts/gameplay/game.gd" id="1_3dryh"]
 [ext_resource type="Texture2D" uid="uid://bvxffpi0ecbj8" path="res://sprites/urizen_onebit_tileset__v2d0.png" id="1_qxrlw"]
@@ -23,6 +23,7 @@
 [ext_resource type="Script" uid="uid://dy5tva3fep1ra" path="res://scripts/gameplay/game_controller.gd" id="13_kvuet"]
 [ext_resource type="PackedScene" path="res://scenes/ui/pause_menu.tscn" id="16_pause_menu"]
 [ext_resource type="PackedScene" path="res://scenes/ui/pause_settings.tscn" id="17_pause_settings"]
+[ext_resource type="PackedScene" uid="uid://c5h8y7k2n3p4q" path="res://scenes/ui/minimap.tscn" id="18_minimap"]
 
 [sub_resource type="Theme" id="Theme_mapnw"]
 
@@ -7201,6 +7202,12 @@ layout_mode = 3
 [node name="PauseSettings" parent="UI" instance=ExtResource("17_pause_settings")]
 layout_mode = 3
 
+[node name="Minimap" parent="UI" instance=ExtResource("18_minimap")]
+layout_mode = 3
+layer = NodePath("../../TileMap/MazeLayer")
+fog = NodePath("../../Overlay/FogOfWarRW")
+player = NodePath("../../Player")
+
 [node name="GameController" type="Node2D" parent="." node_paths=PackedStringArray("player", "presence")]
 script = ExtResource("13_kvuet")
 player = NodePath("../Player")
@@ -7219,6 +7226,7 @@ drag_right_margin = 0.0
 drag_bottom_margin = 0.0
 
 [node name="Overlay" type="CanvasLayer" parent="."]
+layer = 5
 
 [node name="FogOfWarRW" parent="Overlay" instance=ExtResource("6_kvuet")]
 z_index = 1
@@ -7249,6 +7257,7 @@ tile_set = SubResource("TileSet_kvpfn")
 script = ExtResource("2_wrm1d")
 
 [node name="HeartbeatUI" type="CanvasLayer" parent="."]
+layer = 50
 script = ExtResource("9_0tnpc")
 
 [node name="Veins" type="TextureRect" parent="HeartbeatUI"]
