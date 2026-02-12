@@ -7256,7 +7256,7 @@ tile_set = SubResource("TileSet_kvpfn")
 script = ExtResource("2_wrm1d")
 
 [node name="HeartbeatUI" type="CanvasLayer" parent="."]
-layer = 4
+layer = 1000
 script = ExtResource("9_0tnpc")
 
 [node name="Veins" type="TextureRect" parent="HeartbeatUI"]

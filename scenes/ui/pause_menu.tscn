@@ -84,6 +84,8 @@ mouse_filter = 1
 
 [node name="Panel" type="Panel" parent="Center"]
 custom_minimum_size = Vector2(320, 220)
+size_flags_horizontal = 0
+size_flags_vertical = 0
 theme_override_styles/panel = SubResource("StyleBoxEmpty_pause_panel")
 
 [node name="VBox" type="VBoxContainer" parent="Center/Panel"]
