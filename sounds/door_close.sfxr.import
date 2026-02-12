@@ -1,0 +1,17 @@
+[remap]
+
+importer="com.timothyqiu.gdfxr.importer"
+type="AudioStreamWAV"
+uid="uid://j1s8cp2jaact"
+path="res://.godot/imported/door_close.sfxr-e10250899dfaa47cbd19cb089f8d09b6.sample"
+
+[deps]
+
+source_file="res://sounds/door_close.sfxr"
+dest_files=["res://.godot/imported/door_close.sfxr-e10250899dfaa47cbd19cb089f8d09b6.sample"]
+
+[params]
+
+loop=false
+bit_depth=0
+sample_rate=0

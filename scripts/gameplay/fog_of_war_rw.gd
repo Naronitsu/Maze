@@ -50,6 +50,16 @@ var _explored_decay_sprite: Sprite2D
 var _explored_decay_mat: ShaderMaterial
 var _explored_decay_white_tex: Texture2D
 
+# Sticky reveals (drawn AFTER decay so they don't fade)
+var _sticky_room_poly: Polygon2D
+var _sticky_door_poly: Polygon2D
+
+var _maze: DungeonMazeLayer
+var _room_rects: Array[Rect2i] = []
+var _room_hold_active: bool = false
+var _room_hold_rect: Rect2i = Rect2i()
+var _room_entry_door_cell: Vector2i = Vector2i(2147483647, 2147483647)
+
 const _EXPLORED_DECAY_STEP_SEC := 0.10
 var _explored_decay_accum_sec: float = 0.0
 
@@ -97,6 +107,7 @@ func _ready() -> void:
 	_awaiting_level_start = true
 	EventBus.level_started.connect(_on_level_started)
 	EventBus.level_transitioning.connect(_on_level_transitioning)
+	EventBus.player_moved.connect(_on_player_moved)
 
 	await _wait_for_tiles()
 
@@ -105,6 +116,7 @@ func _ready() -> void:
 	_setup_darkness_shader()
 	_ensure_explored_base()
 	_ensure_explored_decay_sprite()
+	_ensure_sticky_polys()
 
 	# Make mask "ink" explicitly white
 	vision_poly.color = Color(1, 1, 1, 1)
@@ -124,6 +136,12 @@ func _ready() -> void:
 		_resume_after_level_start()
 
 func _on_level_started(_spawn_cell: Vector2i, _maze: DungeonMazeLayer) -> void:
+	_maze = _maze
+	_room_rects = (_maze.get_room_rects() if _maze != null and _maze.has_method("get_room_rects") else [])
+	_room_hold_active = false
+	_room_hold_rect = Rect2i()
+	_room_entry_door_cell = Vector2i(2147483647, 2147483647)
+	_update_sticky_polys()
 	_awaiting_level_start = false
 	if _needs_reset_on_next_start:
 		_needs_reset_on_next_start = false
@@ -136,11 +154,48 @@ func _on_level_transitioning() -> void:
 	_awaiting_level_start = true
 	_pending_reveal = false
 	_needs_reset_on_next_start = true
+	_room_hold_active = false
+	_room_hold_rect = Rect2i()
+	_room_entry_door_cell = Vector2i(2147483647, 2147483647)
+	_update_sticky_polys()
+
+func _on_player_moved(_from_cell: Vector2i, to_cell: Vector2i) -> void:
+	if suspended or _awaiting_level_start:
+		return
+	if _maze == null:
+		_maze = layer as DungeonMazeLayer
+	if _room_rects.is_empty() and _maze != null and _maze.has_method("get_room_rects"):
+		_room_rects = _maze.get_room_rects()
+
+	# Activate hold when stepping onto a room-connected door tile.
+	if not _room_hold_active and _is_room_connected_door(to_cell):
+		_room_hold_active = true
+		_room_entry_door_cell = to_cell
+		_room_hold_rect = _room_rect_connected_to_door(to_cell)
+		_update_sticky_polys()
+		return
+
+	# While holding, keep it active while inside the room OR on a connected doorway tile.
+	if _room_hold_active:
+		var still_in := _room_hold_rect.size != Vector2i.ZERO and _room_hold_rect.has_point(to_cell)
+		var still_on_door := _is_door_connected_to_rect(to_cell, _room_hold_rect)
+		if still_in or still_on_door:
+			_update_sticky_polys()
+			return
+
+		# Left the room: allow forgetting again.
+		_room_hold_active = false
+		_room_hold_rect = Rect2i()
+		_room_entry_door_cell = Vector2i(2147483647, 2147483647)
+		_update_sticky_polys()
 
 func _process(dt: float) -> void:
 	_push_shader_uniforms()
 	_update_explored_decay(dt)
 	_update_masks()
+	# Keep sticky polys up to date in case bounds shift (rare) or we want to keep door/room pinned.
+	if _room_hold_active:
+		_update_sticky_polys()
 
 func _get_explored_decay_white_tex() -> Texture2D:
 	if _explored_decay_white_tex != null:
@@ -177,6 +232,105 @@ func _ensure_explored_decay_sprite() -> void:
 	else:
 		explored_viewport.add_child(_explored_decay_sprite)
 	_update_explored_decay_sprite_size()
+
+func _ensure_sticky_polys() -> void:
+	if explored_viewport == null:
+		return
+	var root := explored_viewport.get_node_or_null("MaskRoot") as Node2D
+	if root == null:
+		return
+
+	if _sticky_room_poly == null or not is_instance_valid(_sticky_room_poly):
+		_sticky_room_poly = Polygon2D.new()
+		_sticky_room_poly.name = "StickyRoom"
+		_sticky_room_poly.z_index = 2000
+		_sticky_room_poly.color = Color(1, 1, 1, 1)
+		root.add_child(_sticky_room_poly)
+
+	if _sticky_door_poly == null or not is_instance_valid(_sticky_door_poly):
+		_sticky_door_poly = Polygon2D.new()
+		_sticky_door_poly.name = "StickyDoor"
+		_sticky_door_poly.z_index = 2001
+		_sticky_door_poly.color = Color(1, 1, 1, 1)
+		root.add_child(_sticky_door_poly)
+
+func _update_sticky_polys() -> void:
+	_ensure_sticky_polys()
+	if _sticky_room_poly == null or _sticky_door_poly == null:
+		return
+
+	if not _room_hold_active:
+		_sticky_room_poly.polygon = PackedVector2Array()
+		_sticky_door_poly.polygon = PackedVector2Array()
+		return
+
+	# Sticky room rect
+	_sticky_room_poly.polygon = _room_rect_to_explored_poly(_room_hold_rect)
+	# Sticky door tile
+	_sticky_door_poly.polygon = _cell_to_explored_tile_poly(_room_entry_door_cell)
+
+func _room_rect_to_explored_poly(rect: Rect2i) -> PackedVector2Array:
+	if rect.size == Vector2i.ZERO:
+		return PackedVector2Array()
+	var tl_cell := rect.position
+	var br_cell := rect.end - Vector2i.ONE
+	var tl_world := _cell_center_world(tl_cell)
+	var br_world := _cell_center_world(br_cell)
+	if tile_size == Vector2.ZERO:
+		return PackedVector2Array()
+	var half := tile_size * 0.5
+	var min_world := Vector2(min(tl_world.x, br_world.x), min(tl_world.y, br_world.y)) - half
+	var max_world := Vector2(max(tl_world.x, br_world.x), max(tl_world.y, br_world.y)) + half
+	return PackedVector2Array([
+		min_world - maze_origin_world,
+		Vector2(max_world.x, min_world.y) - maze_origin_world,
+		max_world - maze_origin_world,
+		Vector2(min_world.x, max_world.y) - maze_origin_world,
+	])
+
+func _cell_to_explored_tile_poly(cell: Vector2i) -> PackedVector2Array:
+	if tile_size == Vector2.ZERO:
+		return PackedVector2Array()
+	var c_world := _cell_center_world(cell)
+	var half := tile_size * 0.5
+	var min_world := c_world - half
+	var max_world := c_world + half
+	return PackedVector2Array([
+		min_world - maze_origin_world,
+		Vector2(max_world.x, min_world.y) - maze_origin_world,
+		max_world - maze_origin_world,
+		Vector2(min_world.x, max_world.y) - maze_origin_world,
+	])
+
+func _cell_center_world(cell: Vector2i) -> Vector2:
+	if layer == null:
+		return Vector2.ZERO
+	return layer.to_global(layer.map_to_local(cell))
+
+func _is_room_connected_door(cell: Vector2i) -> bool:
+	if _maze == null:
+		_maze = layer as DungeonMazeLayer
+	if _maze == null or not _maze.has_method("is_door_cell"):
+		return false
+	if not bool(_maze.call("is_door_cell", cell)):
+		return false
+	return _room_rect_connected_to_door(cell).size != Vector2i.ZERO
+
+func _room_rect_connected_to_door(door_cell: Vector2i) -> Rect2i:
+	for r: Rect2i in _room_rects:
+		if _is_door_connected_to_rect(door_cell, r):
+			return r
+	return Rect2i()
+
+func _is_door_connected_to_rect(door_cell: Vector2i, rect: Rect2i) -> bool:
+	if rect.size == Vector2i.ZERO:
+		return false
+	# A connected doorway tile is adjacent (4-neighbor) to a room cell.
+	var nbs := [Vector2i(1, 0), Vector2i(-1, 0), Vector2i(0, 1), Vector2i(0, -1)]
+	for d: Vector2i in nbs:
+		if rect.has_point(door_cell + d):
+			return true
+	return false
 
 func _update_explored_decay_sprite_size() -> void:
 	if explored_viewport == null:

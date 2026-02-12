@@ -41,6 +41,9 @@ var markings_min_spacing_cells: int = 2
 var markings_avoid_spawn_radius_cells: int = 2
 var markings_avoid_exit_radius_cells: int = 2
 
+# Pillar (room center interactable)
+var pillar_charge_time_seconds: float = 12.0
+
 # GameController tuning
 var controller_trail_add_walk: float = 1.0
 var controller_trail_add_run: float = 2.0

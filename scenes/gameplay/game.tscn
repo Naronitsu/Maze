@@ -1,4 +1,4 @@
-[gd_scene load_steps=36 format=3 uid="uid://cynmmfn4ux1dd"]
+[gd_scene load_steps=33 format=3 uid="uid://cynmmfn4ux1dd"]
 
 [ext_resource type="Script" uid="uid://bbvhcofrcxrrs" path="res://scripts/gameplay/game.gd" id="1_3dryh"]
 [ext_resource type="Texture2D" uid="uid://bvxffpi0ecbj8" path="res://sprites/urizen_onebit_tileset__v2d0.png" id="1_qxrlw"]
@@ -7,27 +7,24 @@
 [ext_resource type="Shader" uid="uid://dtp8ym7kbljwb" path="res://shaders/crt_warp.gdshader" id="2_trtic"]
 [ext_resource type="Script" uid="uid://cwnx1sov5ax5p" path="res://scripts/world/tile_map.gd" id="2_wrm1d"]
 [ext_resource type="Script" uid="uid://ddr62so3onguo" path="res://scripts/gameplay/level_transition_manager.gd" id="3_5newe"]
-[ext_resource type="AudioStream" uid="uid://bc0wdfrr5q7ph" path="res://sounds/soundreality-opening-door-411632.mp3" id="3_ssvqc"]
 [ext_resource type="Texture2D" uid="uid://c3nbcpu5ut72x" path="res://sprites/Player.png" id="3_trtic"]
 [ext_resource type="PackedScene" uid="uid://4pam0hesbas4" path="res://scenes/gameplay/player.tscn" id="4_3dryh"]
-[ext_resource type="AudioStream" uid="uid://fce267luc5ow" path="res://sounds/dragon-studio-close-door-382723.mp3" id="4_264po"]
 [ext_resource type="Texture2D" uid="uid://bvd15gwjy64cj" path="res://sprites/Ground.png" id="5_gee14"]
+[ext_resource type="AudioStream" uid="uid://chskckt8oki27" path="res://sounds/door.sfxr" id="6_an6ph"]
 [ext_resource type="PackedScene" uid="uid://cx0aeolep8gca" path="res://scenes/gameplay/fog_of_war_rw.tscn" id="6_kvuet"]
 [ext_resource type="Script" uid="uid://dn6km3ruotsy8" path="res://scripts/systems/visual_effects_manager.gd" id="7_5newe"]
+[ext_resource type="AudioStream" uid="uid://j1s8cp2jaact" path="res://sounds/door_close.sfxr" id="7_mapnw"]
 [ext_resource type="Script" uid="uid://cehyhu8wpclx3" path="res://scripts/ui/ui_manager.gd" id="8_37s47"]
 [ext_resource type="Script" uid="uid://8c1oudx1h1es" path="res://scripts/ui/heartbeat_ui.gd" id="9_0tnpc"]
 [ext_resource type="Texture2D" uid="uid://dv8o46w3suf8s" path="res://sprites/Veins.png" id="10_vtaks"]
 [ext_resource type="Texture2D" uid="uid://5k7vb75wpv0i" path="res://sprites/Ground_new.png" id="11_ir15t"]
-[ext_resource type="AudioStream" uid="uid://csb54cceyeuin" path="res://sounds/heartbeat-loop-96879.mp3" id="11_kvpfn"]
 [ext_resource type="PackedScene" uid="uid://bm38rhriwppcc" path="res://scenes/gameplay/presence_rw.tscn" id="12_dinhu"]
 [ext_resource type="Script" uid="uid://dy5tva3fep1ra" path="res://scripts/gameplay/game_controller.gd" id="13_kvuet"]
 [ext_resource type="PackedScene" path="res://scenes/ui/pause_menu.tscn" id="16_pause_menu"]
 [ext_resource type="PackedScene" path="res://scenes/ui/pause_settings.tscn" id="17_pause_settings"]
 [ext_resource type="PackedScene" uid="uid://c5h8y7k2n3p4q" path="res://scenes/ui/minimap.tscn" id="18_minimap"]
-
-[sub_resource type="Theme" id="Theme_mapnw"]
-
-[sub_resource type="Theme" id="Theme_an6ph"]
+[ext_resource type="Script" uid="uid://dek7ymb4k0q8u" path="res://scripts/gameplay/pillar_spawn_manager.gd" id="19_pillar_spawn_manager"]
+[ext_resource type="AudioStream" uid="uid://dbak3ejnm1mlt" path="res://sounds/heartbeat.sfxr" id="24_an6ph"]
 
 [sub_resource type="OccluderPolygon2D" id="OccluderPolygon2D_3dryh"]
 polygon = PackedVector2Array(-6, -6, 6, -6, 6, 6, -6, 6)
@@ -7151,14 +7148,17 @@ script = ExtResource("1_3dryh")
 [node name="PresenceSpawnManager" type="Node" parent="."]
 script = ExtResource("2_1kice")
 
+[node name="PillarSpawnManager" type="Node" parent="."]
+script = ExtResource("19_pillar_spawn_manager")
+
 [node name="LevelTransitionManager" type="Node" parent="."]
 script = ExtResource("3_5newe")
 
 [node name="AudioManager" type="Node" parent="."]
 script = ExtResource("2_ca42v")
 maze_path = NodePath("../TileMap/MazeLayer")
-door_open_stream = ExtResource("3_ssvqc")
-door_close_stream = ExtResource("4_264po")
+door_open_stream = ExtResource("6_an6ph")
+door_close_stream = ExtResource("7_mapnw")
 
 [node name="VisualEffectsManager" type="Node" parent="."]
 script = ExtResource("7_5newe")
@@ -7203,7 +7203,6 @@ layout_mode = 3
 layout_mode = 3
 
 [node name="Minimap" parent="UI" instance=ExtResource("18_minimap")]
-layout_mode = 3
 layer = NodePath("../../TileMap/MazeLayer")
 fog = NodePath("../../Overlay/FogOfWarRW")
 player = NodePath("../../Player")
@@ -7266,12 +7265,12 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
+mouse_filter = 2
 texture = ExtResource("10_vtaks")
 expand_mode = 1
-mouse_filter = 2
 
 [node name="HeartbeatAudio" type="AudioStreamPlayer2D" parent="HeartbeatUI"]
-stream = ExtResource("11_kvpfn")
+stream = ExtResource("24_an6ph")
 
 [node name="CRT" type="CanvasLayer" parent="."]
 layer = 999

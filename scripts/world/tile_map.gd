@@ -7,6 +7,10 @@
 extends TileMapLayer
 class_name DungeonMazeLayer
 
+# Rooms-first generation outputs (cell-space Rect2i).
+var _reward_room_rect: Rect2i = Rect2i()
+var _minor_room_rects: Array[Rect2i] = []
+
 signal door_opened(cell: Vector2i)
 signal door_closed(cell: Vector2i)
 
@@ -190,6 +194,10 @@ func _generate_once() -> Dictionary:
 	for r: Rect2i in minor_rects:
 		_carve_room_rect_kind(r, w, GridModel.RoomKind.MINOR)
 
+	# Store room rects for other systems (pillars, spawn strategies, etc.)
+	_reward_room_rect = reward_rect
+	_minor_room_rects = minor_rects.duplicate()
+
 	# --- 2) Pick door candidates (marks only; actual doors are rebuilt later) ---
 	# We pick a slightly larger pool so we can retry if some candidates can't be connected cleanly.
 	var reward_doors_pool: Array[Dictionary] = _pick_room_doors(rng, reward_rect, 8, w, h)
@@ -310,6 +318,20 @@ func _generate_once() -> Dictionary:
 	}
 
 
+func get_room_rects() -> Array[Rect2i]:
+	var result: Array[Rect2i] = []
+	if _reward_room_rect.size != Vector2i.ZERO:
+		result.append(_reward_room_rect)
+	result.append_array(_minor_room_rects)
+	return result
+
+func get_reward_room_rect() -> Rect2i:
+	return _reward_room_rect
+
+func get_minor_room_rects() -> Array[Rect2i]:
+	return _minor_room_rects.duplicate()
+
+
 # --------------------------------------------------------------------
 # Rooms-first helpers
 # --------------------------------------------------------------------
@@ -350,10 +372,10 @@ func _place_reward_room(rng: RandomNumberGenerator, w: int, h: int, start_in: Ve
 
 
 func _place_minor_rooms(rng: RandomNumberGenerator, w: int, h: int, count: int) -> Array[Rect2i]:
-	# Minor rooms: exactly 3x3, non-overlapping, spacing >=2 preferred.
+	# Minor rooms: exactly 5x5, non-overlapping, spacing >=2 preferred.
 	var result: Array[Rect2i] = []
-	var size := Vector2i(3, 3)
-	var half := Vector2i(1, 1)
+	var size := Vector2i(5, 5)
+	var half := Vector2i(2, 2)
 	var pad := 2
 	var spacing := 2
 
@@ -890,7 +912,7 @@ func _debug_validate_rooms_and_connectivity(reward_rect: Rect2i, minor_rects: Ar
 	# Minor room checks
 	assert(minor_rects.size() >= 3)
 	for r in minor_rects:
-		assert(r.size == Vector2i(3, 3))
+		assert(r.size == Vector2i(5, 5))
 
 	# All room tiles are floors
 	for y in range(reward_rect.position.y, reward_rect.end.y):
@@ -925,7 +947,7 @@ func _debug_validate_rooms_and_connectivity(reward_rect: Rect2i, minor_rects: Ar
 	var reward_center := reward_rect.position + Vector2i(3, 3)
 	assert(visited[_idx(reward_center.x, reward_center.y, _grid_w)] == 1)
 	for r3 in minor_rects:
-		var cc := r3.position + Vector2i(1, 1)
+		var cc := r3.position + Vector2i(2, 2)
 		assert(visited[_idx(cc.x, cc.y, _grid_w)] == 1)
 
 

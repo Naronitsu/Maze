@@ -1,0 +1,17 @@
+[remap]
+
+importer="com.timothyqiu.gdfxr.importer"
+type="AudioStreamWAV"
+uid="uid://bqbls4gh3gwpd"
+path="res://.godot/imported/charge_finish.sfxr-8066ed29b1b48debc10dfea529ca002c.sample"
+
+[deps]
+
+source_file="res://sounds/charge_finish.sfxr"
+dest_files=["res://.godot/imported/charge_finish.sfxr-8066ed29b1b48debc10dfea529ca002c.sample"]
+
+[params]
+
+loop=false
+bit_depth=0
+sample_rate=0

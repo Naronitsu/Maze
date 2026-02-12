@@ -1,0 +1,17 @@
+[remap]
+
+importer="com.timothyqiu.gdfxr.importer"
+type="AudioStreamWAV"
+uid="uid://dldcfkr02ymar"
+path="res://.godot/imported/charging-stage.sfxr-e668a367516aa52875f9b2ce7a9785ae.sample"
+
+[deps]
+
+source_file="res://sounds/charging-stage.sfxr"
+dest_files=["res://.godot/imported/charging-stage.sfxr-e668a367516aa52875f9b2ce7a9785ae.sample"]
+
+[params]
+
+loop=false
+bit_depth=0
+sample_rate=0

@@ -1,0 +1,17 @@
+[remap]
+
+importer="com.timothyqiu.gdfxr.importer"
+type="AudioStreamWAV"
+uid="uid://dbak3ejnm1mlt"
+path="res://.godot/imported/heartbeat.sfxr-e7063d175d2410eb3d526481e8c4c3b9.sample"
+
+[deps]
+
+source_file="res://sounds/heartbeat.sfxr"
+dest_files=["res://.godot/imported/heartbeat.sfxr-e7063d175d2410eb3d526481e8c4c3b9.sample"]
+
+[params]
+
+loop=false
+bit_depth=0
+sample_rate=0
