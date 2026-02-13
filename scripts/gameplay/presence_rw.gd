@@ -44,14 +44,19 @@ func _ready() -> void:
 	if controller == null:
 		push_error("[PresenceRW] GameController reference not found")
 		return
-	
+
 	_rng.randomize()
 	if cell == INVALID_CELL:
 		deactivate()
-	
+
 	# Listen to events
 	EventBus.player_moved.connect(_on_player_moved)
 	EventBus.presence_should_spawn.connect(_on_presence_should_spawn)
+	EventBus.level_started.connect(_on_level_started)
+
+func _on_level_started(_player_pos: Vector2i, _maze: Node) -> void:
+	# Despawn presence on new level start
+	deactivate()
 
 func _process(delta: float) -> void:
 	if not _active or GameState.current != GameState.State.PLAYING:

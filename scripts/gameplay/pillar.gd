@@ -29,7 +29,41 @@ var _charge_stage_player: AudioStreamPlayer2D
 var _charge_finish_player: AudioStreamPlayer2D
 var _charge_fade_tween: Tween
 
+
+
+# Powerup system
+const POWERUP_SPRITE_PATH = "res://sprites/powerups/powerup.png"
+const POWERUP_SPRITE_SIZE = Vector2i(32, 32)
+const POWERUP_TYPES = [
+	{
+		"type": "vision",
+		"region": Rect2(0, 0, 32, 32),
+		"desc": "Vision Boost"
+	},
+	{
+		"type": "move_speed",
+		"region": Rect2(32, 0, 32, 32),
+		"desc": "Move Speed"
+	},
+	{
+		"type": "charge_speed",
+		"region": Rect2(64, 0, 32, 32),
+		"desc": "Charge Speed"
+	}
+]
+
+var powerup_idx: int = -1
+var powerup_data: Dictionary
+
 @onready var sprite: AnimatedSprite2D = $AnimatedSprite2D
+@onready var particles: GPUParticles2D = $GPUParticles2D
+
+# Call this to trigger a burst effect
+func play_pillar_particles():
+	if particles:
+		particles.emitting = false
+		particles.restart()
+		particles.emitting = true
 
 func _ready() -> void:
 	add_to_group("pillars")
@@ -38,6 +72,10 @@ func _ready() -> void:
 		_set_idle_visual()
 	_setup_audio()
 	EventBus.player_moved.connect(_on_player_moved)
+
+	# Pick a random powerup for this pillar
+	powerup_idx = randi() % POWERUP_TYPES.size()
+	powerup_data = POWERUP_TYPES[powerup_idx]
 
 func _setup_audio() -> void:
 	_charge_loop_player = AudioStreamPlayer2D.new()
@@ -211,7 +249,17 @@ func _process(delta: float) -> void:
 		# Smaller bursts on phase thresholds (20/40/60/80%).
 		if idx >= 1:
 			_play_charge_stage_sfx()
-			_burst_room_particles_small(idx)
+			if particles:
+				# Ensure emission shape is circle, radius small for minor bursts
+				var mat := particles.process_material
+				if mat and mat is ParticleProcessMaterial:
+					mat.emission_shape = ParticleProcessMaterial.EMISSION_SHAPE_SPHERE
+					mat.emission_sphere_radius = 32.0
+				particles.amount = 64
+				particles.one_shot = true
+				particles.emitting = false
+				particles.restart()
+				particles.emitting = true
 
 	sprite.animation = charging_anim_name
 	sprite.stop()
@@ -222,62 +270,118 @@ func _process(delta: float) -> void:
 			_full_charge_burst_fired = true
 			_completed = true
 			_play_charge_finish_sfx()
-			_burst_room_particles_full()
+			if particles:
+				# Make the final burst larger
+				var mat := particles.process_material
+				if mat and mat is ParticleProcessMaterial:
+					mat.emission_shape = ParticleProcessMaterial.EMISSION_SHAPE_SPHERE
+					mat.emission_sphere_radius = 64.0
+				particles.amount = 160
+				particles.one_shot = true
+				particles.emitting = false
+				particles.restart()
+				particles.emitting = true
+
+			# Apply powerup to player
+			_apply_powerup_to_player()
 			_stop_charge_loop_fade_out()
 		set_process(false)
 
-func _burst_room_particles_small(stage_idx: int) -> void:
-	if _maze == null:
-		# Best-effort fallback: try to find the maze layer in the running scene.
-		_maze = get_tree().get_first_node_in_group("maze") as DungeonMazeLayer
-		if _maze == null:
-			_maze = get_node_or_null("../TileMap/MazeLayer") as DungeonMazeLayer
-	if _maze == null:
+func _apply_powerup_to_player():
+	# Find player node
+	var player = get_tree().get_first_node_in_group("player")
+	if player == null:
 		return
 
-	var bounds := _room_bounds_world(_maze, room_rect)
-	if bounds.size == Vector2.ZERO:
-		return
+	# Track shrine charges globally
+	GameConfig.shrines_charged += 1
 
-	var burst := RoomBounceBurst.new()
-	burst.set_as_top_level(true)
-	burst.global_position = Vector2.ZERO
-	burst.particle_texture = CHARGE_PARTICLE_TEX
-	burst.particle_size = Vector2(8, 8)
-	burst.particle_count = 44
-	burst.particle_radius = 1.25
-	burst.lifetime_seconds = 0.55
-	burst.speed_min = 110.0
-	burst.speed_max = 190.0
-	burst.bounce_damping = 0.90
-	add_child(burst)
-	burst.start(bounds, int(Time.get_ticks_msec()) + stage_idx * 1337)
+	# On first shrine charged, emit signal to spawn Presence and set slow speed
+	if GameConfig.shrines_charged == 1:
+		EventBus.emit_signal("presence_should_spawn", [])
+		GameConfig.presence_move_interval = 1.2 # Slow initial speed
+		print("[Pillar] First shrine charged: Presence spawned, speed slow.")
+	elif GameConfig.shrines_charged > 1:
+		# Linearly interpolate speed from slow to normal as more shrines are charged
+		var min_speed = 0.35 # Fastest
+		var max_speed = 1.2  # Slowest
+		var normal_speed = 0.45 # Current normal
+		var total_shrines = 3 # Adjust if more shrines possible
+		var t = float(GameConfig.shrines_charged - 1) / float(max(1, total_shrines - 1))
+		GameConfig.presence_move_interval = lerp(max_speed, normal_speed, t)
+		if GameConfig.presence_move_interval < min_speed:
+			GameConfig.presence_move_interval = min_speed
+		print("[Pillar] Shrine charged: Presence speed now %f" % GameConfig.presence_move_interval)
 
-func _burst_room_particles_full() -> void:
-	if _maze == null:
-		_maze = get_tree().get_first_node_in_group("maze") as DungeonMazeLayer
-		if _maze == null:
-			_maze = get_node_or_null("../TileMap/MazeLayer") as DungeonMazeLayer
-	if _maze == null:
-		return
+	# Apply effect and persist
+	var save = SaveManager.current_save_data
+	if not save.has("powerups"):
+		save["powerups"] = []
 
-	var bounds := _room_bounds_world(_maze, room_rect)
-	if bounds.size == Vector2.ZERO:
-		return
+	var ptype = powerup_data["type"]
+	if ptype == "vision":
+		# Increase vision range globally
+		if not save.has("fog_vision_range_base"):
+			save["fog_vision_range_base"] = GameConfig.fog_vision_range
+		GameConfig.fog_vision_range = GameConfig.fog_vision_range + 8
+	elif ptype == "move_speed":
+		if not save.has("player_step_time_base"):
+			save["player_step_time_base"] = GameConfig.player_step_time
+		GameConfig.player_step_time = GameConfig.player_step_time - 0.03
+	elif ptype == "charge_speed":
+		if not save.has("pillar_charge_time_base"):
+			save["pillar_charge_time_base"] = GameConfig.pillar_charge_time_seconds
+		GameConfig.pillar_charge_time_seconds = GameConfig.pillar_charge_time_seconds - 0.5
 
-	var burst := RoomBounceBurst.new()
-	burst.set_as_top_level(true)
-	burst.global_position = Vector2.ZERO
-	burst.particle_texture = CHARGE_PARTICLE_TEX
-	burst.particle_size = Vector2(14, 14)
-	burst.particle_count = 160
-	burst.particle_radius = 2.05
-	burst.lifetime_seconds = 1.10
-	burst.speed_min = 180.0
-	burst.speed_max = 320.0
-	burst.bounce_damping = 0.92
-	add_child(burst)
-	burst.start(bounds, int(Time.get_ticks_msec()) + 99991)
+	# Save powerup for persistence
+	if not ptype in save["powerups"]:
+		save["powerups"].append(ptype)
+	SaveManager.current_save_data = save
+	var player_cell = Vector2i.ZERO
+	if save.has("player_cell"):
+		if typeof(save["player_cell"]) == TYPE_VECTOR2I:
+			player_cell = save["player_cell"]
+		elif typeof(save["player_cell"]) == TYPE_DICTIONARY:
+			var pc = save["player_cell"]
+			player_cell = Vector2i(pc.get("x", 0), pc.get("y", 0))
+	SaveManager.save_game(
+		save.get("level", 1),
+		save.get("run", 1),
+		player_cell,
+		save.get("maze_seed", 0),
+		save.get("fog_path", ""),
+		save.get("fog_size", Vector2i.ZERO)
+	)
+
+	# Show floating icon above player (fade-out sprite)
+	var fade_scene = preload("res://scenes/gameplay/powerup_fade_sprite.tscn")
+	var fade = fade_scene.instantiate()
+	var anim_sprite = fade.get_node_or_null("AnimatedSprite2D")
+	if anim_sprite:
+		# Choose animation name based on powerup type
+		var anim_name = "default"
+		if powerup_data.has("type"):
+			match powerup_data["type"]:
+				"move_speed":
+					anim_name = "move_speed"
+				"charge_speed":
+					anim_name = "charge_speed"
+				"vision":
+					anim_name = "vision_buff"
+		anim_sprite.animation = anim_name
+		anim_sprite.play()
+	# Attach to PowerupAnchor if present, else fallback to player
+	var anchor = player.get_node_or_null("PowerupAnchor")
+	if anchor:
+		fade.position = Vector2.ZERO
+		anchor.add_child(fade)
+	else:
+		fade.position = Vector2(0, -48)
+		player.add_child(fade)
+	var fadeout = fade.create_tween()
+	fadeout.tween_property(fade, "modulate:a", 0.0, 1.2)
+	fadeout.tween_callback(fade.queue_free)
+
 
 func _room_bounds_world(maze: DungeonMazeLayer, rect: Rect2i) -> Rect2:
 	if rect.size == Vector2i.ZERO:

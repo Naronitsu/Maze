@@ -57,8 +57,11 @@ var presence_near_cells: int = 4
 var presence_far_cells: int = 25
 var presence_catch_distance_cells: int = -1
 
-# FOV/Vision
-var fog_vision_range: float = 64
+ # FOV/Vision
+
+# Track number of shrines charged (for Presence logic)
+static var shrines_charged: int = 0
+var fog_vision_range: float = 32
 var fog_half_angle_deg: float = 35.0
 var fog_rays: int = 81
 var fog_halo_rays: int = 64

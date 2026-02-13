@@ -1,0 +1,53 @@
+[gd_scene format=3 uid="uid://5glmt7w3abet"]
+
+[ext_resource type="Texture2D" uid="uid://dkj20vr1xvrir" path="res://sprites/powerups/powerup.png" id="1_do2hf"]
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_y8ll3"]
+atlas = ExtResource("1_do2hf")
+region = Rect2(32, 0, 16, 16)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_sjt6y"]
+atlas = ExtResource("1_do2hf")
+region = Rect2(16, 0, 16, 16)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_yyt58"]
+atlas = ExtResource("1_do2hf")
+region = Rect2(0, 0, 16, 16)
+
+[sub_resource type="SpriteFrames" id="SpriteFrames_tjklf"]
+animations = [{
+"frames": [{
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_y8ll3")
+}],
+"loop": true,
+"name": &"charge_speed",
+"speed": 5.0
+}, {
+"frames": [],
+"loop": true,
+"name": &"default",
+"speed": 5.0
+}, {
+"frames": [{
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_sjt6y")
+}],
+"loop": true,
+"name": &"move_speed",
+"speed": 5.0
+}, {
+"frames": [{
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_yyt58")
+}],
+"loop": true,
+"name": &"vision_buff",
+"speed": 5.0
+}]
+
+[node name="PowerupFadeSprite" type="Node2D" unique_id=579399286]
+
+[node name="AnimatedSprite2D" type="AnimatedSprite2D" parent="." unique_id=1686445261]
+sprite_frames = SubResource("SpriteFrames_tjklf")
+animation = &"vision_buff"

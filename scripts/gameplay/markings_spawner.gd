@@ -160,6 +160,10 @@ func _place_one(cell: Vector2i) -> void:
 	spr.z_index = 0
 	spr.modulate = Color(1, 1, 1, 1)
 
+	# Randomly rotate to N/S/E/W
+	var rot_idx = _rng.randi_range(0, 3)
+	spr.rotation_degrees = rot_idx * 90
+
 	var world_pos: Vector2
 	if controller != null and controller.has_method("cell_to_world_center"):
 		world_pos = controller.cell_to_world_center(cell)

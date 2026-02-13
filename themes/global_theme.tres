@@ -1,4 +1,4 @@
-[gd_resource type="Theme" load_steps=8 format=3 uid="uid://vkyikbobqfb2"]
+[gd_resource type="Theme" format=3 uid="uid://vkyikbobqfb2"]
 
 [ext_resource type="FontFile" uid="uid://bqy5p2kflj3sw" path="res://fonts/Quintessential-Regular.ttf" id="1_6gghl"]
 [ext_resource type="FontFile" uid="uid://dt4f3qlbs2g3u" path="res://fonts/Jacquard24-Regular.ttf" id="1_jacquard24"]

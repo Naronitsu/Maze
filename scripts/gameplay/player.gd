@@ -38,7 +38,9 @@ func _ready() -> void:
 	if controller == null:
 		push_error("[Player] GameController reference not found - player tracking will not work")
 		return
-	
+
+	add_to_group("player")
+
 	# Initialize position
 	if maze.get_world_bounds().size != Vector2.ZERO:
 		cell = maze.local_to_map(maze.to_local(global_position))

@@ -1,7 +1,39 @@
-[gd_scene load_steps=10 format=3 uid="uid://4inko5yjb53f"]
+[gd_scene format=3 uid="uid://4inko5yjb53f"]
 
 [ext_resource type="Script" uid="uid://x6dygybxlyp8" path="res://scripts/gameplay/pillar.gd" id="1_pillar_script"]
+[ext_resource type="Texture2D" uid="uid://clo5ckf3ejiqy" path="res://sprites/map/interactables/pillar/Particles/charge.png" id="2_8edwh"]
 [ext_resource type="Texture2D" uid="uid://bq82c8nkgtmd0" path="res://sprites/map/interactables/pillar/pillar_anim.png" id="3_pillar_anim"]
+
+[sub_resource type="Curve" id="Curve_yujcw"]
+_data = [Vector2(0, 1), 0.0, 0.0, 0, 0, Vector2(0.98003983, 0.36065573), 0.0, 0.0, 0, 0]
+point_count = 2
+
+[sub_resource type="CurveTexture" id="CurveTexture_iradm"]
+curve = SubResource("Curve_yujcw")
+
+[sub_resource type="ParticleProcessMaterial" id="ParticleProcessMaterial_waj1r"]
+particle_flag_disable_z = true
+emission_shape = 1
+emission_sphere_radius = 33.38
+angle_min = 1.0728835e-05
+angle_max = 98.80001
+inherit_velocity_ratio = 0.125
+spread = 180.0
+initial_velocity_min = 96.47
+initial_velocity_max = 96.47
+angular_velocity_min = 141.59998
+angular_velocity_max = 141.59998
+gravity = Vector3(0, 98, 0)
+linear_accel_min = -2.2351742e-06
+linear_accel_max = 33.019997
+radial_accel_min = -2.2351742e-06
+radial_accel_max = 26.719997
+scale_curve = SubResource("CurveTexture_iradm")
+scale_over_velocity_min = 272.72998
+scale_over_velocity_max = 272.72998
+collision_mode = 1
+collision_friction = 0.0
+collision_bounce = 0.3
 
 [sub_resource type="AtlasTexture" id="AtlasTexture_cnoub"]
 atlas = ExtResource("3_pillar_anim")
@@ -63,12 +95,25 @@ animations = [{
 "speed": 5.0
 }]
 
-[node name="Pillar" type="Node2D"]
+[node name="Pillar" type="Node2D" unique_id=1213291886]
 visibility_layer = 2
 z_index = 2
 script = ExtResource("1_pillar_script")
 
-[node name="AnimatedSprite2D" type="AnimatedSprite2D" parent="."]
+[node name="GPUParticles2D" type="GPUParticles2D" parent="." unique_id=1245863948]
+z_index = 2
+emitting = false
+amount = 64
+texture = ExtResource("2_8edwh")
+lifetime = 0.5
+one_shot = true
+visibility_rect = Rect2(-32, -32, 64, 64)
+local_coords = true
+trail_lifetime = 0.12
+trail_sections = 2
+process_material = SubResource("ParticleProcessMaterial_waj1r")
+
+[node name="AnimatedSprite2D" type="AnimatedSprite2D" parent="." unique_id=1844084928]
 position = Vector2(0, -48)
 sprite_frames = SubResource("SpriteFrames_00j37")
 animation = &"idle"

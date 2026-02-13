@@ -25,29 +25,41 @@ func _ready() -> void:
 
 
 	if resume_button:
-		resume_button.pressed.connect(_on_resume_pressed)
+		if not resume_button.pressed.is_connected(_on_resume_pressed):
+			resume_button.pressed.connect(_on_resume_pressed)
 		resume_button.focus_mode = Control.FOCUS_ALL
-		resume_button.mouse_entered.connect(_on_button_hover)
-		resume_button.focus_entered.connect(_on_button_hover)
-		resume_button.pressed.connect(_on_button_select)
+		if not resume_button.mouse_entered.is_connected(_on_button_hover):
+			resume_button.mouse_entered.connect(_on_button_hover)
+		if not resume_button.focus_entered.is_connected(_on_button_hover):
+			resume_button.focus_entered.connect(_on_button_hover)
+		if not resume_button.pressed.is_connected(_on_button_select):
+			resume_button.pressed.connect(_on_button_select)
 	else:
 		push_warning("PauseMenu: ResumeButton not found")
 
 	if settings_button:
-		settings_button.pressed.connect(_on_settings_pressed)
+		if not settings_button.pressed.is_connected(_on_settings_pressed):
+			settings_button.pressed.connect(_on_settings_pressed)
 		settings_button.focus_mode = Control.FOCUS_ALL
-		settings_button.mouse_entered.connect(_on_button_hover)
-		settings_button.focus_entered.connect(_on_button_hover)
-		settings_button.pressed.connect(_on_button_select)
+		if not settings_button.mouse_entered.is_connected(_on_button_hover):
+			settings_button.mouse_entered.connect(_on_button_hover)
+		if not settings_button.focus_entered.is_connected(_on_button_hover):
+			settings_button.focus_entered.connect(_on_button_hover)
+		if not settings_button.pressed.is_connected(_on_button_select):
+			settings_button.pressed.connect(_on_button_select)
 	else:
 		push_warning("PauseMenu: SettingsButton not found")
 
 	if quit_button:
-		quit_button.pressed.connect(_on_quit_pressed)
+		if not quit_button.pressed.is_connected(_on_quit_pressed):
+			quit_button.pressed.connect(_on_quit_pressed)
 		quit_button.focus_mode = Control.FOCUS_ALL
-		quit_button.mouse_entered.connect(_on_button_hover)
-		quit_button.focus_entered.connect(_on_button_hover)
-		quit_button.pressed.connect(_on_button_select)
+		if not quit_button.mouse_entered.is_connected(_on_button_hover):
+			quit_button.mouse_entered.connect(_on_button_hover)
+		if not quit_button.focus_entered.is_connected(_on_button_hover):
+			quit_button.focus_entered.connect(_on_button_hover)
+		if not quit_button.pressed.is_connected(_on_button_select):
+			quit_button.pressed.connect(_on_button_select)
 	else:
 		push_warning("PauseMenu: QuitButton not found")
 func _on_button_hover() -> void:
@@ -57,7 +69,8 @@ func _on_button_select() -> void:
 	UI_SoundPlayer.play_select()
 
 	if settings_panel:
-		settings_panel.connect("back_pressed", _on_settings_back)
+		if not settings_panel.is_connected("back_pressed", _on_settings_back):
+			settings_panel.connect("back_pressed", _on_settings_back)
 		print("PauseMenu: SettingsPanel found")
 	else:
 		# if there is no settings panel, ensure mouse behavior doesn't block clicks
@@ -66,12 +79,15 @@ func _on_button_select() -> void:
 
 	# apply initial settings visibility/state
 	_settings_set_active(settings_panel and settings_panel.visible)
-	
+
 	# Connect visibility changed to set focus
-	visibility_changed.connect(_on_visibility_changed)
-	
+	if not visibility_changed.is_connected(_on_visibility_changed):
+		visibility_changed.connect(_on_visibility_changed)
+
 	# Connect focus changes for debugging
-	get_viewport().gui_focus_changed.connect(_on_gui_focus_changed)
+	var viewport = get_viewport()
+	if viewport and not viewport.gui_focus_changed.is_connected(_on_gui_focus_changed):
+		viewport.gui_focus_changed.connect(_on_gui_focus_changed)
 	print("PauseMenu: _ready() complete")
 
 func _input(event: InputEvent) -> void:
@@ -245,12 +261,12 @@ func _settings_set_active(active: bool) -> void:
 	if active:
 		# focus first available control in settings
 		var btns := _get_menu_buttons()
-		if not btns.is_empty():
+		if not btns.is_empty() and btns[0].is_inside_tree():
 			btns[0].grab_focus()
 	else:
 		# restore focus to first available button in main pause menu
 		var main_buttons := _get_menu_buttons()
-		if not main_buttons.is_empty():
+		if not main_buttons.is_empty() and main_buttons[0].is_inside_tree():
 			main_buttons[0].grab_focus()
 
 func _on_resume_pressed() -> void:
