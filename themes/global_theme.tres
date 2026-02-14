@@ -1,79 +1,96 @@
 [gd_resource type="Theme" format=3 uid="uid://vkyikbobqfb2"]
 
-[ext_resource type="FontFile" uid="uid://bqy5p2kflj3sw" path="res://fonts/Quintessential-Regular.ttf" id="1_6gghl"]
-[ext_resource type="FontFile" uid="uid://dt4f3qlbs2g3u" path="res://fonts/Jacquard24-Regular.ttf" id="1_jacquard24"]
-[ext_resource type="Texture2D" uid="uid://bwb1asyjxke0m" path="res://sprites/button.png" id="2_button_tex"]
+[ext_resource type="FontFile" uid="uid://cf1fwflgs7j8g" path="res://fonts/PixelifySans-Regular.ttf" id="1_nap7a"]
+[ext_resource type="Texture2D" uid="uid://cq2m4k63ctj1o" path="res://sprites/UI/button_disabled.png" id="2_2p5to"]
+[ext_resource type="Texture2D" uid="uid://cgvvelr4pmgk1" path="res://sprites/UI/button_hover.png" id="3_arykt"]
+[ext_resource type="Texture2D" uid="uid://fg0yldo6y36k" path="res://sprites/UI/button_idle.png" id="3_gqqud"]
+[ext_resource type="Texture2D" uid="uid://dtyhye722e4gw" path="res://sprites/UI/button_pressed.png" id="5_2p5to"]
 
 [sub_resource type="StyleBoxTexture" id="StyleBoxTexture_button_disabled"]
-texture = ExtResource("2_button_tex")
-texture_margin_left = 3.0
-texture_margin_top = 3.0
-texture_margin_right = 3.0
-texture_margin_bottom = 3.0
-expand_margin_left = 3.0
-expand_margin_top = 3.0
-expand_margin_right = 3.0
-expand_margin_bottom = 3.0
-region_rect = Rect2(0, 64, 96, 32)
+content_margin_left = 3.0
+content_margin_right = 3.0
+texture = ExtResource("2_2p5to")
+texture_margin_left = 20.0
+texture_margin_right = 20.0
+texture_margin_bottom = 15.0
 
 [sub_resource type="StyleBoxTexture" id="StyleBoxTexture_button_hover"]
-texture = ExtResource("2_button_tex")
-texture_margin_left = 3.0
-texture_margin_top = 3.0
-texture_margin_right = 3.0
-texture_margin_bottom = 3.0
-expand_margin_left = 3.0
-expand_margin_top = 3.0
-expand_margin_right = 3.0
-expand_margin_bottom = 3.0
-region_rect = Rect2(0, 32, 96, 32)
+texture = ExtResource("3_arykt")
+texture_margin_left = 20.0
+texture_margin_right = 20.0
+texture_margin_bottom = 15.0
 
 [sub_resource type="StyleBoxTexture" id="StyleBoxTexture_button_normal"]
-texture = ExtResource("2_button_tex")
-texture_margin_left = 3.0
-texture_margin_top = 3.0
-texture_margin_right = 3.0
-texture_margin_bottom = 3.0
-expand_margin_left = 3.0
-expand_margin_top = 3.0
-expand_margin_right = 3.0
-expand_margin_bottom = 3.0
+texture = ExtResource("3_gqqud")
+texture_margin_left = 20.0
+texture_margin_right = 20.0
+texture_margin_bottom = 15.0
 region_rect = Rect2(0, 0, 96, 32)
 
 [sub_resource type="StyleBoxTexture" id="StyleBoxTexture_button_pressed"]
-texture = ExtResource("2_button_tex")
-texture_margin_left = 3.0
-texture_margin_top = 3.0
-texture_margin_right = 3.0
-texture_margin_bottom = 3.0
-expand_margin_left = 3.0
-expand_margin_top = 3.0
-expand_margin_right = 3.0
-expand_margin_bottom = 3.0
-region_rect = Rect2(0, 64, 96, 32)
+texture = ExtResource("5_2p5to")
+texture_margin_left = 20.0
+texture_margin_right = 20.0
+texture_margin_bottom = 15.0
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_arykt"]
+content_margin_left = 4.0
+content_margin_top = 4.0
+content_margin_right = 4.0
+content_margin_bottom = 4.0
+bg_color = Color(1, 1, 1, 0.75)
+draw_center = false
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+corner_radius_top_left = 3
+corner_radius_top_right = 3
+corner_radius_bottom_right = 3
+corner_radius_bottom_left = 3
+corner_detail = 5
+expand_margin_left = 2.0
+expand_margin_top = 2.0
+expand_margin_right = 2.0
+expand_margin_bottom = 2.0
+
+[sub_resource type="StyleBoxEmpty" id="StyleBoxEmpty_2p5to"]
 
 [resource]
-default_font = ExtResource("1_jacquard24")
+default_font = ExtResource("1_nap7a")
 default_font_size = 16
-Button/colors/font_color = Color(1, 1, 1, 1)
+Button/colors/font_color = Color(0, 0, 0, 1)
 Button/colors/font_disabled_color = Color(1, 1, 1, 0.5)
+Button/constants/h_separation = 4
 Button/font_sizes/font_size = 16
-Button/fonts/font = ExtResource("1_6gghl")
+Button/fonts/font = ExtResource("1_nap7a")
 Button/styles/disabled = SubResource("StyleBoxTexture_button_disabled")
 Button/styles/hover = SubResource("StyleBoxTexture_button_hover")
+Button/styles/hover_pressed = SubResource("StyleBoxTexture_button_hover")
 Button/styles/normal = SubResource("StyleBoxTexture_button_normal")
 Button/styles/pressed = SubResource("StyleBoxTexture_button_pressed")
 CheckBox/colors/font_color = Color(1, 1, 1, 1)
 CheckBox/colors/font_disabled_color = Color(1, 1, 1, 0.5)
 CheckBox/font_sizes/font_size = 16
-CheckBox/fonts/font = ExtResource("1_jacquard24")
+CheckBox/fonts/font = ExtResource("1_nap7a")
+CheckButton/fonts/font = ExtResource("1_nap7a")
 Label/colors/font_color = Color(1, 1, 1, 1)
+Label/colors/font_outline_color = Color(0, 0, 0, 1)
+Label/colors/font_shadow_color = Color(0, 0, 0, 0)
+Label/constants/line_spacing = 3
+Label/constants/outline_size = 0
+Label/constants/shadow_offset_x = 1
+Label/constants/shadow_offset_y = 1
+Label/constants/shadow_outline_size = 1
 Label/font_sizes/font_size = 16
-Label/fonts/font = ExtResource("1_6gghl")
+Label/fonts/font = ExtResource("1_nap7a")
+Label/styles/focus = SubResource("StyleBoxFlat_arykt")
+Label/styles/normal = SubResource("StyleBoxEmpty_2p5to")
+MenuButton/fonts/font = ExtResource("1_nap7a")
 OptionButton/colors/font_color = Color(1, 1, 1, 1)
 OptionButton/colors/font_disabled_color = Color(1, 1, 1, 0.5)
 OptionButton/font_sizes/font_size = 16
-OptionButton/fonts/font = ExtResource("1_jacquard24")
+OptionButton/fonts/font = ExtResource("1_nap7a")
 RichTextLabel/colors/default_color = Color(1, 1, 1, 1)
 RichTextLabel/font_sizes/normal_font_size = 16
-RichTextLabel/fonts/normal_font = ExtResource("1_jacquard24")
+RichTextLabel/fonts/normal_font = ExtResource("1_nap7a")

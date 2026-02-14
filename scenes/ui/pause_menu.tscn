@@ -1,114 +1,82 @@
-[gd_scene load_steps=10 format=3 uid="uid://pause_menu_01"]
+[gd_scene format=3 uid="uid://d2s8oq4amw68c"]
 
-[ext_resource type="Script" path="res://scripts/ui/pause_menu.gd" id="1_pause_menu"]
-[ext_resource type="PackedScene" uid="uid://pause_settings_01" path="res://scenes/ui/pause_settings.tscn" id="2_pause_settings"]
-[ext_resource type="Texture2D" uid="uid://bwb1asyjxke0m" path="res://sprites/button.png" id="3_button_tex"]
-[ext_resource type="FontFile" uid="uid://dt4f3qlbs2g3u" path="res://fonts/Jacquard24-Regular.ttf" id="4_jacquard24"]
-
-[sub_resource type="StyleBoxTexture" id="StyleBoxTexture_pause_normal"]
-texture = ExtResource("3_button_tex")
-texture_margin_left = 3.0
-texture_margin_top = 3.0
-texture_margin_right = 3.0
-texture_margin_bottom = 3.0
-expand_margin_left = 3.0
-expand_margin_top = 3.0
-expand_margin_right = 3.0
-expand_margin_bottom = 3.0
-region_rect = Rect2(0, 0, 96, 32)
-
-[sub_resource type="StyleBoxTexture" id="StyleBoxTexture_pause_hover"]
-texture = ExtResource("3_button_tex")
-texture_margin_left = 3.0
-texture_margin_top = 3.0
-texture_margin_right = 3.0
-texture_margin_bottom = 3.0
-expand_margin_left = 3.0
-expand_margin_top = 3.0
-expand_margin_right = 3.0
-expand_margin_bottom = 3.0
-region_rect = Rect2(0, 32, 96, 32)
-
-[sub_resource type="StyleBoxTexture" id="StyleBoxTexture_pause_pressed"]
-texture = ExtResource("3_button_tex")
-texture_margin_left = 3.0
-texture_margin_top = 3.0
-texture_margin_right = 3.0
-texture_margin_bottom = 3.0
-expand_margin_left = 3.0
-expand_margin_top = 3.0
-expand_margin_right = 3.0
-expand_margin_bottom = 3.0
-region_rect = Rect2(0, 64, 96, 32)
-
-[sub_resource type="StyleBoxTexture" id="StyleBoxTexture_pause_disabled"]
-texture = ExtResource("3_button_tex")
-texture_margin_left = 3.0
-texture_margin_top = 3.0
-texture_margin_right = 3.0
-texture_margin_bottom = 3.0
-expand_margin_left = 3.0
-expand_margin_top = 3.0
-expand_margin_right = 3.0
-expand_margin_bottom = 3.0
-region_rect = Rect2(0, 64, 96, 32)
+[ext_resource type="Theme" uid="uid://vkyikbobqfb2" path="res://themes/global_theme.tres" id="1_f6eus"]
+[ext_resource type="Script" uid="uid://clie68jetmi64" path="res://scripts/ui/pause_menu.gd" id="1_pause_menu"]
+[ext_resource type="PackedScene" uid="uid://dq4hduqli6xn0" path="res://scenes/ui/pause_settings.tscn" id="2_pause_settings"]
 
 [sub_resource type="StyleBoxEmpty" id="StyleBoxEmpty_pause_panel"]
 
-[node name="PauseMenu" type="Control"]
+[node name="PauseMenu" type="Control" unique_id=812082183]
 visible = false
+layout_mode = 3
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
+theme = ExtResource("1_f6eus")
 script = ExtResource("1_pause_menu")
 
-[node name="Backdrop" type="ColorRect" parent="."]
-anchors_preset = 15
+[node name="Backdrop" type="ColorRect" parent="." unique_id=1296166483]
+layout_mode = 0
 anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
-mouse_filter = 0
 color = Color(0, 0, 0, 0.6)
 
-[node name="Center" type="CenterContainer" parent="."]
-anchors_preset = 15
+[node name="Center" type="CenterContainer" parent="." unique_id=888991747]
+layout_mode = 0
 anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
-mouse_filter = 1
 
-[node name="Panel" type="Panel" parent="Center"]
+[node name="Panel" type="Panel" parent="Center" unique_id=1326974209]
 custom_minimum_size = Vector2(320, 220)
+layout_mode = 2
 size_flags_horizontal = 0
 size_flags_vertical = 0
 theme_override_styles/panel = SubResource("StyleBoxEmpty_pause_panel")
 
-[node name="VBox" type="VBoxContainer" parent="Center/Panel"]
-anchors_preset = 15
-anchor_right = 1.0
-anchor_bottom = 1.0
+[node name="VBox" type="VBoxContainer" parent="Center/Panel" unique_id=1169495216]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -69.5
+offset_top = -80.5
+offset_right = 69.5
+offset_bottom = 80.5
 grow_horizontal = 2
 grow_vertical = 2
 size_flags_horizontal = 3
 size_flags_vertical = 3
-alignment = 1
 theme_override_constants/separation = 10
+alignment = 1
 
-[node name="Title" type="Label" parent="Center/Panel/VBox"]
+[node name="Title" type="Label" parent="Center/Panel/VBox" unique_id=632617873]
+layout_mode = 2
 text = "Paused"
 horizontal_alignment = 1
 
-[node name="ResumeButton" type="Button" parent="Center/Panel/VBox"]
+[node name="ResumeButton" type="Button" parent="Center/Panel/VBox" unique_id=421480759]
+layout_mode = 2
+size_flags_vertical = 4
 text = "Resume"
 
-[node name="SettingsButton" type="Button" parent="Center/Panel/VBox"]
+[node name="SettingsButton" type="Button" parent="Center/Panel/VBox" unique_id=1069978357]
+layout_mode = 2
+size_flags_vertical = 4
 text = "Settings"
 
-[node name="QuitButton" type="Button" parent="Center/Panel/VBox"]
+[node name="QuitButton" type="Button" parent="Center/Panel/VBox" unique_id=1360821710]
+layout_mode = 2
+size_flags_vertical = 4
 text = "Quit to Menu"
-[node name="SettingsPanel" parent="." instance=ExtResource("2_pause_settings")]
+
+[node name="SettingsPanel" parent="." unique_id=202303161 instance=ExtResource("2_pause_settings")]
+layout_mode = 1

@@ -3,11 +3,12 @@ extends Control
 @export var game_scene: PackedScene
 @export var fade_out_time: float = 0.35
 
-@onready var continue_btn: Button = $CenterContainer/VBoxContainer/ContinueButton
-@onready var play_btn: Button = $CenterContainer/VBoxContainer/PlayButton
-@onready var settings_btn: Button = $CenterContainer/VBoxContainer/SettingsButton
-@onready var quit_btn: Button = $CenterContainer/VBoxContainer/QuitButton
+@onready var continue_btn: Button = $CenterContainer/MainMenuContainer/UIContainer/ButtonContainer/ContinueButton
+@onready var play_btn: Button = $CenterContainer/MainMenuContainer/UIContainer/ButtonContainer/PlayButton
+@onready var settings_btn: Button = $CenterContainer/MainMenuContainer/UIContainer/ButtonContainer/SettingsButton
+@onready var quit_btn: Button = $CenterContainer/MainMenuContainer/UIContainer/ButtonContainer/QuitButton
 @onready var settings_panel: Control = $PauseSettings
+@onready var center_container: Control = $CenterContainer
 
 var _transitioning := false
 var _fade_rect: ColorRect
@@ -40,6 +41,10 @@ func _ready() -> void:
 	play_btn.pressed.connect(_on_play_pressed)
 	settings_btn.pressed.connect(_on_settings_pressed)
 	quit_btn.pressed.connect(_on_quit_pressed)
+
+	# Connect settings panel back signal
+	if settings_panel.has_signal("back_pressed"):
+		settings_panel.back_pressed.connect(_on_settings_back)
 
 	# UI sound connections
 	for btn in [continue_btn, play_btn, settings_btn, quit_btn]:
@@ -225,6 +230,11 @@ func _on_play_pressed() -> void:
 	# Clear save data for new game
 	SaveManager.current_save_data = {}
 	_is_continue = false
+
+	# Animate menu falling off screen before starting game
+	if center_container.has_method("animate_fall_off_screen"):
+		await center_container.animate_fall_off_screen()
+
 	_start_game()
 
 func _on_quit_pressed() -> void:

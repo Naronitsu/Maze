@@ -1,10 +1,36 @@
-[gd_scene load_steps=7 format=3 uid="uid://ch5yinsi1824"]
+[gd_scene format=3 uid="uid://ch5yinsi1824"]
 
 [ext_resource type="Script" uid="uid://30gv258vk3sv" path="res://scripts/ui/main_menu.gd" id="1_l6cm7"]
 [ext_resource type="PackedScene" uid="uid://cynmmfn4ux1dd" path="res://scenes/gameplay/game.tscn" id="2_ekxnf"]
-[ext_resource type="PackedScene" path="res://scenes/ui/pause_settings.tscn" id="3_pause_settings"]
+[ext_resource type="PackedScene" uid="uid://dq4hduqli6xn0" path="res://scenes/ui/pause_settings.tscn" id="3_pause_settings"]
 [ext_resource type="AudioStream" uid="uid://dlp2e2cji2xxe" path="res://sounds/music/4- Arvostus.mp3" id="3_x2yvf"]
 [ext_resource type="Shader" uid="uid://dtp8ym7kbljwb" path="res://shaders/crt_warp.gdshader" id="4_crt_shader"]
+[ext_resource type="Script" uid="uid://l2s0qpu8el66" path="res://scripts/ui/menu_animation.gd" id="4_q85j6"]
+[ext_resource type="Texture2D" uid="uid://1ks1fn3unb8b" path="res://sprites/UI/logo.png" id="4_uhagc"]
+[ext_resource type="Script" uid="uid://dg6ooe4jloi7t" path="res://scripts/ui/logo.gd" id="4_wb0q5"]
+[ext_resource type="Theme" uid="uid://vkyikbobqfb2" path="res://themes/global_theme.tres" id="5_btxxm"]
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_btxxm"]
+atlas = ExtResource("4_uhagc")
+region = Rect2(0, 0, 224, 78)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_wb0q5"]
+atlas = ExtResource("4_uhagc")
+region = Rect2(0, 78, 224, 78)
+
+[sub_resource type="SpriteFrames" id="SpriteFrames_q85j6"]
+animations = [{
+"frames": [{
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_btxxm")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_wb0q5")
+}],
+"loop": true,
+"name": &"default",
+"speed": 1.0
+}]
 
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_crt_main"]
 resource_local_to_scene = true
@@ -16,7 +42,7 @@ shader_parameter/aberration_px = 1.0
 shader_parameter/noise = 0.06
 shader_parameter/glow = 0.12
 
-[node name="MainMenu" type="Control"]
+[node name="MainMenu" type="Control" unique_id=2064106401]
 layout_mode = 3
 anchors_preset = 15
 anchor_right = 1.0
@@ -25,13 +51,12 @@ grow_horizontal = 2
 grow_vertical = 2
 script = ExtResource("1_l6cm7")
 game_scene = ExtResource("2_ekxnf")
-fade_out_time = null
 
-[node name="MenuMusic" type="AudioStreamPlayer" parent="."]
+[node name="MenuMusic" type="AudioStreamPlayer" parent="." unique_id=730219521]
 stream = ExtResource("3_x2yvf")
 autoplay = true
 
-[node name="ColorRect" type="ColorRect" parent="."]
+[node name="ColorRect" type="ColorRect" parent="." unique_id=702609276]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
@@ -40,65 +65,89 @@ grow_horizontal = 2
 grow_vertical = 2
 color = Color(0, 0, 0, 1)
 
-[node name="FadeRect" type="ColorRect" parent="."]
+[node name="FadeRect" type="ColorRect" parent="." unique_id=270889741]
 layout_mode = 0
 offset_right = 40.0
 offset_bottom = 40.0
 color = Color(0, 0, 0, 1)
 
-[node name="CenterContainer" type="Control" parent="."]
+[node name="CenterContainer" type="Control" parent="." unique_id=421363939]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
+script = ExtResource("4_q85j6")
 
-[node name="VBoxContainer" type="VBoxContainer" parent="CenterContainer"]
+[node name="MainMenuContainer" type="VBoxContainer" parent="CenterContainer" unique_id=2067573197]
 layout_mode = 1
 anchors_preset = 8
 anchor_left = 0.5
 anchor_top = 0.5
 anchor_right = 0.5
 anchor_bottom = 0.5
-offset_left = -21.0
-offset_top = -46.5
-offset_right = 21.0
-offset_bottom = 46.5
+offset_left = -112.0
+offset_top = -125.0
+offset_right = 112.0
+offset_bottom = 125.0
 grow_horizontal = 2
 grow_vertical = 2
+
+[node name="UIContainer" type="VBoxContainer" parent="CenterContainer/MainMenuContainer" unique_id=67190106]
+layout_mode = 2
+
+[node name="Control" type="Control" parent="CenterContainer/MainMenuContainer/UIContainer" unique_id=29543016]
+custom_minimum_size = Vector2(224, 76)
+layout_mode = 2
+size_flags_horizontal = 4
+size_flags_vertical = 4
+
+[node name="Logo" type="Node2D" parent="CenterContainer/MainMenuContainer/UIContainer/Control" unique_id=1845313136]
+position = Vector2(112, 39)
+script = ExtResource("4_wb0q5")
+
+[node name="AnimatedSprite2D" type="AnimatedSprite2D" parent="CenterContainer/MainMenuContainer/UIContainer/Control/Logo" unique_id=1845820454]
+sprite_frames = SubResource("SpriteFrames_q85j6")
+autoplay = "default"
+frame_progress = 0.050129406
+
+[node name="ButtonContainer" type="VBoxContainer" parent="CenterContainer/MainMenuContainer/UIContainer" unique_id=1106143082]
+layout_mode = 2
+size_flags_horizontal = 4
+size_flags_vertical = 4
+theme = ExtResource("5_btxxm")
 theme_override_constants/separation = 10
 
-[node name="GameTitle" type="Label" parent="CenterContainer/VBoxContainer"]
-layout_mode = 2
-text = "Maze"
-horizontal_alignment = 1
-
-[node name="PlayButton" type="Button" parent="CenterContainer/VBoxContainer"]
+[node name="PlayButton" type="Button" parent="CenterContainer/MainMenuContainer/UIContainer/ButtonContainer" unique_id=588521842]
+custom_minimum_size = Vector2(0, 20)
 layout_mode = 2
 text = "Play"
 icon_alignment = 1
 
-[node name="ContinueButton" type="Button" parent="CenterContainer/VBoxContainer"]
+[node name="ContinueButton" type="Button" parent="CenterContainer/MainMenuContainer/UIContainer/ButtonContainer" unique_id=381249002]
+custom_minimum_size = Vector2(0, 32)
 layout_mode = 2
 text = "Continue"
 
-[node name="SettingsButton" type="Button" parent="CenterContainer/VBoxContainer"]
+[node name="SettingsButton" type="Button" parent="CenterContainer/MainMenuContainer/UIContainer/ButtonContainer" unique_id=1029164328]
+custom_minimum_size = Vector2(0, 32)
 layout_mode = 2
 text = "Settings"
 
-[node name="QuitButton" type="Button" parent="CenterContainer/VBoxContainer"]
+[node name="QuitButton" type="Button" parent="CenterContainer/MainMenuContainer/UIContainer/ButtonContainer" unique_id=2117439202]
+custom_minimum_size = Vector2(0, 32)
 layout_mode = 2
 text = "Quit"
 icon_alignment = 1
 
-[node name="PauseSettings" parent="." instance=ExtResource("3_pause_settings")]
-anchors_preset = 0
+[node name="PauseSettings" parent="." unique_id=646544855 instance=ExtResource("3_pause_settings")]
+layout_mode = 1
 
-[node name="CRT" type="CanvasLayer" parent="."]
+[node name="CRT" type="CanvasLayer" parent="." unique_id=20304753]
 layer = 999
 
-[node name="CRTOverlay" type="ColorRect" parent="CRT"]
+[node name="CRTOverlay" type="ColorRect" parent="CRT" unique_id=2008761164]
 material = SubResource("ShaderMaterial_crt_main")
 anchors_preset = 15
 anchor_right = 1.0
