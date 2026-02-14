@@ -4,10 +4,7 @@
 [ext_resource type="Script" uid="uid://clie68jetmi64" path="res://scripts/ui/pause_menu.gd" id="1_pause_menu"]
 [ext_resource type="PackedScene" uid="uid://dq4hduqli6xn0" path="res://scenes/ui/pause_settings.tscn" id="2_pause_settings"]
 
-[sub_resource type="StyleBoxEmpty" id="StyleBoxEmpty_pause_panel"]
-
 [node name="PauseMenu" type="Control" unique_id=812082183]
-visible = false
 layout_mode = 3
 anchors_preset = 15
 anchor_right = 1.0
@@ -17,14 +14,6 @@ grow_vertical = 2
 mouse_filter = 2
 theme = ExtResource("1_f6eus")
 script = ExtResource("1_pause_menu")
-
-[node name="Backdrop" type="ColorRect" parent="." unique_id=1296166483]
-layout_mode = 0
-anchor_right = 1.0
-anchor_bottom = 1.0
-grow_horizontal = 2
-grow_vertical = 2
-color = Color(0, 0, 0, 0.6)
 
 [node name="Center" type="CenterContainer" parent="." unique_id=888991747]
 layout_mode = 0
@@ -38,7 +27,6 @@ custom_minimum_size = Vector2(320, 220)
 layout_mode = 2
 size_flags_horizontal = 0
 size_flags_vertical = 0
-theme_override_styles/panel = SubResource("StyleBoxEmpty_pause_panel")
 
 [node name="VBox" type="VBoxContainer" parent="Center/Panel" unique_id=1169495216]
 layout_mode = 1

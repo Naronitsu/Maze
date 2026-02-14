@@ -1,4 +1,4 @@
-[gd_scene load_steps=35 format=3 uid="uid://cynmmfn4ux1dd"]
+[gd_scene format=3 uid="uid://cynmmfn4ux1dd"]
 
 [ext_resource type="Script" uid="uid://bbvhcofrcxrrs" path="res://scripts/gameplay/game.gd" id="1_3dryh"]
 [ext_resource type="Texture2D" uid="uid://bvxffpi0ecbj8" path="res://sprites/urizen_onebit_tileset__v2d0.png" id="1_qxrlw"]
@@ -22,8 +22,8 @@
 [ext_resource type="Texture2D" uid="uid://5k7vb75wpv0i" path="res://sprites/Ground_new.png" id="11_ir15t"]
 [ext_resource type="PackedScene" uid="uid://bm38rhriwppcc" path="res://scenes/gameplay/presence_rw.tscn" id="12_dinhu"]
 [ext_resource type="Script" uid="uid://dy5tva3fep1ra" path="res://scripts/gameplay/game_controller.gd" id="13_kvuet"]
-[ext_resource type="PackedScene" path="res://scenes/ui/pause_menu.tscn" id="16_pause_menu"]
-[ext_resource type="PackedScene" path="res://scenes/ui/pause_settings.tscn" id="17_pause_settings"]
+[ext_resource type="PackedScene" uid="uid://d2s8oq4amw68c" path="res://scenes/ui/pause_menu.tscn" id="16_pause_menu"]
+[ext_resource type="PackedScene" uid="uid://dq4hduqli6xn0" path="res://scenes/ui/pause_settings.tscn" id="17_pause_settings"]
 [ext_resource type="PackedScene" uid="uid://c5h8y7k2n3p4q" path="res://scenes/ui/minimap.tscn" id="18_minimap"]
 [ext_resource type="Script" uid="uid://dek7ymb4k0q8u" path="res://scripts/gameplay/pillar_spawn_manager.gd" id="19_pillar_spawn_manager"]
 [ext_resource type="AudioStream" uid="uid://dbak3ejnm1mlt" path="res://sounds/heartbeat.sfxr" id="24_an6ph"]
@@ -7144,38 +7144,38 @@ shader_parameter/aberration_px = 1.0
 shader_parameter/noise = 0.06
 shader_parameter/glow = 0.12
 
-[node name="Game" type="Node2D"]
+[node name="Game" type="Node2D" unique_id=1154573021]
 script = ExtResource("1_3dryh")
 
-[node name="IngameMusic" type="AudioStreamPlayer" parent="."]
+[node name="IngameMusic" type="AudioStreamPlayer" parent="." unique_id=1178671735]
 stream = ExtResource("2_lupr0")
 autoplay = true
 
-[node name="PresenceSpawnManager" type="Node" parent="."]
+[node name="PresenceSpawnManager" type="Node" parent="." unique_id=1816880782]
 script = ExtResource("2_1kice")
 
-[node name="PillarSpawnManager" type="Node" parent="."]
+[node name="PillarSpawnManager" type="Node" parent="." unique_id=471975752]
 script = ExtResource("19_pillar_spawn_manager")
 
-[node name="LevelTransitionManager" type="Node" parent="."]
+[node name="LevelTransitionManager" type="Node" parent="." unique_id=1305030702]
 script = ExtResource("3_5newe")
 
-[node name="AudioManager" type="Node" parent="."]
+[node name="AudioManager" type="Node" parent="." unique_id=145584186]
 script = ExtResource("2_ca42v")
 maze_path = NodePath("../TileMap/MazeLayer")
 door_open_stream = ExtResource("6_an6ph")
 door_close_stream = ExtResource("7_mapnw")
 
-[node name="VisualEffectsManager" type="Node" parent="."]
+[node name="VisualEffectsManager" type="Node" parent="." unique_id=1196192287]
 script = ExtResource("7_5newe")
 
-[node name="UIManager" type="Node" parent="."]
+[node name="UIManager" type="Node" parent="." unique_id=2062784962]
 script = ExtResource("8_37s47")
 
-[node name="UI" type="CanvasLayer" parent="."]
+[node name="UI" type="CanvasLayer" parent="." unique_id=1335566639]
 layer = 10
 
-[node name="LevelIntro" type="ColorRect" parent="UI"]
+[node name="LevelIntro" type="ColorRect" parent="UI" unique_id=472111293]
 visible = false
 anchors_preset = 15
 anchor_right = 1.0
@@ -7185,7 +7185,7 @@ grow_vertical = 2
 theme = ExtResource("10_mapnw")
 color = Color(0, 0, 0, 1)
 
-[node name="Text" type="Label" parent="UI/LevelIntro"]
+[node name="Text" type="Label" parent="UI/LevelIntro" unique_id=696825289]
 layout_mode = 1
 anchors_preset = 8
 anchor_left = 0.5
@@ -7198,31 +7198,30 @@ offset_right = 400.0
 offset_bottom = 50.0
 grow_horizontal = 2
 grow_vertical = 2
+theme_override_colors/font_color = Color(1, 1, 1, 1)
 horizontal_alignment = 1
 vertical_alignment = 1
 autowrap_mode = 2
 uppercase = true
 
-[node name="PauseMenu" parent="UI" instance=ExtResource("16_pause_menu")]
-layout_mode = 3
+[node name="PauseMenu" parent="UI" unique_id=1902341049 instance=ExtResource("16_pause_menu")]
 
-[node name="PauseSettings" parent="UI" instance=ExtResource("17_pause_settings")]
-layout_mode = 3
+[node name="PauseSettings" parent="UI" unique_id=785190973 instance=ExtResource("17_pause_settings")]
 
-[node name="Minimap" parent="UI" instance=ExtResource("18_minimap")]
+[node name="Minimap" parent="UI" unique_id=543319423 instance=ExtResource("18_minimap")]
 layer = NodePath("../../TileMap/MazeLayer")
 fog = NodePath("../../Overlay/FogOfWarRW")
 player = NodePath("../../Player")
 
-[node name="GameController" type="Node2D" parent="." node_paths=PackedStringArray("player", "presence")]
+[node name="GameController" type="Node2D" parent="." unique_id=832195990 node_paths=PackedStringArray("player", "presence")]
 script = ExtResource("13_kvuet")
 player = NodePath("../Player")
 presence = NodePath("../PresenceRW")
 maze_layer_path = NodePath("../TileMap/MazeLayer")
 
-[node name="Player" parent="." instance=ExtResource("4_3dryh")]
+[node name="Player" parent="." unique_id=1422714541 instance=ExtResource("4_3dryh")]
 
-[node name="Camera" type="Camera2D" parent="Player"]
+[node name="Camera" type="Camera2D" parent="Player" unique_id=573057702]
 zoom = Vector2(3.5, 3.5)
 position_smoothing_enabled = true
 drag_left_margin = 0.0
@@ -7230,42 +7229,42 @@ drag_top_margin = 0.0
 drag_right_margin = 0.0
 drag_bottom_margin = 0.0
 
-[node name="Overlay" type="CanvasLayer" parent="."]
+[node name="Overlay" type="CanvasLayer" parent="." unique_id=1298597618]
 layer = 5
 
-[node name="FogOfWarRW" parent="Overlay" instance=ExtResource("6_kvuet")]
+[node name="FogOfWarRW" parent="Overlay" unique_id=95689954 instance=ExtResource("6_kvuet")]
 z_index = 1
 player_path = NodePath("../../Player")
 camera_path = NodePath("../../Player/Camera")
 layer_path = NodePath("../../TileMap/MazeLayer")
 
-[node name="PresenceRW" parent="." instance=ExtResource("12_dinhu")]
+[node name="PresenceRW" parent="." unique_id=915859383 instance=ExtResource("12_dinhu")]
 controller_path = NodePath("../GameController")
 move_interval = 0.2
 
-[node name="Sprite2D" type="Sprite2D" parent="PresenceRW"]
+[node name="Sprite2D" type="Sprite2D" parent="PresenceRW" unique_id=1125568900]
 visible = false
 z_index = 4096
 texture = ExtResource("3_trtic")
 region_enabled = true
 region_rect = Rect2(0, 0, 12, 12)
 
-[node name="TileMap" type="TileMap" parent="."]
+[node name="TileMap" type="TileMap" parent="." unique_id=410083735]
 z_index = -1
 tile_set = SubResource("TileSet_wowpa")
 rendering_quadrant_size = 12
 format = 2
 
-[node name="MazeLayer" type="TileMapLayer" parent="TileMap"]
+[node name="MazeLayer" type="TileMapLayer" parent="TileMap" unique_id=1347943311]
 use_parent_material = true
 tile_set = SubResource("TileSet_kvpfn")
 script = ExtResource("2_wrm1d")
 
-[node name="HeartbeatUI" type="CanvasLayer" parent="."]
+[node name="HeartbeatUI" type="CanvasLayer" parent="." unique_id=1519985028]
 layer = 1000
 script = ExtResource("9_0tnpc")
 
-[node name="Veins" type="TextureRect" parent="HeartbeatUI"]
+[node name="Veins" type="TextureRect" parent="HeartbeatUI" unique_id=683037636]
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
@@ -7275,13 +7274,13 @@ mouse_filter = 2
 texture = ExtResource("10_vtaks")
 expand_mode = 1
 
-[node name="HeartbeatAudio" type="AudioStreamPlayer2D" parent="HeartbeatUI"]
+[node name="HeartbeatAudio" type="AudioStreamPlayer2D" parent="HeartbeatUI" unique_id=2042599982]
 stream = ExtResource("24_an6ph")
 
-[node name="CRT" type="CanvasLayer" parent="."]
+[node name="CRT" type="CanvasLayer" parent="." unique_id=1374549729]
 layer = 999
 
-[node name="CRTOverlay" type="ColorRect" parent="CRT"]
+[node name="CRTOverlay" type="ColorRect" parent="CRT" unique_id=871278908]
 material = SubResource("ShaderMaterial_ir15t")
 anchors_preset = 15
 anchor_right = 1.0

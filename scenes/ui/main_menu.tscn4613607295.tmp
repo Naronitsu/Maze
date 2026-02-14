@@ -115,7 +115,6 @@ frame_progress = 0.050129406
 
 [node name="AudioStreamPlayer2D" type="AudioStreamPlayer2D" parent="CenterContainer/MainMenuContainer/UIContainer/Control/Logo" unique_id=1901158746]
 stream = ExtResource("7_8g5eo")
-bus = &"SFX"
 
 [node name="ButtonContainer" type="VBoxContainer" parent="CenterContainer/MainMenuContainer/UIContainer" unique_id=1106143082]
 layout_mode = 2

@@ -23,6 +23,10 @@ var _exit_shrine_hint_shown: bool = false
 const FOG_SAVE_PATH := "user://fog_explored.png"
 
 func _ready() -> void:
+	if SceneLoader.has_signal("scene_loading_finished") and SceneLoader.is_loading:
+		await SceneLoader.scene_loading_finished
+		await RenderingServer.frame_post_draw
+
 	print("[Game] _ready() started")
 	EventBus.pause_requested.connect(_on_pause_requested)
 	EventBus.resume_requested.connect(_on_resume_requested)
@@ -371,8 +375,8 @@ func _return_to_main_menu() -> void:
 			FOG_SAVE_PATH if fog_size != Vector2i.ZERO else "",
 			fog_size
 		)
-	
-	get_tree().change_scene_to_file("res://scenes/ui/main_menu.tscn")
+	# Use SceneLoader for scene change
+	await SceneLoader.change_scene_with_loading("res://scenes/ui/main_menu.tscn")
 
 func set_paused_state(is_paused: bool) -> void:
 	if GameState.current == GameState.State.GAME_OVER:

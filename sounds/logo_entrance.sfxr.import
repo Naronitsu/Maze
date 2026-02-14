@@ -1,0 +1,17 @@
+[remap]
+
+importer="com.timothyqiu.gdfxr.importer"
+type="AudioStreamWAV"
+uid="uid://ca2765q4u6tu7"
+path="res://.godot/imported/logo_entrance.sfxr-95385857ce67aa3495f5d677f1681228.sample"
+
+[deps]
+
+source_file="res://sounds/logo_entrance.sfxr"
+dest_files=["res://.godot/imported/logo_entrance.sfxr-95385857ce67aa3495f5d677f1681228.sample"]
+
+[params]
+
+loop=false
+bit_depth=0
+sample_rate=0

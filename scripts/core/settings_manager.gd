@@ -1,5 +1,15 @@
 extends Node
 
+# Signals for live updates
+signal master_volume_changed(new_value)
+signal sfx_volume_changed(new_value)
+signal music_volume_changed(new_value)
+signal crt_enabled_changed(new_value)
+signal chromatic_aberration_changed(new_value)
+signal resolution_changed(new_value)
+signal window_mode_changed(new_value)
+signal minimap_size_changed(new_value)
+
 const SETTINGS_PATH := "user://settings.cfg"
 const DEFAULT_RESOLUTION := Vector2i(960, 540)
 const DEFAULT_ABERRATION_PX := 1.0
@@ -53,41 +63,49 @@ func set_music_volume(v: float) -> void:
 	music_volume = clamp(v, 0.0, 1.0)
 	save_settings()
 	apply_audio()
+	music_volume_changed.emit(music_volume)
 
 func set_crt_enabled(v: bool) -> void:
 	crt_enabled = v
 	save_settings()
 	apply_visuals_to_scene(get_tree().current_scene)
+	crt_enabled_changed.emit(crt_enabled)
 
 func set_chromatic_aberration(v: bool) -> void:
 	chromatic_aberration = v
 	save_settings()
 	apply_visuals_to_scene(get_tree().current_scene)
+	chromatic_aberration_changed.emit(chromatic_aberration)
 
 func set_resolution(v: Vector2i) -> void:
 	resolution = v
 	save_settings()
 	apply_display()
+	resolution_changed.emit(resolution)
 
 func set_window_mode(v: String) -> void:
 	window_mode = v
 	save_settings()
 	apply_display()
+	window_mode_changed.emit(window_mode)
 
 func set_master_volume(v: float) -> void:
 	master_volume = clamp(v, 0.0, 1.0)
 	save_settings()
 	apply_audio()
+	master_volume_changed.emit(master_volume)
 
 func set_sfx_volume(v: float) -> void:
 	sfx_volume = clamp(v, 0.0, 1.0)
 	save_settings()
 	apply_audio()
+	sfx_volume_changed.emit(sfx_volume)
 
 func set_minimap_size_px(v: int) -> void:
 	minimap_size_px = clampi(v, 120, 400)
 	save_settings()
 	_apply_ui()
+	minimap_size_changed.emit(minimap_size_px)
 
 func apply_display() -> void:
 	var win := get_tree().root as Window

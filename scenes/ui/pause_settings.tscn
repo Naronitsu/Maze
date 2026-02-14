@@ -3,8 +3,6 @@
 [ext_resource type="Theme" uid="uid://vkyikbobqfb2" path="res://themes/global_theme.tres" id="1_bjqfg"]
 [ext_resource type="Script" uid="uid://bwyq2gfg2rw5k" path="res://scripts/ui/pause_settings.gd" id="1_pause_settings"]
 
-[sub_resource type="StyleBoxEmpty" id="StyleBoxEmpty_settings_panel"]
-
 [node name="PauseSettings" type="Control" unique_id=192289860]
 visible = false
 layout_mode = 3
@@ -15,15 +13,6 @@ grow_horizontal = 2
 grow_vertical = 2
 theme = ExtResource("1_bjqfg")
 script = ExtResource("1_pause_settings")
-
-[node name="Backdrop" type="ColorRect" parent="." unique_id=1232865661]
-layout_mode = 1
-anchors_preset = 15
-anchor_right = 1.0
-anchor_bottom = 1.0
-grow_horizontal = 2
-grow_vertical = 2
-color = Color(0, 0, 0, 1)
 
 [node name="Center" type="CenterContainer" parent="." unique_id=545501650]
 layout_mode = 0
@@ -37,102 +26,120 @@ custom_minimum_size = Vector2(520, 380)
 layout_mode = 2
 size_flags_horizontal = 0
 size_flags_vertical = 0
-theme_override_styles/panel = SubResource("StyleBoxEmpty_settings_panel")
 
-[node name="VBox" type="VBoxContainer" parent="Center/Panel" unique_id=1245542197]
-layout_mode = 0
-anchor_right = 1.0
-anchor_bottom = 1.0
+[node name="MarginContainer" type="MarginContainer" parent="Center/Panel" unique_id=524633033]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -148.5
+offset_top = -147.5
+offset_right = 148.5
+offset_bottom = 147.5
 grow_horizontal = 2
 grow_vertical = 2
+
+[node name="VBox" type="VBoxContainer" parent="Center/Panel/MarginContainer" unique_id=1245542197]
+layout_mode = 2
 size_flags_horizontal = 3
 size_flags_vertical = 3
 alignment = 1
 
-[node name="Title" type="Label" parent="Center/Panel/VBox" unique_id=51778167]
+[node name="Title" type="Label" parent="Center/Panel/MarginContainer/VBox" unique_id=51778167]
 layout_mode = 2
+theme_type_variation = &"PauseLabel"
 text = "Settings"
 horizontal_alignment = 1
 
-[node name="Grid" type="GridContainer" parent="Center/Panel/VBox" unique_id=1032917408]
+[node name="Grid" type="GridContainer" parent="Center/Panel/MarginContainer/VBox" unique_id=1032917408]
 layout_mode = 2
 size_flags_horizontal = 3
 size_flags_vertical = 3
 columns = 2
 
-[node name="CrtLabel" type="Label" parent="Center/Panel/VBox/Grid" unique_id=1683386829]
+[node name="CrtLabel" type="Label" parent="Center/Panel/MarginContainer/VBox/Grid" unique_id=1683386829]
 layout_mode = 2
+theme_type_variation = &"PauseLabel"
 text = "CRT"
 
-[node name="CrtToggle" type="CheckBox" parent="Center/Panel/VBox/Grid" unique_id=260200205]
+[node name="CrtToggle" type="CheckBox" parent="Center/Panel/MarginContainer/VBox/Grid" unique_id=260200205]
 layout_mode = 2
 size_flags_horizontal = 0
 size_flags_vertical = 4
 text = "Enabled"
 
-[node name="AberrationLabel" type="Label" parent="Center/Panel/VBox/Grid" unique_id=1712687673]
+[node name="AberrationLabel" type="Label" parent="Center/Panel/MarginContainer/VBox/Grid" unique_id=1712687673]
 layout_mode = 2
+theme_type_variation = &"PauseLabel"
 text = "Chromatic Aberration"
 
-[node name="AberrationToggle" type="CheckBox" parent="Center/Panel/VBox/Grid" unique_id=1704087773]
+[node name="AberrationToggle" type="CheckBox" parent="Center/Panel/MarginContainer/VBox/Grid" unique_id=1704087773]
 layout_mode = 2
 size_flags_horizontal = 0
 size_flags_vertical = 4
 text = "Enabled"
 
-[node name="ResolutionLabel" type="Label" parent="Center/Panel/VBox/Grid" unique_id=220452259]
+[node name="ResolutionLabel" type="Label" parent="Center/Panel/MarginContainer/VBox/Grid" unique_id=220452259]
 layout_mode = 2
+theme_type_variation = &"PauseLabel"
 text = "Resolution"
 
-[node name="ResolutionOption" type="OptionButton" parent="Center/Panel/VBox/Grid" unique_id=1744037398]
+[node name="ResolutionOption" type="OptionButton" parent="Center/Panel/MarginContainer/VBox/Grid" unique_id=1744037398]
 layout_mode = 2
 size_flags_horizontal = 2
 size_flags_vertical = 4
 
-[node name="WindowModeLabel" type="Label" parent="Center/Panel/VBox/Grid" unique_id=866551267]
+[node name="WindowModeLabel" type="Label" parent="Center/Panel/MarginContainer/VBox/Grid" unique_id=866551267]
 layout_mode = 2
+theme_type_variation = &"PauseLabel"
 text = "Window Mode"
 
-[node name="WindowModeOption" type="OptionButton" parent="Center/Panel/VBox/Grid" unique_id=124392066]
+[node name="WindowModeOption" type="OptionButton" parent="Center/Panel/MarginContainer/VBox/Grid" unique_id=124392066]
 layout_mode = 2
 size_flags_horizontal = 2
 size_flags_vertical = 4
 
-[node name="MasterLabel" type="Label" parent="Center/Panel/VBox/Grid" unique_id=1917406886]
+[node name="MasterLabel" type="Label" parent="Center/Panel/MarginContainer/VBox/Grid" unique_id=1917406886]
 layout_mode = 2
+theme_type_variation = &"PauseLabel"
 text = "Master Volume"
 
-[node name="MasterVolume" type="HSlider" parent="Center/Panel/VBox/Grid" unique_id=231763934]
+[node name="MasterVolume" type="HSlider" parent="Center/Panel/MarginContainer/VBox/Grid" unique_id=231763934]
 layout_mode = 2
 size_flags_horizontal = 3
 max_value = 1.0
 step = 0.01
 
-[node name="SfxLabel" type="Label" parent="Center/Panel/VBox/Grid" unique_id=1988094274]
+[node name="SfxLabel" type="Label" parent="Center/Panel/MarginContainer/VBox/Grid" unique_id=1988094274]
 layout_mode = 2
+theme_type_variation = &"PauseLabel"
 text = "SFX Volume"
 
-[node name="SfxVolume" type="HSlider" parent="Center/Panel/VBox/Grid" unique_id=231248461]
+[node name="SfxVolume" type="HSlider" parent="Center/Panel/MarginContainer/VBox/Grid" unique_id=231248461]
 layout_mode = 2
 size_flags_horizontal = 3
 max_value = 1.0
 step = 0.01
 
-[node name="MusicLabel" type="Label" parent="Center/Panel/VBox/Grid" unique_id=570792384]
+[node name="MusicLabel" type="Label" parent="Center/Panel/MarginContainer/VBox/Grid" unique_id=570792384]
 layout_mode = 2
+theme_type_variation = &"PauseLabel"
 text = "Music Volume"
 
-[node name="MusicVolume" type="HSlider" parent="Center/Panel/VBox/Grid" unique_id=1235117116]
+[node name="MusicVolume" type="HSlider" parent="Center/Panel/MarginContainer/VBox/Grid" unique_id=1235117116]
 layout_mode = 2
 size_flags_horizontal = 3
 max_value = 1.0
 step = 0.01
 
-[node name="MinimapSizeLabel" type="Label" parent="Center/Panel/VBox/Grid" unique_id=333329356]
+[node name="MinimapSizeLabel" type="Label" parent="Center/Panel/MarginContainer/VBox/Grid" unique_id=333329356]
 layout_mode = 2
+theme_type_variation = &"PauseLabel"
 text = "Minimap Size"
 
-[node name="MinimapSize" type="HSlider" parent="Center/Panel/VBox/Grid" unique_id=1537980164]
+[node name="MinimapSize" type="HSlider" parent="Center/Panel/MarginContainer/VBox/Grid" unique_id=1537980164]
 layout_mode = 2
 size_flags_horizontal = 3
 min_value = 120.0
@@ -140,10 +147,10 @@ max_value = 400.0
 step = 10.0
 value = 120.0
 
-[node name="BackRow" type="HBoxContainer" parent="Center/Panel/VBox" unique_id=445350596]
+[node name="BackRow" type="HBoxContainer" parent="Center/Panel/MarginContainer/VBox" unique_id=445350596]
 layout_mode = 2
 alignment = 1
 
-[node name="BackButton" type="Button" parent="Center/Panel/VBox/BackRow" unique_id=849538668]
+[node name="BackButton" type="Button" parent="Center/Panel/MarginContainer/VBox/BackRow" unique_id=849538668]
 layout_mode = 2
 text = "Back"

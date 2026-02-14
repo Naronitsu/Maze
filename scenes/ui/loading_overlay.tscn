@@ -1,0 +1,50 @@
+[gd_scene format=3 uid="uid://drnxmixjrubqu"]
+
+[ext_resource type="Script" uid="uid://xndensc3is8l" path="res://scripts/ui/loading_overlay.gd" id="1_jrlvq"]
+[ext_resource type="Theme" uid="uid://vkyikbobqfb2" path="res://themes/global_theme.tres" id="2_beaso"]
+
+[node name="LoadingOverlay" type="CanvasLayer" unique_id=2080176632]
+script = ExtResource("1_jrlvq")
+
+[node name="Control" type="Control" parent="." unique_id=118598433]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme = ExtResource("2_beaso")
+
+[node name="ColorRect" type="ColorRect" parent="Control" unique_id=1889604107]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0, 0, 0, 1)
+
+[node name="CenterContainer" type="CenterContainer" parent="Control" unique_id=1562400562]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -20.0
+offset_top = -20.0
+offset_right = 20.0
+offset_bottom = 20.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="VBoxContainer" type="VBoxContainer" parent="Control/CenterContainer" unique_id=1297321493]
+layout_mode = 2
+
+[node name="Label" type="Label" parent="Control/CenterContainer/VBoxContainer" unique_id=589380405]
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+text = "Loading..."
+
+[node name="ProgressBar" type="ProgressBar" parent="Control/CenterContainer/VBoxContainer" unique_id=1793211637]
+layout_mode = 2

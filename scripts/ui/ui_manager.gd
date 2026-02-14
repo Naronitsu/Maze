@@ -17,6 +17,7 @@ var _crt_saved_curvature: float = 0.0
 var _crt_has_saved_curvature: bool = false
 
 var _intro_running: bool = false
+var _is_loading_scene: bool = false
 
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
@@ -47,7 +48,29 @@ func _ready() -> void:
 	EventBus.game_over.connect(_on_game_over)
 	EventBus.state_changed.connect(_on_state_changed)
 
+	# Listen for loading events from SceneLoader
+	if SceneLoader.has_signal("scene_loading_started"):
+		SceneLoader.scene_loading_started.connect(_on_scene_loading_started)
+	if SceneLoader.has_signal("scene_loading_finished"):
+		SceneLoader.scene_loading_finished.connect(_on_scene_loading_finished)
+
+	_hide_pause_menu()
+	_hide_settings_menu()
+
+
+func _on_scene_loading_started():
+	_is_loading_scene = true
+	_hide_pause_menu()
+
+func _on_scene_loading_finished():
+	_is_loading_scene = false
+
 func _on_level_started(_player_pos: Vector2i, maze: Node) -> void:
+
+	if SceneLoader.has_signal("scene_loading_finished") and SceneLoader.is_loading:
+		await SceneLoader.scene_loading_finished
+		await RenderingServer.frame_post_draw
+
 	# Update level counter
 	if level_counter_label and maze and "level" in maze:
 		level_counter_label.text = "Level %d" % maze.level
@@ -79,7 +102,7 @@ func _on_game_over() -> void:
 
 func _on_state_changed(from_state: String, to_state: String) -> void:
 	print("[UIManager] State changed: %s -> %s" % [from_state, to_state])
-	if to_state == "PAUSED" and get_tree().paused:
+	if to_state == "PAUSED" and get_tree().paused and not SceneLoader.is_loading:
 		_set_ui_mouse_mode(true)
 		_show_pause_menu()
 	elif from_state == "PAUSED":

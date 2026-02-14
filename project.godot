@@ -15,16 +15,18 @@ compatibility/default_parent_skeleton_in_mesh_instance_3d=true
 [application]
 
 config/name="mazeFuckers"
-run/main_scene="uid://ch5yinsi1824"
+run/main_scene="uid://djmfxej11k48f"
 config/features=PackedStringArray("4.6", "Forward Plus")
 config/icon="res://icon.svg"
 
 [audio]
 
-buses/default_bus_layout=""
+buses/default_bus_layout="uid://diiv76f01wcs5"
 
 [autoload]
 
+SceneLoader="*uid://cr7uhmojsupq2"
+LoadingOverlay="*uid://drnxmixjrubqu"
 EventBus="*res://scripts/core/event_bus.gd"
 GameState="*res://scripts/core/game_state.gd"
 GameConfig="*res://scripts/core/game_config.gd"
@@ -109,3 +111,4 @@ interact={
 [rendering]
 
 textures/canvas_textures/default_texture_filter=0
+environment/defaults/default_clear_color=Color(0, 0, 0, 1)
