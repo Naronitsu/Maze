@@ -8,6 +8,12 @@ var _minigame: Node = null
 
 @export var max_grab_time := 3.0
 
+@export var grab_zoom := Vector2(0.7, 0.7)
+@export var zoom_time := 0.25
+
+var _camera: Camera2D = null
+var _original_zoom: Vector2
+
 func init_grab(player: Node2D, spawn_world: Vector2) -> void:
 	_player = player
 	global_position = spawn_world
@@ -26,6 +32,16 @@ func _do_grab() -> void:
 	var p := grab_pos_node.global_position
 	_player.movement_locked = true
 	_player.global_position = p
+
+	_camera = _player.get_node_or_null("Camera2D") as Camera2D
+	if _camera:
+		_original_zoom = _camera.zoom
+		var tween := create_tween()
+		tween.tween_property(_camera, "zoom", grab_zoom, zoom_time)\
+			.set_trans(Tween.TRANS_SINE)\
+			.set_ease(Tween.EASE_OUT)
+		_camera.offset = Vector2(randf_range(-4,4), randf_range(-4,4))
+
 
 	_minigame = get_tree().current_scene.get_node_or_null("UI/grabMinigame")
 	if _minigame == null:
@@ -69,6 +85,13 @@ func _end_grab() -> void:
 
 	if _player:
 		_player.movement_locked = false
+	
+	if _camera:
+		var tween := create_tween()
+		tween.tween_property(_camera, "zoom", _original_zoom, zoom_time)\
+			.set_trans(Tween.TRANS_SINE)\
+			.set_ease(Tween.EASE_IN)
+
 
 	finished.emit()
 	queue_free()
