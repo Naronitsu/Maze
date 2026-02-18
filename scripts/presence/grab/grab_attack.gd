@@ -8,11 +8,13 @@ var _minigame: Node = null
 
 @export var max_grab_time := 3.0
 
-@export var grab_zoom := Vector2(0.7, 0.7)
+@export var grab_zoom_multiplier := 1.35 # >1 zooms IN
+
 @export var zoom_time := 0.25
 
 var _camera: Camera2D = null
 var _original_zoom: Vector2
+var _original_offset: Vector2
 
 func init_grab(player: Node2D, spawn_world: Vector2) -> void:
 	_player = player
@@ -33,14 +35,18 @@ func _do_grab() -> void:
 	_player.movement_locked = true
 	_player.global_position = p
 
-	_camera = _player.get_node_or_null("Camera2D") as Camera2D
+	_camera = _player.get_node_or_null("Camera") as Camera2D
 	if _camera:
 		_original_zoom = _camera.zoom
+		_original_offset = _camera.offset
+		_camera.offset = Vector2(randf_range(-4,4), randf_range(-4,4))
+
+		var target_zoom := _original_zoom * grab_zoom_multiplier
+
 		var tween := create_tween()
-		tween.tween_property(_camera, "zoom", grab_zoom, zoom_time)\
+		tween.tween_property(_camera, "zoom", target_zoom, zoom_time)\
 			.set_trans(Tween.TRANS_SINE)\
 			.set_ease(Tween.EASE_OUT)
-		_camera.offset = Vector2(randf_range(-4,4), randf_range(-4,4))
 
 
 	_minigame = get_tree().current_scene.get_node_or_null("UI/grabMinigame")
@@ -76,7 +82,13 @@ func _on_minigame_failed() -> void:
 	# apply consequence here if you want
 	_end_grab()
 
+var _ending := false
+
 func _end_grab() -> void:
+	if _ending:
+		return
+	_ending = true
+
 	if _minigame:
 		if _minigame.has_method("stop"):
 			_minigame.call("stop")
@@ -85,13 +97,16 @@ func _end_grab() -> void:
 
 	if _player:
 		_player.movement_locked = false
-	
+
 	if _camera:
-		var tween := create_tween()
+		_camera.offset = _original_offset
+
+		var tween := _camera.create_tween()
 		tween.tween_property(_camera, "zoom", _original_zoom, zoom_time)\
 			.set_trans(Tween.TRANS_SINE)\
 			.set_ease(Tween.EASE_IN)
 
+		await tween.finished
 
 	finished.emit()
 	queue_free()
