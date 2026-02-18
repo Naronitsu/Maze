@@ -1,10 +1,11 @@
+extends CharacterBody2D
+var movement_locked: bool = false
 ## Player character with cell-based movement and vision mechanics.
 ##
 ## Handles grid navigation, FOV updates, and trail history for AI tracking.
 ## Movement is interpolated between cells with configurable step time.
 ## Supports independent look and move directions with eye-closing mechanic.
 # Player.gd (tilemap-cell movement + grid navigation)
-extends CharacterBody2D
 
 @onready var anim: AnimatedSprite2D = $AnimatedSprite2D
 @onready var footstep_player: AudioStreamPlayer2D = $FootstepPlayer
@@ -56,8 +57,11 @@ func _ready() -> void:
 	_play_movement_anim(false, facing)
 
 func _physics_process(delta: float) -> void:
-	# Only allow input during active gameplay
-	if GameState.current != GameState.State.PLAYING:
+	# Only allow input during active gameplay and not locked
+	if GameState.current != GameState.State.PLAYING or movement_locked:
+		# If locked, keep sprite visible and reset anim position if not grabbed
+		if not movement_locked and anim:
+			anim.position = Vector2.ZERO
 		return
 	
 	# Close-eyes state can change even mid-step.
@@ -217,6 +221,9 @@ func reset_to_cell(new_cell: Vector2i) -> void:
 		vision_controller.reveal_now()
 
 	_play_movement_anim(false, facing)
+	# Always reset anim position on ready
+	if anim:
+		anim.position = Vector2.ZERO
 
 func _cell_to_global(c: Vector2i) -> Vector2:
 	if controller != null:

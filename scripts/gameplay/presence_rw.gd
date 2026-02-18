@@ -24,6 +24,14 @@ class_name PresenceRW
 @export var debug_radius: float = 6.0
 @export var debug_color: Color = Color(1, 0, 0, 0.95)
 
+@export_category("Grab Attack")
+@export var grab_scene: PackedScene
+@export var grab_range_cells: int = 2
+@export var grab_cooldown: float = 6.0
+
+var _grab_cd: float = 0.0
+var _grab_active: bool = false
+
 const INVALID_CELL := Vector2i(-999999, -999999)
 const OFFMAP_POS := Vector2(-1000000.0, -1000000.0)
 
@@ -73,6 +81,9 @@ func _process(delta: float) -> void:
 		_step()
 
 	_check_catch()
+
+	_grab_cd = maxf(0.0, _grab_cd - delta)
+	_check_grab()
 
 func _draw() -> void:
 	if debug_draw and _active:
@@ -135,18 +146,24 @@ func _on_presence_should_spawn(player_history: Array) -> void:
 		return
 	
 	# Try strategies in order: history → room → far
-	var strategies: Array[PresenceSpawnStrategy] = [
-		PresenceSpawnStrategy.HistoryStrategy.new(controller, controller.maze_layer as DungeonMazeLayer),
-		PresenceSpawnStrategy.RoomSpawnStrategy.new(controller, controller.maze_layer as DungeonMazeLayer),
-		PresenceSpawnStrategy.FarSpawnStrategy.new(controller, controller.maze_layer as DungeonMazeLayer, GameConfig.presence_min_spawn_dist_cells),
-	]
-	
+	# TODO: Replace with actual spawn logic or import PresenceSpawnStrategy implementations.
+	# For now, fallback to a simple spawn at a random valid cell far from the player.
 	var spawned := false
-	for strategy in strategies:
-		if strategy.attempt(self):
+	if controller != null and controller.player != null and controller.maze_layer != null:
+		var player_cell = controller.world_to_cell(controller.player.global_position)
+		var maze_layer = controller.maze_layer
+		var far_cells = 15
+		if "presence_min_spawn_dist_cells" in GameConfig:
+			far_cells = GameConfig.presence_min_spawn_dist_cells
+		var possible_cells = []
+		for cell_pos in maze_layer.get_used_cells():
+			if controller.path_distance(player_cell, cell_pos) >= far_cells and controller.is_passable_for_presence(cell_pos):
+				possible_cells.append(cell_pos)
+		if possible_cells.size() > 0:
+			cell = possible_cells[_rng.randi_range(0, possible_cells.size() - 1)]
+			_snap_to_cell()
 			spawned = true
-			print("[PresenceRW] Spawned via %s" % strategy.get_class())
-			break
+			print("[PresenceRW] Spawned at random far cell %s" % cell)
 	
 	# Activate if spawned
 	if spawned:
@@ -303,3 +320,81 @@ func _on_catch() -> void:
 func _on_player_moved(_from_cell: Vector2i, to_cell: Vector2i) -> void:
 	"""Called when player moves, so we can detect door opening."""
 	_last_player_cell = to_cell
+
+# -----------------------------------------------------------------------------
+# Grab Attack
+# -----------------------------------------------------------------------------
+
+func _check_grab() -> void:
+	if not _active:
+		return
+	if controller == null or controller.player == null:
+		return
+	if grab_scene == null:
+		return
+	if _grab_cd > 0.0:
+		return
+	if _grab_active:
+		return
+	if cell == INVALID_CELL:
+		return
+
+	var p_cell := controller.world_to_cell(controller.player.global_position)
+	var d := _presence_distance(cell, p_cell) # path distance, not raw grid distance
+	if d <= grab_range_cells:
+		_spawn_grab(p_cell)
+
+func _spawn_grab(target_cell: Vector2i) -> void:
+
+	_grab_cd = grab_cooldown
+	_grab_active = true
+
+	# Disable player movement (requires player.gd to check this flag)
+	var player = controller.player
+	if player:
+		player.set("movement_locked", true)
+		print("[PresenceRW] Player found at global_position=", player.global_position, ", cell=", target_cell)
+
+	# Find available adjacent tile to the player
+	var neighbors = controller.get_neighbors4(target_cell)
+	var spawn_cell = null
+	for n in neighbors:
+		if controller.is_walkable(n):
+			spawn_cell = n
+			break
+	if spawn_cell == null:
+		# Fallback: use player cell if no adjacent available
+		spawn_cell = target_cell
+
+	print("[PresenceRW] Grab will spawn at cell=", spawn_cell, ", world=", controller.cell_to_world_center(spawn_cell))
+
+	var grab := grab_scene.instantiate() as Node2D
+	controller.maze_layer.add_child(grab)
+
+	var spawn_world := controller.cell_to_world_center(spawn_cell)
+	grab.global_position = spawn_world
+
+	# Tell grab who/where to grab
+	if grab.has_method("init_grab"):
+		grab.call("init_grab", controller.player, spawn_world)
+
+
+	# Start the minigame UI if present
+	var minigame = get_tree().current_scene.get_node_or_null("grabMinigame")
+	if minigame:
+		print("[PresenceRW] Starting grab minigame UI following grab node at ", grab.global_position)
+		minigame.start_follow(grab)
+
+	# Listen for grab finish to re-enable player movement
+	if grab.has_signal("finished"):
+		grab.connect("finished", Callable(self, "_on_grab_finished"), CONNECT_ONE_SHOT)
+	else:
+		# Fallback: clear after a short time if you haven't added a signal yet.
+		await get_tree().create_timer(1.2).timeout
+		_on_grab_finished()
+
+func _on_grab_finished() -> void:
+	_grab_active = false
+	# Re-enable player movement
+	if controller and controller.player:
+		controller.player.set("movement_locked", false)

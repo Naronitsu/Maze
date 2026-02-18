@@ -1,0 +1,72 @@
+[gd_scene format=3 uid="uid://coietdxv61j3y"]
+
+[ext_resource type="Script" uid="uid://d06c5dbv2l6op" path="res://scripts/ui/grab_minigame/grab_minigame.gd" id="1_w6ayq"]
+
+[node name="grabMinigame" type="Control" unique_id=1839816675]
+layout_mode = 3
+anchors_preset = 0
+offset_right = 160.0
+offset_bottom = 90.0
+script = ExtResource("1_w6ayq")
+gravity = 450.0
+
+[node name="Panel" type="Panel" parent="." unique_id=1057464082]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="StatusLabel" type="Label" parent="Panel" unique_id=846107890]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -35.0
+offset_top = -10.0
+offset_right = 35.0
+offset_bottom = 10.0
+grow_horizontal = 2
+grow_vertical = 2
+text = "GRABBED!"
+
+[node name="minigame" type="Control" parent="." unique_id=1617951831]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="pixel" type="ColorRect" parent="minigame" unique_id=1363837260]
+layout_mode = 0
+offset_left = 70.0
+offset_top = 40.0
+offset_right = 74.0
+offset_bottom = 44.0
+
+[node name="trail" type="Line2D" parent="minigame" unique_id=1827822465]
+
+[node name="upperBound" type="ColorRect" parent="minigame" unique_id=1996230213]
+layout_mode = 1
+anchors_preset = 10
+anchor_right = 1.0
+offset_bottom = 10.0
+grow_horizontal = 2
+mouse_filter = 2
+color = Color(1, 0, 0, 1)
+
+[node name="lowerBound" type="ColorRect" parent="minigame" unique_id=2099385619]
+layout_mode = 1
+anchors_preset = 12
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_bottom = 10.0
+grow_horizontal = 2
+grow_vertical = 0
+mouse_filter = 2
+color = Color(1, 0, 0, 1)

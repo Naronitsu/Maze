@@ -1,5 +1,6 @@
 [gd_scene format=3 uid="uid://be5yb6luh2rfe"]
 
+[ext_resource type="Script" uid="uid://bv46bj6wudbiw" path="res://scripts/presence/grab/grab_attack.gd" id="1_op1yl"]
 [ext_resource type="Texture2D" uid="uid://crq5ewjlupepn" path="res://sprites/Presence/Grab/grab_sprite_sheet.png" id="1_xqjh5"]
 
 [sub_resource type="AtlasTexture" id="AtlasTexture_op1yl"]
@@ -124,6 +125,7 @@ animations = [{
 }]
 
 [node name="grab_attack" type="Node2D" unique_id=235935481]
+script = ExtResource("1_op1yl")
 
 [node name="AnimatedSprite2D" type="AnimatedSprite2D" parent="." unique_id=142285295]
 sprite_frames = SubResource("SpriteFrames_ims5m")
@@ -131,5 +133,5 @@ animation = &"spawn"
 frame = 5
 frame_progress = 0.84680235
 
-[node name="grabPosition" type="Node2D" parent="." unique_id=389559099]
+[node name="grabPosition" type="Marker2D" parent="." unique_id=43059709]
 position = Vector2(-3, -10)
