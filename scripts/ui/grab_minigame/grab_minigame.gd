@@ -8,7 +8,7 @@ signal failed
 @export var lift_accel := 1400.0      # px/s^2 while holding Q
 @export var max_speed := 900.0        # clamp vertical speed
 
-@export var time_in_safe_to_escape := 1.4
+@export var time_in_safe_to_escape := 2.8
 @export var safe_margin := 26.0       # distance from bounds considered "safe band"
 
 @export var trail_max_points := 40
@@ -17,12 +17,18 @@ signal failed
 @export var head_offset := Vector2(0, -60)
 @export var clamp_margin := 12.0
 
+# Difficulty: bounds slowly close in over time
+@export var bounds_shrink_speed := 18.0   # px/s PER BOUND (gap closes at ~2x this)
+@export var min_gap := 90.0               # minimum allowed gap between bounds (px)
+@export var shrink_ramp := 0.0            # 0 = constant speed, >0 ramps up (per second)
+
 var _target: Node2D = null
 
 var active := false
 var vy := 0.0
 var safe_time := 0.0
 var _trail_timer := 0.0
+var _difficulty_t := 0.0
 
 @onready var mg: Control = $minigame
 @onready var pixel: Control = $minigame/pixel
@@ -46,6 +52,7 @@ func start() -> void:
 	vy = 0.0
 	safe_time = 0.0
 	_trail_timer = 0.0
+	_difficulty_t = 0.0
 
 	trail.width = trail_width
 	trail.clear_points()
@@ -61,11 +68,13 @@ func stop() -> void:
 	set_process(false)
 
 func _process(delta: float) -> void:
-
 	_follow_target()
 
 	if not active:
 		return
+
+	_difficulty_t += delta
+	_update_bounds(delta)
 
 	var up := Input.is_action_pressed("interact")
 
@@ -97,7 +106,6 @@ func _process(delta: float) -> void:
 		emit_signal("failed")
 		stop()
 		return
-
 
 	# "Safe band" for escape progress:
 	# safe if you're not too close to either bound
@@ -142,6 +150,26 @@ func _update_trail(delta: float) -> void:
 	while trail.get_point_count() > trail_max_points:
 		trail.remove_point(0)
 
+func _update_bounds(delta: float) -> void:
+	# inner edges of the bounds (in minigame local space)
+	var upper_inner := upper.position.y + upper.size.y   # lower edge of upper bound
+	var lower_inner := lower.position.y                  # upper edge of lower bound
+
+	var gap := lower_inner - upper_inner
+	if gap <= min_gap:
+		return
+
+	# shrink speed, optionally ramping with time
+	var ramp := 1.0 + _difficulty_t * shrink_ramp
+	var step := bounds_shrink_speed * ramp * delta
+
+	# prevent overshooting min_gap (each bound scales by step, so gap shrinks by 2*step)
+	var max_step := (gap - min_gap) * 0.5
+	step = min(step, max_step)
+
+	# Scale the y size of both bounds (increase height)
+	upper.size.y += step
+	lower.size.y += step
 
 func _follow_target() -> void:
 	if _target == null:

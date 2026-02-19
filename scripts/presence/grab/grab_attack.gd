@@ -1,14 +1,16 @@
 extends Node2D
 signal finished
 
+
 @onready var grab_pos_node: Node2D = $grabPosition
+@onready var sprite: AnimatedSprite2D = $AnimatedSprite2D
 
 var _player: Node2D = null
 var _minigame: Node = null
 
 @export var max_grab_time := 3.0
 
-@export var grab_zoom_multiplier := 1.35 # >1 zooms IN
+@export var grab_zoom_multiplier := 1.7 # >1 zooms IN
 
 @export var zoom_time := 0.25
 
@@ -21,6 +23,8 @@ func init_grab(player: Node2D, spawn_world: Vector2) -> void:
 	global_position = spawn_world
 
 func _ready() -> void:
+	sprite.play("spawn")
+	await sprite.animation_finished
 	call_deferred("_do_grab")
 
 func _do_grab() -> void:
@@ -31,9 +35,13 @@ func _do_grab() -> void:
 		_end_grab()
 		return
 
+
 	var p := grab_pos_node.global_position
 	_player.movement_locked = true
 	_player.global_position = p
+
+	# Switch to idle animation after anchoring player
+	sprite.play("idle")
 
 	_camera = _player.get_node_or_null("Camera") as Camera2D
 	if _camera:
@@ -79,7 +87,7 @@ func _on_minigame_escaped() -> void:
 	_end_grab()
 
 func _on_minigame_failed() -> void:
-	# apply consequence here if you want
+	_player.call("_take_damage", 1)
 	_end_grab()
 
 var _ending := false
@@ -107,6 +115,10 @@ func _end_grab() -> void:
 			.set_ease(Tween.EASE_IN)
 
 		await tween.finished
+
+	# Play despawn animation before finishing
+	sprite.play("despawn")
+	await sprite.animation_finished
 
 	finished.emit()
 	queue_free()

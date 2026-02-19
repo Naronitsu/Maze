@@ -85,7 +85,7 @@ animations = [{
 "duration": 1.0,
 "texture": SubResource("AtlasTexture_aln6h")
 }],
-"loop": true,
+"loop": false,
 "name": &"despawn",
 "speed": 10.0
 }, {
@@ -119,7 +119,7 @@ animations = [{
 "duration": 1.0,
 "texture": SubResource("AtlasTexture_fdtrj")
 }],
-"loop": true,
+"loop": false,
 "name": &"spawn",
 "speed": 10.0
 }]
@@ -129,9 +129,7 @@ script = ExtResource("1_op1yl")
 
 [node name="AnimatedSprite2D" type="AnimatedSprite2D" parent="." unique_id=142285295]
 sprite_frames = SubResource("SpriteFrames_ims5m")
-animation = &"spawn"
-frame = 5
-frame_progress = 0.84680235
+animation = &"despawn"
 
 [node name="grabPosition" type="Marker2D" parent="." unique_id=43059709]
 position = Vector2(-3, -10)

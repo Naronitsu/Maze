@@ -11,6 +11,7 @@ var movement_locked: bool = false
 @onready var footstep_player: AudioStreamPlayer2D = $FootstepPlayer
 @onready var maze: DungeonMazeLayer = get_node_or_null(NodePath("../TileMap/MazeLayer")) as DungeonMazeLayer
 @onready var controller: GameController = get_node_or_null(NodePath("../GameController")) as GameController
+@onready var health_bar: HBoxContainer = $"../UI/HP/HealthBar"
 
 var cell: Vector2i
 var facing: Vector2i = Vector2i.RIGHT
@@ -28,10 +29,16 @@ var trail_history: Array[Vector2i] = []
 
 var allow_hold_to_repeat: bool = true
 
+var current_health = 0;
+
 # Will be set by game.gd
 var vision_controller: VisionController = null
 
 func _ready() -> void:
+	current_health = GameConfig.player_max_health
+	health_bar.call("init_hearts")
+	health_bar.call("update_hearts")
+
 	# Validate required references
 	if maze == null:
 		push_error("[Player] Maze reference not found - player movement will not work")
@@ -298,3 +305,13 @@ func _try_toggle_door() -> void:
 	for d in [Vector2i.LEFT, Vector2i.RIGHT, Vector2i.UP, Vector2i.DOWN]:
 		if maze.toggle_door_at(cell + d):
 			return
+
+func _take_damage(amount: int) -> void:
+	current_health -= amount
+	health_bar.call("update_hearts")
+	if current_health <= 0:
+		current_health = 0
+		_die()
+
+func _die() -> void:
+	SceneLoader.change_scene_with_loading("res://scenes/gameplay/game.tscn")

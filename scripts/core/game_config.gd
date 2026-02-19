@@ -3,6 +3,9 @@ extends Node
 ## Centralized game configuration.
 ## All tuning variables in one place for easy balancing.
 
+# Player stats
+var player_max_health: int = 3
+
 # Door transition tuning
 var door_pause_time: float = 0.25
 var door_fade_time: float = 0.20

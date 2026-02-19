@@ -23,7 +23,9 @@
 [ext_resource type="PackedScene" uid="uid://bm38rhriwppcc" path="res://scenes/gameplay/presence_rw.tscn" id="12_dinhu"]
 [ext_resource type="Script" uid="uid://dy5tva3fep1ra" path="res://scripts/gameplay/game_controller.gd" id="13_kvuet"]
 [ext_resource type="PackedScene" uid="uid://coietdxv61j3y" path="res://scenes/ui/grab_minigame.tscn" id="15_7p87p"]
+[ext_resource type="Script" uid="uid://bi7gvrxa0aexd" path="res://scripts/ui/health_bar.gd" id="16_hp0f2"]
 [ext_resource type="PackedScene" uid="uid://d2s8oq4amw68c" path="res://scenes/ui/pause_menu.tscn" id="16_pause_menu"]
+[ext_resource type="Texture2D" uid="uid://g1rnxb720ddt" path="res://sprites/player/hp.png" id="17_k4ist"]
 [ext_resource type="PackedScene" uid="uid://dq4hduqli6xn0" path="res://scenes/ui/pause_settings.tscn" id="17_pause_settings"]
 [ext_resource type="PackedScene" uid="uid://c5h8y7k2n3p4q" path="res://scenes/ui/minimap.tscn" id="18_minimap"]
 [ext_resource type="PackedScene" uid="uid://be5yb6luh2rfe" path="res://scenes/presence/grab_attack.tscn" id="19_k6fpc"]
@@ -7217,6 +7219,20 @@ player = NodePath("../../Player")
 
 [node name="grabMinigame" parent="UI" unique_id=547471924 instance=ExtResource("15_7p87p")]
 visible = false
+
+[node name="HP" type="Control" parent="UI" unique_id=1243594626]
+layout_mode = 3
+anchors_preset = 0
+offset_right = 40.0
+offset_bottom = 40.0
+
+[node name="HealthBar" type="HBoxContainer" parent="UI/HP" unique_id=975647203]
+z_index = 100
+layout_mode = 0
+offset_right = 40.0
+offset_bottom = 40.0
+script = ExtResource("16_hp0f2")
+heart_texture = ExtResource("17_k4ist")
 
 [node name="GameController" type="Node2D" parent="." unique_id=832195990 node_paths=PackedStringArray("player", "presence")]
 script = ExtResource("13_kvuet")
