@@ -1513,68 +1513,32 @@ func _rebuild_room_doors() -> void:
 	for i in range(_door_closed_mask.size()):
 		_door_closed_mask[i] = 0
 
-	# Find true room entrances: corridor tiles with exactly 1 room neighbor
-	# that are NOT part of a corridor running parallel to the room wall
 	for y in range(_grid_h):
 		for x in range(_grid_w):
 			var c := Vector2i(x, y)
-			
-			# Must be corridor floor
+
 			if not _is_corridor_floor(c, _grid_w):
 				continue
-			
-			# Skip border tiles
 			if x == 0 or x == _grid_w - 1 or y == 0 or y == _grid_h - 1:
 				continue
-			
-			# Count room neighbors and find the direction
+
 			var room_neighbors := 0
 			var room_dir := Vector2i.ZERO
-			
 			for dir in DIR4:
 				var n := c + dir
 				if _in_bounds(n.x, n.y, _grid_w, _grid_h) and _is_room(n, _grid_w):
 					room_neighbors += 1
 					room_dir = dir
-			
-			# Only consider tiles with exactly 1 room neighbor
+
 			if room_neighbors != 1:
 				continue
-			
-			# Enforce a clean 1-tile doorway: the corridor tile next to the room must be a dead-end
-			# (one corridor neighbor away from the room; no side corridors).
-			var away_dir := -room_dir
-			var away_pos := c + away_dir
-			if not _in_bounds(away_pos.x, away_pos.y, _grid_w, _grid_h):
-				continue
-			if not _is_corridor_floor(away_pos, _grid_w):
-				continue
 
-			var perp_dirs: Array[Vector2i] = []
-			if room_dir.x != 0:
-				perp_dirs = [Vector2i.UP, Vector2i.DOWN]
-			else:
-				perp_dirs = [Vector2i.LEFT, Vector2i.RIGHT]
-			var has_side_corridor := false
-			for pd in perp_dirs:
-				var pn := c + pd
-				if _in_bounds(pn.x, pn.y, _grid_w, _grid_h) and _is_corridor_floor(pn, _grid_w):
-					has_side_corridor = true
-					break
-			if has_side_corridor:
-				continue
-
-			var corridor_neighbors := 0
-			for d2 in DIR4:
-				var n2 := c + d2
-				if _in_bounds(n2.x, n2.y, _grid_w, _grid_h) and _is_corridor_floor(n2, _grid_w):
-					corridor_neighbors += 1
-			if corridor_neighbors != 1:
+			var room_cell := c + room_dir
+			if not _is_valid_room_entrance(c, room_cell):
 				continue
 
 			_add_closed_door(c)
-			_protect_doorway(c, c + room_dir, _grid_w, _grid_h)
-
+			_protect_doorway(c, room_cell, _grid_w, _grid_h)
 
 func _is_valid_room_entrance(corridor_cell: Vector2i, room_cell: Vector2i) -> bool:
 	# Determine the direction from corridor to room
