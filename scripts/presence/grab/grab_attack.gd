@@ -51,7 +51,7 @@ func _do_grab() -> void:
 		_original_offset = _camera.offset
 
 		_camera.offset = Vector2(randf_range(-4, 4), randf_range(-4, 4))
-		var target_zoom := _original_zoom + Vector2(5, 5)
+		var target_zoom := _original_zoom + Vector2(8, 8)
 
 		_kill_camera_tweens()
 
