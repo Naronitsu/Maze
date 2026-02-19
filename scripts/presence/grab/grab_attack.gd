@@ -39,12 +39,15 @@ func _do_grab() -> void:
 	_player.movement_locked = true
 	_player.global_position = p
 	_player.call("on_grabbed")
+	await get_tree().physics_frame
+
 
 	sprite.play("idle")
 
 	_camera = _player.get_node_or_null("Camera") as Camera2D
 	if _camera:
-		_original_zoom = _camera.zoom
+		_original_zoom = Vector2(3.5, 3.5)
+		print("[GrabAttack] Grab start: _original_zoom=", _original_zoom, " (forced)")
 		_original_offset = _camera.offset
 
 		_camera.offset = Vector2(randf_range(-4, 4), randf_range(-4, 4))
@@ -63,6 +66,12 @@ func _do_grab() -> void:
 	else:
 		if _minigame.has_method("start_follow"):
 			_minigame.call("start_follow", _player.get_node("minigamePosition") as Marker2D)
+
+		# >>> MATERIALIZE HERE <<<
+		if _minigame.has_method("materialize"):
+			_minigame.call("materialize")
+			# optional: wait for the effect before showing text
+			await get_tree().create_timer(_minigame.materialize_time).timeout
 
 		if _minigame.has_method("show_message"):
 			_minigame.call("show_message", "YOU HAVE BEEN GRABBED!")
@@ -121,6 +130,7 @@ func _end_grab() -> void:
 		# reset offset immediately, zoom smoothly
 		_camera.offset = _original_offset
 
+		print("[GrabAttack] Grab end: restoring zoom to ", _original_zoom)
 		_zoom_out_tween = create_tween()
 		_zoom_out_tween.tween_property(_camera, "zoom", _original_zoom, zoom_time)\
 			.set_trans(Tween.TRANS_SINE)\
@@ -136,7 +146,7 @@ func _end_grab() -> void:
 
 # Failsafe: only snap if we're being torn down mid-grab and no tween is running
 func _exit_tree() -> void:
-	if _camera and _ending == false:
+	if _camera:
 		_kill_camera_tweens()
 		_camera.zoom = _original_zoom
 		_camera.offset = _original_offset
