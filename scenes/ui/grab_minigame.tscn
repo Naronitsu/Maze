@@ -5,8 +5,8 @@
 [node name="grabMinigame" type="Control" unique_id=1839816675]
 layout_mode = 3
 anchors_preset = 0
-offset_right = 160.0
-offset_bottom = 90.0
+offset_right = 320.0
+offset_bottom = 180.0
 script = ExtResource("1_w6ayq")
 gravity = 450.0
 

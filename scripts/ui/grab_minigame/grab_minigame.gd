@@ -151,25 +151,24 @@ func _update_trail(delta: float) -> void:
 		trail.remove_point(0)
 
 func _update_bounds(delta: float) -> void:
-	# inner edges of the bounds (in minigame local space)
-	var upper_inner := upper.position.y + upper.size.y   # lower edge of upper bound
-	var lower_inner := lower.position.y                  # upper edge of lower bound
-
-	var gap := lower_inner - upper_inner
+	# actual free space between the bounds inside the minigame area
+	var gap := mg.size.y - upper.size.y - lower.size.y
 	if gap <= min_gap:
 		return
 
-	# shrink speed, optionally ramping with time
 	var ramp := 1.0 + _difficulty_t * shrink_ramp
 	var step := bounds_shrink_speed * ramp * delta
 
-	# prevent overshooting min_gap (each bound scales by step, so gap shrinks by 2*step)
-	var max_step := (gap - min_gap) * 0.5
-	step = min(step, max_step)
+	# each bound grows by step, total gap shrinks by 2*step
+	step = min(step, (gap - min_gap) * 0.5)
 
-	# Scale the y size of both bounds (increase height)
 	upper.size.y += step
 	lower.size.y += step
+
+	# optional: make the change take effect immediately even if layout tries to defer
+	upper.queue_redraw()
+	lower.queue_redraw()
+
 
 func _follow_target() -> void:
 	if _target == null:

@@ -223,3 +223,6 @@ frame_progress = 0.55303276
 
 [node name="FootstepPlayer" type="AudioStreamPlayer2D" parent="." unique_id=1323730815]
 stream = ExtResource("25_footstep")
+
+[node name="minigamePosition" type="Marker2D" parent="." unique_id=2140557926]
+position = Vector2(0, -13)

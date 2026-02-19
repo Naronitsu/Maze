@@ -1,5 +1,6 @@
 extends CharacterBody2D
 var movement_locked: bool = false
+var is_grabbed: bool = false
 ## Player character with cell-based movement and vision mechanics.
 ##
 ## Handles grid navigation, FOV updates, and trail history for AI tracking.
@@ -64,6 +65,11 @@ func _ready() -> void:
 	_play_movement_anim(false, facing)
 
 func _physics_process(delta: float) -> void:
+	# If grabbed, play grabbed animation and skip normal input
+	if is_grabbed:
+		_play_anim("grabbed")
+		return
+
 	# Only allow input during active gameplay and not locked
 	if GameState.current != GameState.State.PLAYING or movement_locked:
 		# If locked, keep sprite visible and reset anim position if not grabbed
@@ -315,3 +321,15 @@ func _take_damage(amount: int) -> void:
 
 func _die() -> void:
 	SceneLoader.change_scene_with_loading("res://scenes/gameplay/game.tscn")
+
+# Called by grab attack when player is grabbed
+func on_grabbed() -> void:
+	is_grabbed = true
+	movement_locked = true
+	_play_anim("grabbed")
+
+# Called by grab attack or minigame when released
+func on_grab_release() -> void:
+	is_grabbed = false
+	movement_locked = false
+	_play_movement_anim(false, facing)
