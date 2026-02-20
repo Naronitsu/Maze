@@ -1,0 +1,82 @@
+{
+	"categories": [
+		{
+			"uuid": "472c5a3f-cff9-4187-86b4-3a0c200a7980",
+			"title": "Task",
+			"color": "569eff"
+		}
+	],
+	"stages": [
+		{
+			"uuid": "f701738b-afa6-4be0-a37e-53cc6713a88c",
+			"title": "Todo",
+			"tasks": [
+				"31aa9982-7417-441b-b2eb-e1af8a5a42f3",
+				"4c2d26ac-85f5-4e06-9d80-825ee321e158",
+				"2a322965-f235-413d-8d3b-cdf825771f8c",
+				"203462ec-88fd-421e-a05c-09f90be1eeb4",
+				"7d717d66-058a-4116-93ca-3bbf5a492f88"
+			]
+		},
+		{
+			"uuid": "ed024469-cfa1-4a7d-ba8f-db086430e814",
+			"title": "Doing",
+			"tasks": []
+		},
+		{
+			"uuid": "e039c1e1-0684-4fc0-bf7f-c8b3ad8c7a77",
+			"title": "Done",
+			"tasks": []
+		}
+	],
+	"tasks": [
+		{
+			"uuid": "31aa9982-7417-441b-b2eb-e1af8a5a42f3",
+			"title": "load stats in Presence on load (if run was completed)",
+			"description": "",
+			"category": "472c5a3f-cff9-4187-86b4-3a0c200a7980",
+			"steps": []
+		},
+		{
+			"uuid": "4c2d26ac-85f5-4e06-9d80-825ee321e158",
+			"title": "wire player stats to meaningful vars",
+			"description": "",
+			"category": "472c5a3f-cff9-4187-86b4-3a0c200a7980",
+			"steps": []
+		},
+		{
+			"uuid": "2a322965-f235-413d-8d3b-cdf825771f8c",
+			"title": "add stat increase screen between levels",
+			"description": "",
+			"category": "472c5a3f-cff9-4187-86b4-3a0c200a7980",
+			"steps": []
+		},
+		{
+			"uuid": "7d717d66-058a-4116-93ca-3bbf5a492f88",
+			"title": "parse stats on presence and apply modifiers",
+			"description": "",
+			"category": "472c5a3f-cff9-4187-86b4-3a0c200a7980",
+			"steps": []
+		},
+		{
+			"uuid": "203462ec-88fd-421e-a05c-09f90be1eeb4",
+			"title": "wire presence stats to meaningful vars",
+			"description": "",
+			"category": "472c5a3f-cff9-4187-86b4-3a0c200a7980",
+			"steps": []
+		}
+	],
+	"layout": {
+		"columns": [
+			[
+				"f701738b-afa6-4be0-a37e-53cc6713a88c"
+			],
+			[
+				"ed024469-cfa1-4a7d-ba8f-db086430e814"
+			],
+			[
+				"e039c1e1-0684-4fc0-bf7f-c8b3ad8c7a77"
+			]
+		]
+	}
+}
