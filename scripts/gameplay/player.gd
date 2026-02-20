@@ -14,6 +14,19 @@ var is_grabbed: bool = false
 @onready var controller: GameController = get_node_or_null(NodePath("../GameController")) as GameController
 @onready var health_bar: HBoxContainer = $"../UI/HP/HealthBar"
 
+# Encapsulated player stats
+@export_category("Stats")
+@export var default_stats := {
+	"Agility": 3,
+	"Perception": 3,
+	"Focus": 3,
+	"Resolve": 3,
+	"Composure": 3
+}
+
+# Internal stats dictionary
+var _stats: Dictionary = {}
+
 var cell: Vector2i
 var facing: Vector2i = Vector2i.RIGHT
 var _move_facing: Vector2i = Vector2i.RIGHT
@@ -36,6 +49,9 @@ var current_health = 0;
 var vision_controller: VisionController = null
 
 func _ready() -> void:
+	# Initialize stats from default
+	_stats = default_stats.duplicate(true)
+
 	current_health = GameConfig.player_max_health
 	health_bar.call("init_hearts")
 	health_bar.call("update_hearts")
@@ -63,6 +79,24 @@ func _ready() -> void:
 	# Initialize vision facing (will be updated once vision_controller is set)
 	_update_vision_facing()
 	_play_movement_anim(false, facing)
+
+# --- Player stats encapsulation ---
+func get_stats() -> Dictionary:
+	# Returns a copy of all player stats
+	return _stats.duplicate(true)
+
+func set_stats(stats: Dictionary) -> void:
+	# Sets all player stats from a dictionary
+	for key in default_stats.keys():
+		if stats.has(key):
+			_stats[key] = stats[key]
+
+func get_stat(stat_name: String):
+	return _stats.get(stat_name, null)
+
+func set_stat(stat_name: String, value):
+	if _stats.has(stat_name):
+		_stats[stat_name] = value
 
 func _physics_process(delta: float) -> void:
 	# If grabbed, play grabbed animation and skip normal input
@@ -298,8 +332,6 @@ func _play_anim(p_name: StringName) -> void:
 		return
 	if anim.animation != p_name or not anim.is_playing():
 		anim.play(p_name)
-
-
 		
 func _try_toggle_door() -> void:
 	# Option A: only the cell you're facing (feels intentional)

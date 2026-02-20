@@ -220,6 +220,8 @@ func _start_game() -> void:
 		SaveManager.current_save_data = save_data
 		_is_continue = false
 
+	
+
 	# Use SceneLoader for scene change
 	await SceneLoader.change_scene_with_loading(game_scene.resource_path)
 

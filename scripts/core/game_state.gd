@@ -6,7 +6,8 @@ enum State {
 	PLAYING,        # Normal gameplay
 	TRANSITIONING,  # Between levels
 	PAUSED,         # Player paused
-	GAME_OVER       # Player caught
+	GAME_OVER,       # Player caught
+	GAME_WON		 # Player won the game
 }
 
 var current: State = State.PLAYING:

@@ -3,6 +3,7 @@ extends Node
 ## Saves current run state (level, run number, player position) to disk.
 
 const SAVE_FILE_PATH = "user://save_data.json"
+const RUN_WON_FILE_PATH = "user://run_won.txt"
 const FOG_SAVE_PATH = "user://fog_explored.png"
 const INVALID_CELL := Vector2i(-999999, -999999)
 
@@ -25,6 +26,7 @@ func _ready() -> void:
 	# Subscribe to game events for auto-save
 	EventBus.level_started.connect(_on_level_started)
 	EventBus.presence_caught_player.connect(_on_player_caught)
+	EventBus.game_won.connect(_on_game_won)
 
 func has_save() -> bool:
 	return FileAccess.file_exists(SAVE_FILE_PATH)
@@ -35,7 +37,8 @@ func save_game(
 	player_cell: Vector2i = Vector2i.ZERO,
 	maze_seed: int = 0,
 	fog_path: String = "",
-	fog_size: Vector2i = Vector2i.ZERO
+	fog_size: Vector2i = Vector2i.ZERO,
+	player_stats: Dictionary = {}
 ) -> bool:
 	var fog_size_dict := {"w": fog_size.x, "h": fog_size.y}
 
@@ -46,7 +49,8 @@ func save_game(
 		"maze_seed": maze_seed,
 		"timestamp": Time.get_unix_time_from_system(),
 		"fog_path": fog_path,
-		"fog_size": fog_size_dict
+		"fog_size": fog_size_dict,
+		"player_stats": player_stats
 	}
 	
 	var json_string = JSON.stringify(save_dict, "\t")
@@ -150,3 +154,35 @@ func _on_level_started(player_pos: Vector2i, maze: Node) -> void:
 func _on_player_caught(_presence_cell: Vector2i, _player_cell: Vector2i) -> void:
 	delete_save()
 	print("[SaveManager] Run ended - save deleted")
+
+# Save player stats on game won
+func _on_game_won():
+	save_player_stats(current_save_data.get("player_stats", {}))
+
+func save_player_stats(stats: Dictionary) -> void:
+	# Save player stats to the run-won file path for use on next runs
+	var file := FileAccess.open(RUN_WON_FILE_PATH, FileAccess.WRITE)
+	if file:
+		file.store_var(stats)
+		file.close()
+		print("[SaveManager] Player stats saved to %s" % RUN_WON_FILE_PATH)
+	else:
+		push_error("[SaveManager] Failed to save player stats to %s" % RUN_WON_FILE_PATH)
+
+func check_for_win() -> bool:
+	# Check if the run-won file exists to determine if the player has won before
+	return FileAccess.file_exists(RUN_WON_FILE_PATH)
+
+func load_previous_win_stats() -> Dictionary:
+	# Load player stats from the run-won file if it exists
+	if check_for_win():
+		var file := FileAccess.open(RUN_WON_FILE_PATH, FileAccess.READ)
+		if file:
+			var stats = file.get_var()
+			file.close()
+			print("[SaveManager] Loaded previous win stats: %s" % str(stats))
+			return stats
+		else:
+			push_error("[SaveManager] Failed to load player stats from %s" % RUN_WON_FILE_PATH)
+	return {}
+

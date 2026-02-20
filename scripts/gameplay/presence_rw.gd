@@ -11,6 +11,14 @@ class_name PresenceRW
 # Backward compatibility with scene files
 @export var controller_path: NodePath
 
+@export var default_stats := {
+	"Agility": 3,
+	"Perception": 3,
+	"Focus": 3,
+	"Resolve": 3,
+	"Composure": 3
+}
+
 @export_category("Movement")
 @export var move_interval: float = 0.45
 

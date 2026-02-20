@@ -136,6 +136,10 @@ func _ready() -> void:
 		_ready_complete = true
 		return
 
+	if SaveManager.check_for_win():
+		print("Completed Run detected! -- loading stats")
+		var stats = SaveManager.load_previous_win_stats()
+
 	# Show intro at game start (new game only) - use transition controller
 	print("[Game] Showing intro sequence for new game")
 	await _show_intro_sequence()
@@ -181,11 +185,16 @@ func _physics_process(_delta: float) -> void:
 
 	if on_exit:
 		print("[Game] Player reached exit at %s" % player.cell)
-		# Proceed with transition
+		if maze.level >= 5:
+			print("[Game] Player has beaten 5 levels! Game won.")
+			GameState.current = GameState.State.GAME_WON
+			EventBus.game_won.emit() # You may need to define this signal and handle it elsewhere
+			# Optionally, show a win screen or transition to credits here
+			return
+		# Proceed with transition to next level
 		_is_transitioning = true
 		GameState.current = GameState.State.TRANSITIONING
 		EventBus.level_transitioning.emit()
-		# Transition controller listens to this signal
 		if transition_controller != null:
 			transition_controller.start_transition()
 

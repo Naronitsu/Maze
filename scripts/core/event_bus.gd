@@ -8,6 +8,7 @@ signal level_started(spawn_cell: Vector2i, maze: DungeonMazeLayer)
 signal level_transitioning
 signal level_ended
 signal game_over
+signal game_won
 
 # Player events
 signal player_moved(from_cell: Vector2i, to_cell: Vector2i)
