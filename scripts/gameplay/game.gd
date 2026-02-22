@@ -139,6 +139,7 @@ func _ready() -> void:
 	if SaveManager.check_for_win():
 		print("Completed Run detected! -- loading stats")
 		var stats = SaveManager.load_previous_win_stats()
+		presence.call("_load_stats", stats)
 
 	# Show intro at game start (new game only) - use transition controller
 	print("[Game] Showing intro sequence for new game")

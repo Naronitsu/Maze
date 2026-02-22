@@ -5,6 +5,14 @@
 extends Node2D
 class_name PresenceRW
 
+enum PresenceType{
+	HUNTER,
+	OMNISCIENT,
+	ENLIGHTENED,
+	MEDITATOR,
+	STRONG
+}
+
 @export_category("Dependencies")
 @export var controller: GameController
 
@@ -406,3 +414,12 @@ func _on_grab_finished() -> void:
 	# Re-enable player movement
 	if controller and controller.player:
 		controller.player.set("movement_locked", false)
+
+func _load_stats(stats: Dictionary) -> void:
+	for key in stats.keys():
+		if key in default_stats:
+			default_stats[key] = stats[key]
+			print("[PresenceRW] Loaded stat '%s' with value %s" % [key, stats[key]])
+		else:
+			print("[PresenceRW] Warning: Unknown stat '%s' in loaded stats" % key)
+	
