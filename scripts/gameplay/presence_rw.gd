@@ -7,10 +7,10 @@ class_name PresenceRW
 
 enum PresenceType{
 	HUNTER,
-	OMNISCIENT,
-	ENLIGHTENED,
-	MEDITATOR,
-	STRONG
+	WATCHER,
+	OBSESSIVE,
+	UNYIELDING,
+	SUFFOCATOR
 }
 
 @export_category("Dependencies")
