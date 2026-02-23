@@ -90,6 +90,7 @@ func set_stats(stats: Dictionary) -> void:
 	for key in default_stats.keys():
 		if stats.has(key):
 			_stats[key] = stats[key]
+	print("[Player] Stats updated: %s" % str(_stats))
 
 func get_stat(stat_name: String):
 	return _stats.get(stat_name, null)
@@ -97,6 +98,7 @@ func get_stat(stat_name: String):
 func set_stat(stat_name: String, value):
 	if _stats.has(stat_name):
 		_stats[stat_name] = value
+	print("[Player] Stat '%s' set to %s" % [stat_name, str(value)])
 
 func _physics_process(delta: float) -> void:
 	# If grabbed, play grabbed animation and skip normal input

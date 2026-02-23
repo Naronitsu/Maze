@@ -7263,6 +7263,7 @@ layer = 5
 
 [node name="FogOfWarRW" parent="Overlay" unique_id=95689954 instance=ExtResource("6_kvuet")]
 z_index = 1
+mouse_filter = 2
 player_path = NodePath("../../Player")
 camera_path = NodePath("../../Player/Camera")
 layer_path = NodePath("../../TileMap/MazeLayer")

@@ -102,9 +102,10 @@ func _on_game_over() -> void:
 
 func _on_state_changed(from_state: String, to_state: String) -> void:
 	print("[UIManager] State changed: %s -> %s" % [from_state, to_state])
-	if to_state == "PAUSED" and get_tree().paused and not SceneLoader.is_loading:
+	if to_state == "PAUSED" and not SceneLoader.is_loading:
 		_set_ui_mouse_mode(true)
-		_show_pause_menu()
+		if get_tree().paused:
+			_show_pause_menu()
 	elif from_state == "PAUSED":
 		_hide_pause_menu()
 		_hide_settings_menu()

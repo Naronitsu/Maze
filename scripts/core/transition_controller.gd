@@ -248,3 +248,4 @@ func _roll_three_upgrades(player: Node) -> Array[Dictionary]:
 func _apply_upgrade(player: Node, stat_name: String, amount: int) -> void:
 	var cur = int(player.get_stat(stat_name))
 	player.set_stat(stat_name, cur + amount)
+	print("[TransitionController] Applied upgrade: %s +%d (new value: %d)" % [stat_name, amount, cur + amount])
