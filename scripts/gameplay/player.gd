@@ -13,15 +13,23 @@ var is_grabbed: bool = false
 @onready var maze: DungeonMazeLayer = get_node_or_null(NodePath("../TileMap/MazeLayer")) as DungeonMazeLayer
 @onready var controller: GameController = get_node_or_null(NodePath("../GameController")) as GameController
 @onready var health_bar: HBoxContainer = $"../UI/HP/HealthBar"
+@onready var skill_manager: SkillManager = $SkillManager
 
 # Encapsulated player stats
 @export_category("Stats")
-@export var default_stats := {
+@export var base_stats := {
 	"Agility": 3,
 	"Perception": 3,
 	"Focus": 3,
 	"Resolve": 3,
 	"Composure": 3
+}
+
+@export_category("subStats")
+# Player movement
+@export var sub_stats := {
+	"Step Time": 0,
+	"Max Health": 0
 }
 
 # Internal stats dictionary
@@ -50,9 +58,8 @@ var vision_controller: VisionController = null
 
 func _ready() -> void:
 	# Initialize stats from default
-	_stats = default_stats.duplicate(true)
+	init_player_stats()
 
-	current_health = GameConfig.player_max_health
 	health_bar.call("init_hearts")
 	health_bar.call("update_hearts")
 
@@ -87,7 +94,7 @@ func get_stats() -> Dictionary:
 
 func set_stats(stats: Dictionary) -> void:
 	# Sets all player stats from a dictionary
-	for key in default_stats.keys():
+	for key in base_stats.keys():
 		if stats.has(key):
 			_stats[key] = stats[key]
 	print("[Player] Stats updated: %s" % str(_stats))
@@ -134,7 +141,7 @@ func _physics_process(delta: float) -> void:
 	if _moving:
 		_play_movement_anim(true, _move_facing)
 
-		_t += delta / GameConfig.player_step_time
+		_t += delta / sub_stats["Step Time"]
 		if _t >= 1.0:
 			_t = 1.0
 
@@ -367,3 +374,25 @@ func on_grab_release() -> void:
 	is_grabbed = false
 	movement_locked = false
 	_play_movement_anim(false, facing)
+
+func init_player_stats():
+	# Initialize player stats from GameConfig defaults
+	set_stats(GameConfig.default_stats)
+
+	# Initialize sub-stats
+	sub_stats["Step Time"] = GameConfig.player_step_time
+	sub_stats["Max Health"] = GameConfig.player_max_health
+
+	# Runtime Variables
+	current_health = sub_stats["Max Health"]
+
+func get_base_stat(stat_name: String):
+	return base_stats.get(stat_name, null)
+
+func set_base_stat(stat_name: String, value: int) -> void:
+	if base_stats.has(stat_name):
+		base_stats[stat_name] = value
+	print("[Player] Base stat '%s' set to %d" % [stat_name, value])
+
+func setupPlayer():
+	skill_manager.apply_passives()

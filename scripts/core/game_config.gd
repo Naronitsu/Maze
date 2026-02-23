@@ -27,6 +27,15 @@ var player_run_grace_time: float = 0.20
 var player_interact_action: StringName = &"interact"
 var player_trail_history_max: int = 80
 
+#Player Default Stats
+var default_stats := {
+	"Agility": 3,
+	"Perception": 3,
+	"Focus": 3,
+	"Resolve": 3,
+	"Composure": 3
+}
+
 # Game progression
 var max_levels_before_reset: int = 10
 

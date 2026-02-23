@@ -1,0 +1,6 @@
+[gd_scene format=3 uid="uid://dua8c5l5gcicr"]
+
+[ext_resource type="Script" uid="uid://cd14i83eftatk" path="res://scripts/gameplay/skills/skill_manager.gd" id="1_mh8v7"]
+
+[node name="SkillManager" type="Node" unique_id=346403809]
+script = ExtResource("1_mh8v7")
