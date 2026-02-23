@@ -7232,6 +7232,7 @@ layout_mode = 3
 anchors_preset = 0
 offset_right = 40.0
 offset_bottom = 40.0
+mouse_filter = 2
 
 [node name="HealthBar" type="HBoxContainer" parent="UI/HP" unique_id=975647203]
 z_index = 100

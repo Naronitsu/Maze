@@ -39,9 +39,12 @@ layout_mode = 2
 
 [node name="Choice1" type="Button" parent="Center/VBox/HBox" unique_id=1135398200]
 layout_mode = 2
+action_mode = 0
 
 [node name="Choice2" type="Button" parent="Center/VBox/HBox" unique_id=288166148]
 layout_mode = 2
+action_mode = 0
 
 [node name="Choice3" type="Button" parent="Center/VBox/HBox" unique_id=556183807]
 layout_mode = 2
+action_mode = 0
