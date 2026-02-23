@@ -198,7 +198,7 @@ func _run_level_up() -> void:
 	if level_intro_panel != null:
 		level_intro_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
 
-	level_up_panel.z_index = (level_intro_panel.z_index if level_intro_panel != null else 0) + 1
+	level_up_panel.z_index = level_intro_panel.z_index + 1
 
 	level_up_panel.show_choices(choices)
 

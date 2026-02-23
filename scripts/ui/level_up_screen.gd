@@ -19,11 +19,10 @@ func _ready() -> void:
 
 func _bind_click(btn: Button, idx: int) -> void:
 	btn.gui_input.connect(func(ev: InputEvent) -> void:
-		if ev is InputEventMouseButton \
-		and ev.button_index == MOUSE_BUTTON_LEFT \
-		and ev.pressed:
+		if ev is InputEventMouseButton and ev.button_index == MOUSE_BUTTON_LEFT and ev.pressed:
+			print("CLICK REACHED:", btn.name, " disabled=", btn.disabled)
 			_pick(idx)
-			btn.accept_event() # stop it from bubbling
+			btn.accept_event()
 	)
 
 func show_choices(choices: Array[Dictionary]) -> void:
