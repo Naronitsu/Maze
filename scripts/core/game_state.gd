@@ -5,6 +5,7 @@ extends Node
 enum State {
 	PLAYING,        # Normal gameplay
 	TRANSITIONING,  # Between levels
+	LEVEL_UP, 	 # Level up screen
 	PAUSED,         # Player paused
 	GAME_OVER,       # Player caught
 	GAME_WON		 # Player won the game

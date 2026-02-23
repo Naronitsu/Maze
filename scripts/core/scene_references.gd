@@ -12,6 +12,7 @@ var fog: Node
 var ui_layer: CanvasLayer
 var level_intro_panel: ColorRect
 var level_intro_text: Label
+var level_up_panel: LevelUpPanel
 
 func _ready() -> void:
 	# This autoload runs BEFORE game.gd _ready() completes
@@ -32,6 +33,8 @@ func validate_all(scene_root: Node2D) -> bool:
 	ui_layer = game.get_node_or_null("UI")
 	level_intro_panel = game.get_node_or_null("UI/LevelIntro")
 	level_intro_text = game.get_node_or_null("UI/LevelIntro/Text")
+	level_up_panel = game.get_node_or_null("UI/LevelUpPanel")
+	
 	
 	# Validate critical references
 	var errors: PackedStringArray = []
@@ -54,6 +57,8 @@ func validate_all(scene_root: Node2D) -> bool:
 		errors.append("level_intro_panel (UI/LevelIntro)")
 	if level_intro_text == null:
 		errors.append("level_intro_text (UI/LevelIntro/Text)")
+	if level_up_panel == null:
+		errors.append("level_up_panel (UI/LevelUpPanel)")
 	
 	if errors.size() > 0:
 		push_error("[SceneReferences] Missing nodes: " + ", ".join(errors))

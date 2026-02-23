@@ -27,6 +27,7 @@
 [ext_resource type="PackedScene" uid="uid://d2s8oq4amw68c" path="res://scenes/ui/pause_menu.tscn" id="16_pause_menu"]
 [ext_resource type="Texture2D" uid="uid://g1rnxb720ddt" path="res://sprites/player/hp.png" id="17_k4ist"]
 [ext_resource type="PackedScene" uid="uid://dq4hduqli6xn0" path="res://scenes/ui/pause_settings.tscn" id="17_pause_settings"]
+[ext_resource type="PackedScene" uid="uid://b2qobe4x725sh" path="res://scenes/ui/level_up_screen.tscn" id="18_jb6j8"]
 [ext_resource type="PackedScene" uid="uid://c5h8y7k2n3p4q" path="res://scenes/ui/minimap.tscn" id="18_minimap"]
 [ext_resource type="PackedScene" uid="uid://be5yb6luh2rfe" path="res://scenes/presence/grab_attack.tscn" id="19_k6fpc"]
 [ext_resource type="Script" uid="uid://dek7ymb4k0q8u" path="res://scripts/gameplay/pillar_spawn_manager.gd" id="19_pillar_spawn_manager"]
@@ -7150,6 +7151,7 @@ shader_parameter/glow = 0.12
 
 [node name="Game" type="Node2D" unique_id=1154573021]
 script = ExtResource("1_3dryh")
+debug_disable_pillar_requirement = true
 
 [node name="IngameMusic" type="AudioStreamPlayer" parent="." unique_id=1178671735]
 stream = ExtResource("2_lupr0")
@@ -7179,6 +7181,10 @@ script = ExtResource("8_37s47")
 [node name="UI" type="CanvasLayer" parent="." unique_id=1335566639]
 layer = 10
 
+[node name="LevelUpPanel" parent="UI" unique_id=1277725938 instance=ExtResource("18_jb6j8")]
+visible = false
+z_index = 100
+
 [node name="LevelIntro" type="ColorRect" parent="UI" unique_id=472111293]
 visible = false
 anchors_preset = 15
@@ -7186,6 +7192,7 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
+mouse_filter = 2
 theme = ExtResource("10_mapnw")
 color = Color(0, 0, 0, 1)
 

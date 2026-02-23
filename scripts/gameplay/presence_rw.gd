@@ -10,8 +10,11 @@ enum PresenceType{
 	WATCHER,
 	OBSESSIVE,
 	UNYIELDING,
-	SUFFOCATOR
+	SUFFOCATOR,
+	TUTORIAL
 }
+
+@export var presence_type: PresenceType = PresenceType.TUTORIAL;
 
 @export_category("Dependencies")
 @export var controller: GameController
@@ -423,3 +426,23 @@ func _load_stats(stats: Dictionary) -> void:
 		else:
 			print("[PresenceRW] Warning: Unknown stat '%s' in loaded stats" % key)
 	
+func _calculate_type() -> void:
+	var stat_to_type = {
+		"Agility": PresenceType.HUNTER,
+		"Perception": PresenceType.WATCHER,
+		"Focus": PresenceType.OBSESSIVE,
+		"Resolve": PresenceType.UNYIELDING,
+		"Composure": PresenceType.SUFFOCATOR
+	}
+	var eligible_stats = []
+	var max_value = 8
+	for stat in stat_to_type.keys():
+		if default_stats[stat] >= max_value:
+			eligible_stats.append(stat)
+	if eligible_stats.size() > 0:
+		var chosen_stat = eligible_stats[_rng.randi_range(0, eligible_stats.size() - 1)]
+		presence_type = stat_to_type[chosen_stat]
+	else:
+		presence_type = PresenceType.TUTORIAL
+	
+	print("[PresenceRW] Calculated presence type as %s" % [presence_type])
