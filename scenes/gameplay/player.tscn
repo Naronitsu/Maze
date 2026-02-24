@@ -203,8 +203,6 @@ animations = [{
 [node name="Player" type="CharacterBody2D" unique_id=1692225460]
 z_index = 1
 script = ExtResource("1_cvnsp")
-base_stats = null
-sub_stats = null
 
 [node name="PowerupAnchor" type="Node2D" parent="." unique_id=1423366459]
 position = Vector2(0, -9)

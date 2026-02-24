@@ -1,0 +1,9 @@
+[gd_resource type="Resource" script_class="SkillPool" format=3 uid="uid://ckeegadsismnw"]
+
+[ext_resource type="Script" uid="uid://cq8h62iibduhs" path="res://scripts/gameplay/skills/system/active_def.gd" id="1_p38qn"]
+[ext_resource type="Script" uid="uid://ggkv2oom1raw" path="res://scripts/gameplay/skills/system/passive_def.gd" id="2_dw1np"]
+[ext_resource type="Script" uid="uid://btwdoxqpknn1w" path="res://scripts/gameplay/skills/skill_pool.gd" id="3_244d8"]
+
+[resource]
+script = ExtResource("3_244d8")
+stat_id = &"Focus"

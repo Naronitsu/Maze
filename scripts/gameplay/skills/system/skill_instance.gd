@@ -1,13 +1,11 @@
 extends RefCounted
 class_name SkillInstance
 
-## Per-owner runtime skill object.
-## Owns its modifier keys so unequip is always clean.
-
 var owner: Node
 var def: SkillDef
 var level: int
 
+# Keys this instance applied into Stats (so unequip is clean)
 var applied_keys: Array[StringName] = []
 
 func _init(p_owner: Node, p_def: SkillDef, p_level: int) -> void:
@@ -27,10 +25,8 @@ func set_level(new_level: int) -> void:
 func tick(_delta: float) -> void:
 	pass
 
-func _get_stats() -> StatsComponent:
-	# Convention: actor has a child node named "Stats".
-	var s := owner.get_node_or_null("Stats")
-	return s as StatsComponent
+func _get_stats() -> Stats:
+	return owner.get_node_or_null("Stats") as Stats
 
 func _remove_all_keys() -> void:
 	var stats := _get_stats()

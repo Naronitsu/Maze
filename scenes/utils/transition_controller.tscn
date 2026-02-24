@@ -1,0 +1,13 @@
+[gd_scene format=3 uid="uid://iyfu4xufuufw"]
+
+[ext_resource type="Script" uid="uid://b2yhbuh17pu3v" path="res://scripts/core/transition_controller.gd" id="1_m84lx"]
+[ext_resource type="Script" uid="uid://btwdoxqpknn1w" path="res://scripts/gameplay/skills/skill_pool.gd" id="2_x72up"]
+[ext_resource type="Resource" uid="uid://bf5e67lalblb5" path="res://scripts/gameplay/skills/pools/agility_pool.tres" id="3_qo0ib"]
+[ext_resource type="Resource" uid="uid://ckeegadsismnw" path="res://scripts/gameplay/skills/pools/focus_pool.tres" id="4_eotu1"]
+[ext_resource type="Resource" uid="uid://ctf25i2s80gjf" path="res://scripts/gameplay/skills/pools/resolve_pool.tres" id="5_qvpcm"]
+[ext_resource type="Resource" uid="uid://cjkrqngdg8ss5" path="res://scripts/gameplay/skills/pools/composure_pool.tres" id="6_d3j8j"]
+[ext_resource type="Resource" uid="uid://x1xf7xglopml" path="res://scripts/gameplay/skills/pools/perception_pool.tres" id="7_gqkhc"]
+
+[node name="TransitionController" type="Node" unique_id=1099583640]
+script = ExtResource("1_m84lx")
+skill_pools = Array[ExtResource("2_x72up")]([ExtResource("3_qo0ib"), ExtResource("4_eotu1"), ExtResource("5_qvpcm"), ExtResource("6_d3j8j"), ExtResource("7_gqkhc")])

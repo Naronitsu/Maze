@@ -29,6 +29,28 @@ var level_intro_panel: ColorRect
 var level_intro_text: Label
 var level_up_panel: LevelUpPanel
 
+@export var skill_pools: Array[SkillPool] = []
+var _pool_by_stat: Dictionary = {} # StringName -> SkillPool
+
+func _ready() -> void:
+	game = get_parent() as Node2D
+	maze = SceneReferences.maze
+	controller = SceneReferences.controller
+	presence = SceneReferences.presence
+	fog = SceneReferences.fog
+	ui_layer = SceneReferences.ui_layer
+	level_intro_panel = SceneReferences.level_intro_panel
+	level_intro_text = SceneReferences.level_intro_text
+	level_up_panel = SceneReferences.level_up_panel
+
+	print("[TransitionController] skill_pools size:", skill_pools.size())
+
+	for p in skill_pools:
+		if p != null:
+			_pool_by_stat[p.stat_id] = p
+
+	print("[TransitionController] _pool_by_stat keys:", _pool_by_stat.keys())
+
 func _process(delta: float) -> void:
 	if _current_phase == Phase.IDLE:
 		return
@@ -187,29 +209,49 @@ func _complete_transition() -> void:
 	print("[TransitionController] Transition complete")
 
 func _run_level_up() -> void:
+
 	if level_up_panel == null or game == null or game.player == null:
 		print("[TransitionController] LEVEL UP SKIPPED: panel/player missing")
 		return
 
 	GameState.current = GameState.State.PAUSED
 
-	var choices := _roll_three_upgrades(game.player)
+	# ----------------------------
+	# Step 1: pick a stat upgrade
+	# ----------------------------
+	var stat_choices := _roll_three_upgrades(game.player)
 
 	if level_intro_panel != null:
 		level_intro_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
-
 	level_up_panel.z_index = level_intro_panel.z_index + 1
 
-	level_up_panel.show_choices(choices)
+	level_up_panel.show_choices(stat_choices)
 
-	var picked = await level_up_panel.upgrade_chosen
-	var stat_name: String = picked[0]
-	var amount: int = picked[1]
+	var stat_choice: Dictionary = await level_up_panel.choice_chosen
+	if String(stat_choice.get("kind", "")) != "stat":
+		push_warning("[TransitionController] Expected stat choice, got: %s" % str(stat_choice))
+		return
 
+	var stat_name: String = String(stat_choice.get("stat", ""))
+	var amount: int = int(stat_choice.get("amount", 1))
 	_apply_upgrade(game.player, stat_name, amount)
 
-	# Optional: persist into SaveManager’s runtime dict so wins carry it
-	SaveManager.current_save_data["player_stats"] = game.player.get_stats()
+	# ----------------------------
+	# Step 2: offer skills from that stat pool
+	# ----------------------------
+	print("[TransitionController] Stat picked:", stat_name)
+	print("[TransitionController] Looking for pool key:", StringName(stat_name))
+
+	var skill_choices := _roll_three_skills_for_stat(game.player, StringName(stat_name))
+
+	if not skill_choices.is_empty():
+		level_up_panel.show_choices(skill_choices)
+
+		var skill_choice: Dictionary = await level_up_panel.choice_chosen
+		if String(skill_choice.get("kind", "")) != "skill":
+			push_warning("[TransitionController] Expected skill choice, got: %s" % str(skill_choice))
+		else:
+			_apply_skill_choice(game.player, skill_choice)
 
 	# Continue transition: now show the label text
 	_current_phase = Phase.FADE_IN
@@ -218,34 +260,139 @@ func _run_level_up() -> void:
 	print("[TransitionController] Phase: FADE_IN")
 
 func _roll_three_upgrades(player: Node) -> Array[Dictionary]:
-	var stats: Dictionary = player.get_stats()
-	var keys: Array = stats.keys()
+	var stats := player.get_node_or_null("Stats")
+	if stats == null:
+		push_warning("[TransitionController] Player Stats node missing")
+		return []
+	if not ("base" in stats):
+		push_warning("[TransitionController] Stats node has no 'base' dictionary")
+		return []
+
+	# Only offer progression stats (not runtime stats)
+	var upgradeable := [&"Agility", &"Perception", &"Focus", &"Resolve", &"Composure"]
 
 	var MAX_STAT := 10
-	var eligible: Array[String] = []
-	for k in keys:
-		var name := String(k)
-		if int(stats[name]) < MAX_STAT:
-			eligible.append(name)
+	var eligible: Array[StringName] = []
+	for k in upgradeable:
+		var v := float((stats.base as Dictionary).get(k, 0.0))
+		if int(v) < MAX_STAT:
+			eligible.append(k)
 
+	# If everything is capped, allow all upgradeable anyway
 	if eligible.is_empty():
-		eligible = keys.map(func(x): return String(x))
+		eligible = upgradeable.duplicate()
 
 	eligible.shuffle()
 
 	var amount := 1
 	var out: Array[Dictionary] = []
-	var n: int = min(3, eligible.size())
-	for i in n:
-		var s := eligible[i]
+	var n : int = min(3, eligible.size())
+	for i in range(n):
+		var s: StringName = eligible[i]
 		out.append({
-			"stat": s,
+			"kind": "stat",
+			"stat": String(s),
 			"amount": amount,
-			"text": "+%d %s" % [amount, s]
+			"text": "+%d %s" % [amount, String(s)]
 		})
 	return out
 
 func _apply_upgrade(player: Node, stat_name: String, amount: int) -> void:
-	var cur = int(player.get_stat(stat_name))
-	player.set_stat(stat_name, cur + amount)
+	var stats: Node = player.get_node_or_null("Stats")
+	if stats == null or not stats.has_method("apply_progression_upgrade"):
+		push_warning("[TransitionController] Player stats component missing or incompatible")
+		return
+	stats.apply_progression_upgrade(stat_name, amount)
+	var cur := int(stats.get_stat(stat_name))
+
 	print("[TransitionController] Applied upgrade: %s +%d (new value: %d)" % [stat_name, amount, cur + amount])
+
+func _roll_three_skills_for_stat(player: Node, stat_id: StringName) -> Array[Dictionary]:
+	print("[TransitionController] _roll_three_skills_for_stat stat_id:", stat_id)
+	print("[TransitionController] available pools:", _pool_by_stat.keys())
+
+	var pool: SkillPool = _pool_by_stat.get(stat_id, null)
+	if pool == null:
+		return []
+
+	var sm := player.get_node_or_null("SkillManager")
+	if sm == null:
+		return []
+
+	var candidates: Array[Dictionary] = []
+
+	# Passives (add actives later if desired)
+	for def in pool.passives:
+		if def == null:
+			continue
+
+		var id: StringName = def.id
+
+		var owned := false
+		if "passive_instances" in sm:
+			owned = (sm.passive_instances as Dictionary).has(id)
+
+		var cur_level := 0
+		if "levels" in sm:
+			cur_level = int((sm.levels as Dictionary).get(id, 0)) # 0-based
+
+		var label := def.display_name
+		if owned:
+			# cur_level is 0-based; next level (human) is (cur_level+1)+1 = cur_level+2
+			label = "%s (Upgrade → %d)" % [def.display_name, cur_level + 2]
+		else:
+			label = "%s (New)" % def.display_name
+
+		candidates.append({
+			"kind": "skill",
+			"type": "passive",
+			"skill_id": id,
+			"def": def,
+			"text": label
+		})
+
+	candidates.shuffle()
+	return candidates.slice(0, min(3, candidates.size()))
+
+func _apply_skill_choice(player: Node, choice: Dictionary) -> void:
+	var sm := player.get_node_or_null("SkillManager")
+	if sm == null:
+		return
+
+	var kind := String(choice.get("type", ""))
+	if kind != "passive":
+		push_warning("[TransitionController] Unsupported skill type: %s" % kind)
+		return
+
+	var id: StringName = choice.get("skill_id", &"") as StringName
+	var def: PassiveDef = choice.get("def", null) as PassiveDef
+	if id == &"" or def == null:
+		push_warning("[TransitionController] Bad skill choice payload: %s" % str(choice))
+		return
+
+	var owned := false
+	if "passive_instances" in sm:
+		owned = (sm.passive_instances as Dictionary).has(id)
+
+	if owned:
+		var cur := 0
+		if "levels" in sm:
+			cur = int((sm.levels as Dictionary).get(id, 0)) # 0-based
+		sm.set_level(id, cur + 1)
+		print("[TransitionController] Upgraded skill: %s -> %d" % [String(id), cur + 1])
+	else:
+		sm.equip_passive(def)
+		print("[TransitionController] Equipped new skill: %s" % String(id))
+		
+	var stats := player.get_node_or_null("Stats")
+	if stats and stats.has_method("debug_dump"):
+		stats.call("debug_dump")
+
+func _find_passive_def(skill_id: StringName) -> PassiveDef:
+	for p in skill_pools:
+		if p == null:
+			continue
+		for def in p.passives:
+			if def != null and def.id == skill_id:
+				return def
+	return null

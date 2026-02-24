@@ -18,11 +18,13 @@ var _did_restore_fog: bool = false
 var _continue_fog_path: String = ""
 var _continue_fog_size: Vector2i = Vector2i.ZERO
 
-@export var debug_disable_pillar_requirement = false
-
 var _exit_shrine_hint_shown: bool = false
 
 const FOG_SAVE_PATH := "user://fog_explored.png"
+const TRANSITION_CONTROLLER_SCENE : PackedScene = preload("res://scenes/utils/transition_controller.tscn")
+
+@export_category("Debug")
+@export var debug_disable_pillar_requirement: bool = false
 
 func _ready() -> void:
 	if SceneLoader.has_signal("scene_loading_finished") and SceneLoader.is_loading:
@@ -54,19 +56,9 @@ func _ready() -> void:
 		markings_spawner.call("set_refs", maze, controller)
 	SettingsManager.apply_visuals_to_scene(self)
 	
-	# Create and initialize transition controller
-	transition_controller = TransitionController.new()
-	transition_controller.game = self
-	transition_controller.maze = maze
-	transition_controller.controller = controller
-	transition_controller.presence = presence
-	transition_controller.fog = fog
-	transition_controller.ui_layer = SceneReferences.ui_layer
-	transition_controller.level_intro_panel = SceneReferences.level_intro_panel
-	transition_controller.level_intro_text = SceneReferences.level_intro_text
-	transition_controller.level_up_panel = SceneReferences.level_up_panel
+	transition_controller = TRANSITION_CONTROLLER_SCENE.instantiate() as TransitionController
 	add_child(transition_controller)
-	
+		
 	# Wire fog to player for vision updates
 	if fog and fog.has_method("set_player_and_presence"):
 		fog.call("set_player_and_presence", player, presence)
@@ -181,7 +173,7 @@ func _physics_process(_delta: float) -> void:
 
 	# Gate progression: must fully charge all spawned shrines before leaving.
 	var shrine_progress := _get_shrine_progress()
-	if (shrine_progress[0] < shrine_progress[1]) and !debug_disable_pillar_requirement:
+	if shrine_progress[0] < shrine_progress[1] and not debug_disable_pillar_requirement:
 		if not _exit_shrine_hint_shown:
 			_exit_shrine_hint_shown = true
 			_display_temp_panel("Charge all shrines to escape (%d/%d)." % [shrine_progress[0], shrine_progress[1]], 1.6, 0.5)

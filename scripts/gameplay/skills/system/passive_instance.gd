@@ -10,12 +10,10 @@ func on_unequip() -> void:
 
 func set_level(new_level: int) -> void:
 	level = new_level
-	apply() # overwrite keyed modifiers (non-stacking)
+	apply() # overwrite (non-stacking)
 
 func apply() -> void:
-	# override in subclasses
-	pass
+	pass # override
 
 func _disconnect() -> void:
-	# override if you connect to signals
-	pass
+	pass # override if you connect to signals

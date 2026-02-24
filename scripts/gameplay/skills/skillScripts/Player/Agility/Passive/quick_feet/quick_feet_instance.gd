@@ -1,4 +1,4 @@
-extends "res://scripts/gameplay/skills/system/passive_instance.gd"
+extends PassiveInstance
 class_name QuickFeetInstance
 
 func apply() -> void:

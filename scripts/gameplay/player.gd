@@ -15,25 +15,6 @@ var is_grabbed: bool = false
 @onready var controller: GameController = get_node_or_null("../GameController") as GameController
 @onready var health_bar: HBoxContainer = get_node_or_null("../UI/HP/HealthBar") as HBoxContainer
 
-# --- Exported stats (your existing design) ---
-@export_category("Stats")
-@export var base_stats := {
-	"Agility": 3,
-	"Perception": 3,
-	"Focus": 3,
-	"Resolve": 3,
-	"Composure": 3
-}
-
-@export_category("subStats")
-@export var sub_stats := {
-	"Step Time": 0.0,   # seconds per tile step (baseline)
-	"Max Health": 0
-}
-
-# --- Runtime stats copy (what your game edits at runtime) ---
-var _stats: Dictionary = {}
-
 # --- Grid movement ---
 var cell: Vector2i
 var facing: Vector2i = Vector2i.RIGHT
@@ -53,9 +34,18 @@ var trail_history: Array[Vector2i] = []
 
 # --- Health ---
 var current_health: int = 0
+var _last_max_health: int = 0
 
 func _ready() -> void:
-	init_player_stats()
+	_init_stats_from_config()
+
+	if stats and stats.has_signal("stat_changed"):
+		stats.stat_changed.connect(_on_stat_changed)
+
+	current_health = int(stats.get_stat("Max Health"))
+	_last_max_health = current_health
+	_last_max_health = int(stats.get_stat(&"Max Health"))
+	current_health = _last_max_health
 
 	if health_bar:
 		health_bar.call("init_hearts")
@@ -152,24 +142,13 @@ func _physics_process(delta: float) -> void:
 # ---------------------------
 
 func _get_step_time() -> float:
-	# Baseline step time from your sub_stats
-	var base_step_time := float(sub_stats.get("Step Time", GameConfig.player_step_time))
+	# Prefer computed Step Time (base + modifiers)
+	if stats != null and stats.has_method("get_stat"):
+		var t := float(stats.call("get_stat", &"Step Time"))
+		return maxf(0.05, t) # clamp safety
 
-	# If no Stats component, fall back to baseline
-	if stats == null:
-		return base_step_time
-
-	# Convert "move speed" stat into effective step time.
-	# Faster move speed => smaller step time.
-	var base_ms: float = stats.base_move_speed
-	var cur_ms: float = stats.get_move_speed()
-
-	if base_ms <= 0.0:
-		return base_step_time
-	if cur_ms <= 0.01:
-		cur_ms = 0.01
-
-	return base_step_time * (base_ms / cur_ms)
+	# Fallback
+	return float(GameConfig.player_step_time)
 
 func setupPlayer() -> void:
 	# Keep this for whatever calls it externally
@@ -409,36 +388,39 @@ func on_grab_release() -> void:
 # ---------------------------
 # Your stats API (kept compatible)
 # ---------------------------
+func get_stat(stat_name: StringName) -> float:
+	return float(stats.get_stat(stat_name))
 
-func init_player_stats() -> void:
-	set_stats(GameConfig.default_stats)
+func set_base_stat(stat_name: StringName, value: float) -> void:
+	stats.base[stat_name] = value
+	stats.stat_changed.emit(stat_name) # optional, if you rely on signal
 
-	sub_stats["Step Time"] = GameConfig.player_step_time
-	sub_stats["Max Health"] = GameConfig.player_max_health
+func add_base_stat(stat_name: StringName, amount: float) -> void:
+	set_base_stat(stat_name, float(stats.base.get(stat_name, 0.0)) + amount)
 
-	current_health = int(sub_stats["Max Health"])
+func _init_stats_from_config() -> void:
+	stats.base[&"Agility"] = GameConfig.default_stats["Agility"]
+	stats.base[&"Perception"] = GameConfig.default_stats["Perception"]
+	stats.base[&"Focus"] = GameConfig.default_stats["Focus"]
+	stats.base[&"Resolve"] = GameConfig.default_stats["Resolve"]
+	stats.base[&"Composure"] = GameConfig.default_stats["Composure"]
 
-func get_stats() -> Dictionary:
-	return _stats.duplicate(true)
+	stats.base[&"Step Time"] = float(GameConfig.player_step_time)
+	stats.base[&"Max Health"] = float(GameConfig.player_max_health)
 
-func set_stats(stats_dict: Dictionary) -> void:
-	for key in base_stats.keys():
-		if stats_dict.has(key):
-			_stats[key] = stats_dict[key]
-	print("[Player] Stats updated: %s" % str(_stats))
+func _on_stat_changed(stat_name: StringName) -> void:
+	if stat_name != &"Max Health":
+		return
 
-func get_stat(stat_name: String):
-	return _stats.get(stat_name, null)
+	var new_max := int(stats.get_stat(&"Max Health"))
+	var delta := new_max - _last_max_health
 
-func set_stat(stat_name: String, value) -> void:
-	if _stats.has(stat_name):
-		_stats[stat_name] = value
-	print("[Player] Stat '%s' set to %s" % [stat_name, str(value)])
+	if delta > 0:
+		current_health += delta
 
-func get_base_stat(stat_name: String):
-	return base_stats.get(stat_name, null)
+	current_health = clampi(current_health, 0, new_max)
+	_last_max_health = new_max
 
-func set_base_stat(stat_name: String, value: int) -> void:
-	if base_stats.has(stat_name):
-		base_stats[stat_name] = value
-	print("[Player] Base stat '%s' set to %d" % [stat_name, value])
+	if health_bar:
+		health_bar.call("init_hearts")
+		health_bar.call("update_hearts")

@@ -1,0 +1,11 @@
+[gd_resource type="Resource" script_class="SkillPool" format=3 uid="uid://bf5e67lalblb5"]
+
+[ext_resource type="Script" uid="uid://cq8h62iibduhs" path="res://scripts/gameplay/skills/system/active_def.gd" id="1_lw0d3"]
+[ext_resource type="Script" uid="uid://ggkv2oom1raw" path="res://scripts/gameplay/skills/system/passive_def.gd" id="2_syifa"]
+[ext_resource type="Resource" uid="uid://cke0brdoy8c7c" path="res://scripts/gameplay/skills/skillScripts/Player/Agility/Passive/quick_feet/quick_feet.tres" id="3_syifa"]
+[ext_resource type="Script" uid="uid://btwdoxqpknn1w" path="res://scripts/gameplay/skills/skill_pool.gd" id="3_t4l6g"]
+
+[resource]
+script = ExtResource("3_t4l6g")
+stat_id = &"Agility"
+passives = Array[ExtResource("2_syifa")]([ExtResource("3_syifa")])

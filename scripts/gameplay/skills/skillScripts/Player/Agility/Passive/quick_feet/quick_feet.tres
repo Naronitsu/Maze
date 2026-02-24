@@ -1,0 +1,9 @@
+[gd_resource type="Resource" script_class="QuickFeetDef" format=3 uid="uid://cke0brdoy8c7c"]
+
+[ext_resource type="Script" uid="uid://cnl4pbh7hx0gp" path="res://scripts/gameplay/skills/skillScripts/Player/Agility/Passive/quick_feet/quick_feet_def.gd" id="1_a0y4v"]
+
+[resource]
+script = ExtResource("1_a0y4v")
+id = &"quick_feet"
+display_name = "Quick Feet"
+metadata/_custom_type_script = "uid://cnl4pbh7hx0gp"

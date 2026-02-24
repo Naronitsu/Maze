@@ -1,7 +1,7 @@
 extends Control
 class_name LevelUpPanel
 
-signal upgrade_chosen(stat_name: String, amount: int)
+signal choice_chosen(choice: Dictionary)
 
 @onready var b1: Button = $Center/VBox/HBox/Choice1
 @onready var b2: Button = $Center/VBox/HBox/Choice2
@@ -13,7 +13,6 @@ func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
 	hide()
 
-	# IMPORTANT: use pressed, not gui_input
 	b1.pressed.connect(func() -> void: _pick(0))
 	b2.pressed.connect(func() -> void: _pick(1))
 	b3.pressed.connect(func() -> void: _pick(2))
@@ -41,4 +40,4 @@ func _pick(idx: int) -> void:
 		return
 	var c := _choices[idx]
 	hide()
-	upgrade_chosen.emit(String(c["stat"]), int(c["amount"]))
+	choice_chosen.emit(c)
