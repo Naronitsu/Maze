@@ -7151,7 +7151,6 @@ shader_parameter/glow = 0.12
 
 [node name="Game" type="Node2D" unique_id=1154573021]
 script = ExtResource("1_3dryh")
-debug_disable_pillar_requirement = true
 
 [node name="IngameMusic" type="AudioStreamPlayer" parent="." unique_id=1178671735]
 stream = ExtResource("2_lupr0")
