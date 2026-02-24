@@ -3,6 +3,7 @@
 [ext_resource type="Script" uid="uid://ctp00nwakxtgv" path="res://scripts/gameplay/player.gd" id="1_cvnsp"]
 [ext_resource type="Texture2D" uid="uid://bhx28fhry8utr" path="res://sprites/player/prototype_character.png" id="2_hrnqq"]
 [ext_resource type="PackedScene" uid="uid://dua8c5l5gcicr" path="res://scenes/utils/SkillManager.tscn" id="4_dap4h"]
+[ext_resource type="Script" uid="uid://dpypojhogtslc" path="res://scripts/gameplay/skills/system/stats_component.gd" id="5_ki2oj"]
 [ext_resource type="AudioStream" uid="uid://j5l5j0idumip" path="res://sounds/footstep.sfxr" id="25_footstep"]
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_3dryh"]
@@ -231,3 +232,6 @@ stream = ExtResource("25_footstep")
 position = Vector2(0, -13)
 
 [node name="SkillManager" parent="." unique_id=346403809 instance=ExtResource("4_dap4h")]
+
+[node name="Stats" type="Node" parent="." unique_id=672969590]
+script = ExtResource("5_ki2oj")

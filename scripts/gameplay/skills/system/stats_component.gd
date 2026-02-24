@@ -1,5 +1,5 @@
 extends Node
-class_name StatsComponent
+class_name Stats
 
 ## Simple keyed modifier system (flat additive for now).
 ## Add this as a child node named "Stats" under any actor (Player, Enemy, etc.).
