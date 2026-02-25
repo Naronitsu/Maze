@@ -46,6 +46,18 @@ window/stretch/aspect="expand"
 
 enabled=PackedStringArray("res://addons/gdfxr/plugin.cfg", "res://addons/kanban_tasks/plugin.cfg")
 
+[file_customization]
+
+folder_colors={
+"res://fonts/": "teal",
+"res://scenes/": "yellow",
+"res://scripts/": "green",
+"res://shaders/": "gray",
+"res://sounds/": "purple",
+"res://sprites/": "orange",
+"res://themes/": "pink"
+}
+
 [gui]
 
 theme/custom="res://themes/global_theme.tres"
