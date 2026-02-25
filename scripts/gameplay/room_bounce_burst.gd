@@ -16,6 +16,7 @@ var _age: float = 0.0
 var _pos: PackedVector2Array = PackedVector2Array()
 var _vel: PackedVector2Array = PackedVector2Array()
 
+
 func start(bounds_world: Rect2, seed: int = 0) -> void:
 	_bounds_world = bounds_world
 	_age = 0.0
@@ -42,6 +43,7 @@ func start(bounds_world: Rect2, seed: int = 0) -> void:
 		_vel[i] = Vector2(cos(a), sin(a)) * sp
 
 	queue_redraw()
+
 
 func _process(dt: float) -> void:
 	_age += dt
@@ -77,6 +79,7 @@ func _process(dt: float) -> void:
 		_vel[i] = v
 
 	queue_redraw()
+
 
 func _draw() -> void:
 	if _pos.is_empty():

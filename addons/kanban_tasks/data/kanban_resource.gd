@@ -3,9 +3,8 @@ extends RefCounted
 
 ## Base class for kanban tasks data structures.
 
-
 ## Emitted when the resource changed. The properties are updated before emitting.
-signal changed()
+signal changed
 
 var __emit_changed := true
 

@@ -3,9 +3,11 @@ class_name ActiveInstance
 
 var cooldown_remaining: float = 0.0
 
+
 func tick(delta: float) -> void:
 	if cooldown_remaining > 0.0:
 		cooldown_remaining = maxf(0.0, cooldown_remaining - delta)
+
 
 func try_activate(context := {}) -> bool:
 	if cooldown_remaining > 0.0:
@@ -22,8 +24,10 @@ func try_activate(context := {}) -> bool:
 	cooldown_remaining = adef.cooldown
 	return true
 
+
 func can_activate(_context := {}) -> bool:
 	return true
 
+
 func activate(_context := {}) -> void:
-	pass # override
+	pass  # override

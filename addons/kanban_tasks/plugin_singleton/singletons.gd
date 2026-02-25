@@ -2,7 +2,6 @@ extends Object
 
 ## Allows the registration of anonymous singletons into the scene tree.
 
-
 const HOLDER_NAME: String = "PluginSingletons"
 
 

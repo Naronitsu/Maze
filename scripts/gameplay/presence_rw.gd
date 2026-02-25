@@ -5,16 +5,9 @@
 extends Node2D
 class_name PresenceRW
 
-enum PresenceType{
-	HUNTER,
-	WATCHER,
-	OBSESSIVE,
-	UNYIELDING,
-	SUFFOCATOR,
-	TUTORIAL
-}
+enum PresenceType { HUNTER, WATCHER, OBSESSIVE, UNYIELDING, SUFFOCATOR, TUTORIAL }
 
-@export var presence_type: PresenceType = PresenceType.TUTORIAL;
+@export var presence_type: PresenceType = PresenceType.TUTORIAL
 
 @export_category("Dependencies")
 @export var controller: GameController
@@ -22,13 +15,8 @@ enum PresenceType{
 # Backward compatibility with scene files
 @export var controller_path: NodePath
 
-@export var default_stats := {
-	"Agility": 3,
-	"Perception": 3,
-	"Focus": 3,
-	"Resolve": 3,
-	"Composure": 3
-}
+@export
+var default_stats := {"Agility": 3, "Perception": 3, "Focus": 3, "Resolve": 3, "Composure": 3}
 
 @export_category("Movement")
 @export var move_interval: float = 0.45
@@ -63,11 +51,12 @@ var _rng := RandomNumberGenerator.new()
 
 var _last_player_cell: Vector2i = INVALID_CELL
 
+
 func _ready() -> void:
 	# Initialize from NodePath export if direct reference not set (backward compatibility)
 	if controller == null and controller_path != NodePath():
 		controller = get_node_or_null(controller_path) as GameController
-	
+
 	if controller == null:
 		push_error("[PresenceRW] GameController reference not found")
 		return
@@ -81,9 +70,11 @@ func _ready() -> void:
 	EventBus.presence_should_spawn.connect(_on_presence_should_spawn)
 	EventBus.level_started.connect(_on_level_started)
 
+
 func _on_level_started(_player_pos: Vector2i, _maze: Node) -> void:
 	# Despawn presence on new level start
 	deactivate()
+
 
 func _process(delta: float) -> void:
 	if not _active or GameState.current != GameState.State.PLAYING:
@@ -104,9 +95,11 @@ func _process(delta: float) -> void:
 	_grab_cd = maxf(0.0, _grab_cd - delta)
 	_check_grab()
 
+
 func _draw() -> void:
 	if debug_draw and _active:
 		draw_circle(Vector2.ZERO, debug_radius, debug_color)
+
 
 func _snap_to_cell() -> void:
 	if controller == null:
@@ -116,6 +109,7 @@ func _snap_to_cell() -> void:
 	global_position = controller.cell_to_world_center(cell)
 	queue_redraw()
 
+
 func _ensure_initialized_from_world() -> void:
 	if controller == null:
 		return
@@ -124,6 +118,7 @@ func _ensure_initialized_from_world() -> void:
 	cell = controller.world_to_cell(global_position)
 	_prev_cell = cell
 	_snap_to_cell()
+
 
 # -----------------------------------------------------------------------------
 # Public API
@@ -140,6 +135,7 @@ func deactivate() -> void:
 	set_physics_process(false)
 	queue_redraw()
 
+
 func activate() -> void:
 	_active = true
 	visible = true
@@ -150,20 +146,22 @@ func activate() -> void:
 	_snap_to_cell()
 	queue_redraw()
 
+
 # =========================================================
 # Spawn Event Handler
 # =========================================================
 
+
 func _on_presence_should_spawn(player_history: Array) -> void:
 	"""Handle presence_should_spawn signal - try spawn chain using strategies"""
 	print("[PresenceRW] Received spawn signal (history: %d cells)" % player_history.size())
-	
+
 	set_process(false)  # Don't move until spawned
-	
+
 	if controller == null:
 		push_error("[PresenceRW] No controller available for spawning")
 		return
-	
+
 	# Try strategies in order: history → room → far
 	# TODO: Replace with actual spawn logic or import PresenceSpawnStrategy implementations.
 	# For now, fallback to a simple spawn at a random valid cell far from the player.
@@ -176,14 +174,17 @@ func _on_presence_should_spawn(player_history: Array) -> void:
 			far_cells = GameConfig.presence_min_spawn_dist_cells
 		var possible_cells = []
 		for cell_pos in maze_layer.get_used_cells():
-			if controller.path_distance(player_cell, cell_pos) >= far_cells and controller.is_passable_for_presence(cell_pos):
+			if (
+				controller.path_distance(player_cell, cell_pos) >= far_cells
+				and controller.is_passable_for_presence(cell_pos)
+			):
 				possible_cells.append(cell_pos)
 		if possible_cells.size() > 0:
 			cell = possible_cells[_rng.randi_range(0, possible_cells.size() - 1)]
 			_snap_to_cell()
 			spawned = true
 			print("[PresenceRW] Spawned at random far cell %s" % cell)
-	
+
 	# Activate if spawned
 	if spawned:
 		activate()
@@ -191,19 +192,24 @@ func _on_presence_should_spawn(player_history: Array) -> void:
 		print("[PresenceRW] Presence activated at %s" % cell)
 	else:
 		print("[PresenceRW] ERROR: Failed to spawn presence with any strategy")
-	
+
 	queue_redraw()
+
 
 func is_active() -> bool:
 	return _active
+
 
 func get_pressure01() -> float:
 	if not _active or controller == null or controller.player == null or cell == INVALID_CELL:
 		return 0.0
 	var p_cell := controller.world_to_cell(controller.player.global_position)
 	var d := _presence_distance(cell, p_cell)
-	var t := inverse_lerp(float(GameConfig.presence_far_cells), float(GameConfig.presence_near_cells), float(d))
+	var t := inverse_lerp(
+		float(GameConfig.presence_far_cells), float(GameConfig.presence_near_cells), float(d)
+	)
 	return clampf(t, 0.0, 1.0)
+
 
 func _step() -> void:
 	if controller == null or not _active:
@@ -233,9 +239,10 @@ func _step() -> void:
 	_prev_cell = cell
 	cell = next
 	_snap_to_cell()
-	
+
 	# Emit presence_moved signal
 	EventBus.presence_moved.emit(_prev_cell, cell)
+
 
 func _best_step_toward_target(neighbors: Array[Vector2i], target_cell: Vector2i) -> Vector2i:
 	var best := INVALID_CELL
@@ -269,14 +276,17 @@ func _best_step_toward_target(neighbors: Array[Vector2i], target_cell: Vector2i)
 
 	return best
 
+
 func _get_target_cell() -> Vector2i:
 	if controller == null or controller.player == null:
 		return INVALID_CELL
 	return controller.world_to_cell(controller.player.global_position)
 
+
 # -----------------------------------------------------------------------------
 # Door + passability helpers
 # -----------------------------------------------------------------------------
+
 
 func _presence_passable(c: Vector2i) -> bool:
 	if controller == null:
@@ -285,12 +295,14 @@ func _presence_passable(c: Vector2i) -> bool:
 		return bool(controller.call("is_passable_for_presence", c))
 	return controller.is_walkable(c)
 
+
 func _presence_distance(a: Vector2i, b: Vector2i) -> int:
 	if controller == null:
 		return 999999
 	if controller.has_method("path_distance_presence"):
 		return int(controller.call("path_distance_presence", a, b))
 	return controller.path_distance(a, b)
+
 
 func _try_open_if_door(c: Vector2i) -> bool:
 	if controller == null:
@@ -299,6 +311,7 @@ func _try_open_if_door(c: Vector2i) -> bool:
 		if bool(controller.call("is_door_closed", c)):
 			return bool(controller.call("try_open_door", c))
 	return false
+
 
 func _open_player_door_if_needed() -> void:
 	if controller == null or controller.player == null:
@@ -312,9 +325,11 @@ func _open_player_door_if_needed() -> void:
 	# “Open any doors he enters.”
 	_try_open_if_door(p_cell)
 
+
 # -----------------------------------------------------------------------------
 # Catch
 # -----------------------------------------------------------------------------
+
 
 func _check_catch() -> void:
 	if not _active:
@@ -331,18 +346,24 @@ func _check_catch() -> void:
 	if d <= GameConfig.presence_catch_distance_cells:
 		_on_catch()
 
+
 func _on_catch() -> void:
-	EventBus.presence_caught_player.emit(cell, controller.world_to_cell(controller.player.global_position))
+	EventBus.presence_caught_player.emit(
+		cell, controller.world_to_cell(controller.player.global_position)
+	)
 	get_tree().reload_current_scene()
+
 
 # Event listeners
 func _on_player_moved(_from_cell: Vector2i, to_cell: Vector2i) -> void:
 	"""Called when player moves, so we can detect door opening."""
 	_last_player_cell = to_cell
 
+
 # -----------------------------------------------------------------------------
 # Grab Attack
 # -----------------------------------------------------------------------------
+
 
 func _check_grab() -> void:
 	if not _active:
@@ -359,12 +380,12 @@ func _check_grab() -> void:
 		return
 
 	var p_cell := controller.world_to_cell(controller.player.global_position)
-	var d := _presence_distance(cell, p_cell) # path distance, not raw grid distance
+	var d := _presence_distance(cell, p_cell)  # path distance, not raw grid distance
 	if d <= grab_range_cells:
 		_spawn_grab(p_cell)
 
-func _spawn_grab(target_cell: Vector2i) -> void:
 
+func _spawn_grab(target_cell: Vector2i) -> void:
 	_grab_cd = grab_cooldown
 	_grab_active = true
 
@@ -372,7 +393,12 @@ func _spawn_grab(target_cell: Vector2i) -> void:
 	var player = controller.player
 	if player:
 		player.set("movement_locked", true)
-		print("[PresenceRW] Player found at global_position=", player.global_position, ", cell=", target_cell)
+		print(
+			"[PresenceRW] Player found at global_position=",
+			player.global_position,
+			", cell=",
+			target_cell
+		)
 
 	# Find available adjacent tile to the player
 	var neighbors = controller.get_neighbors4(target_cell)
@@ -385,7 +411,12 @@ func _spawn_grab(target_cell: Vector2i) -> void:
 		# Fallback: use player cell if no adjacent available
 		spawn_cell = target_cell
 
-	print("[PresenceRW] Grab will spawn at cell=", spawn_cell, ", world=", controller.cell_to_world_center(spawn_cell))
+	print(
+		"[PresenceRW] Grab will spawn at cell=",
+		spawn_cell,
+		", world=",
+		controller.cell_to_world_center(spawn_cell)
+	)
 
 	var grab := grab_scene.instantiate() as Node2D
 	controller.maze_layer.add_child(grab)
@@ -397,11 +428,12 @@ func _spawn_grab(target_cell: Vector2i) -> void:
 	if grab.has_method("init_grab"):
 		grab.call("init_grab", controller.player, spawn_world)
 
-
 	# Start the minigame UI if present
 	var minigame = get_tree().current_scene.get_node_or_null("grabMinigame")
 	if minigame:
-		print("[PresenceRW] Starting grab minigame UI following grab node at ", grab.global_position)
+		print(
+			"[PresenceRW] Starting grab minigame UI following grab node at ", grab.global_position
+		)
 		minigame.start_follow(grab)
 
 	# Listen for grab finish to re-enable player movement
@@ -412,11 +444,13 @@ func _spawn_grab(target_cell: Vector2i) -> void:
 		await get_tree().create_timer(1.2).timeout
 		_on_grab_finished()
 
+
 func _on_grab_finished() -> void:
 	_grab_active = false
 	# Re-enable player movement
 	if controller and controller.player:
 		controller.player.set("movement_locked", false)
+
 
 func _load_stats(stats: Dictionary) -> void:
 	for key in stats.keys():
@@ -425,7 +459,8 @@ func _load_stats(stats: Dictionary) -> void:
 			print("[PresenceRW] Loaded stat '%s' with value %s" % [key, stats[key]])
 		else:
 			print("[PresenceRW] Warning: Unknown stat '%s' in loaded stats" % key)
-	
+
+
 func _calculate_type() -> void:
 	var stat_to_type = {
 		"Agility": PresenceType.HUNTER,
@@ -444,5 +479,5 @@ func _calculate_type() -> void:
 		presence_type = stat_to_type[chosen_stat]
 	else:
 		presence_type = PresenceType.TUTORIAL
-	
+
 	print("[PresenceRW] Calculated presence type as %s" % [presence_type])

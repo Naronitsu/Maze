@@ -1,7 +1,6 @@
 @tool
 extends VBoxContainer
 
-
 const __Singletons := preload("../../../plugin_singleton/singletons.gd")
 const __EditContext := preload("../../edit_context.gd")
 const __SettingData := preload("../../../data/settings.gd")
@@ -63,12 +62,12 @@ func _ready() -> void:
 	file_dialog_open_option.button_group = file_dialog_option_button_group
 	file_dialog_save_option.button_group = file_dialog_option_button_group
 	file_dialog_create_option.button_group = file_dialog_option_button_group
-	file_dialog_option_button_group.pressed.connect(func (button): __update_file_dialog())
-	file_dialog.get_line_edit().text_changed.connect(func (new_text): __update_file_dialog())
+	file_dialog_option_button_group.pressed.connect(func(button): __update_file_dialog())
+	file_dialog.get_line_edit().text_changed.connect(func(new_text): __update_file_dialog())
 	file_dialog_open_option.button_pressed = true
 
 	file_dialog.file_selected.connect(__update_editor_data_file)
-	
+
 	notification(NOTIFICATION_THEME_CHANGED)
 
 
@@ -76,7 +75,9 @@ func _notification(what: int) -> void:
 	match what:
 		NOTIFICATION_THEME_CHANGED:
 			if is_instance_valid(panel_container):
-				panel_container.add_theme_stylebox_override(&"panel", get_theme_stylebox(&"panel", &"Tree"))
+				panel_container.add_theme_stylebox_override(
+					&"panel", get_theme_stylebox(&"panel", &"Tree")
+				)
 
 
 func update() -> void:

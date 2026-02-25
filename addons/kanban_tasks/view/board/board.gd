@@ -3,7 +3,6 @@ extends VBoxContainer
 
 ## The visual representation of a kanban board.
 
-
 const __Singletons := preload("../../plugin_singleton/singletons.gd")
 const __Shortcuts := preload("../shortcuts.gd")
 const __EditContext := preload("../edit_context.gd")
@@ -13,7 +12,7 @@ const __StageScene := preload("../stage/stage.tscn")
 const __Filter := preload("../filter.gd")
 const __SettingsScript := preload("../settings/settings.gd")
 
-signal show_documentation()
+signal show_documentation
 
 var board_data: __BoardData
 
@@ -75,7 +74,7 @@ func _shortcut_input(event: InputEvent) -> void:
 
 
 func _notification(what):
-	match(what):
+	match what:
 		NOTIFICATION_THEME_CHANGED:
 			if is_instance_valid(search_bar):
 				search_bar.right_icon = get_theme_icon(&"Search", &"EditorIcons")

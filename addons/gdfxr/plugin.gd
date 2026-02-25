@@ -1,7 +1,6 @@
 @tool
 extends EditorPlugin
 
-
 var import_plugin: EditorImportPlugin
 var sfxr_editor: Control
 
@@ -9,7 +8,7 @@ var sfxr_editor: Control
 func _enter_tree():
 	import_plugin = preload("import_plugin.gd").new()
 	add_import_plugin(import_plugin)
-	
+
 	sfxr_editor = preload("editor/Editor.tscn").instantiate()
 	sfxr_editor.plugin = self
 	add_control_to_bottom_panel(sfxr_editor, "gdfxr")
@@ -19,7 +18,7 @@ func _exit_tree():
 	remove_control_from_bottom_panel(sfxr_editor)
 	sfxr_editor.queue_free()
 	sfxr_editor = null
-	
+
 	remove_import_plugin(import_plugin)
 	import_plugin = null
 

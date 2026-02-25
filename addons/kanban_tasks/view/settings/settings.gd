@@ -1,7 +1,6 @@
 @tool
 extends AcceptDialog
 
-
 const __BoardData := preload("../../data/board.gd")
 const __CategoriesScene := preload("../settings/categories/categories.tscn")
 const __CategoriesScript := preload("../settings/categories/categories.gd")
@@ -26,7 +25,12 @@ func _ready() -> void:
 # Workaround for godotengine/godot#70451
 func popup_centered_ratio_no_fullscreen(ratio: float = 0.8) -> void:
 	var viewport: Viewport = get_parent().get_viewport()
-	popup(Rect2i(Vector2(viewport.position) + viewport.size / 2.0 - viewport.size * ratio / 2.0, viewport.size * ratio))
+	popup(
+		Rect2i(
+			Vector2(viewport.position) + viewport.size / 2.0 - viewport.size * ratio / 2.0,
+			viewport.size * ratio
+		)
+	)
 
 
 func on_theme_changed():

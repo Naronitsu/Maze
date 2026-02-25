@@ -3,7 +3,6 @@ extends "kanban_resource.gd"
 
 ## Data of a task.
 
-
 const __Step := preload("step.gd")
 
 var title: String:
@@ -29,7 +28,12 @@ var steps: Array[__Step]:
 		__notify_changed()
 
 
-func _init(p_title: String = "", p_description: String = "", p_category: String = "", p_steps: Array[__Step] = []) -> void:
+func _init(
+	p_title: String = "",
+	p_description: String = "",
+	p_category: String = "",
+	p_steps: Array[__Step] = []
+) -> void:
 	title = p_title
 	description = p_description
 	category = p_category

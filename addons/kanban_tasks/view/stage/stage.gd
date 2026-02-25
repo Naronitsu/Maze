@@ -3,7 +3,6 @@ extends MarginContainer
 
 ## The visual representation of a stage.
 
-
 const __Singletons := preload("../../plugin_singleton/singletons.gd")
 const __Shortcuts := preload("../shortcuts.gd")
 const __EditContext := preload("../edit_context.gd")
@@ -32,10 +31,13 @@ func _ready() -> void:
 	update()
 	board_data.get_stage(data_uuid).changed.connect(update.bind(true))
 
-	scroll_container.set_drag_forwarding(
-		_get_drag_data_fw.bind(scroll_container),
-		_can_drop_data_fw.bind(scroll_container),
-		_drop_data_fw.bind(scroll_container),
+	(
+		scroll_container
+		. set_drag_forwarding(
+			_get_drag_data_fw.bind(scroll_container),
+			_can_drop_data_fw.bind(scroll_container),
+			_drop_data_fw.bind(scroll_container),
+		)
 	)
 
 	create_button.pressed.connect(__on_create_button_pressed)
@@ -122,8 +124,12 @@ func _drop_data(at_position: Vector2, data: Variant) -> void:
 	else:
 		tasks.erase(data["task"])
 
-		ctx.undo_redo.add_do_property(board_data.get_stage(data["stage"]), &"tasks", tasks.duplicate())
-		ctx.undo_redo.add_undo_property(board_data.get_stage(data["stage"]), &"tasks", board_data.get_stage(data["stage"]).tasks)
+		ctx.undo_redo.add_do_property(
+			board_data.get_stage(data["stage"]), &"tasks", tasks.duplicate()
+		)
+		ctx.undo_redo.add_undo_property(
+			board_data.get_stage(data["stage"]), &"tasks", board_data.get_stage(data["stage"]).tasks
+		)
 
 		tasks = board_data.get_stage(data_uuid).tasks
 		tasks.insert(index, data["task"])
@@ -131,7 +137,9 @@ func _drop_data(at_position: Vector2, data: Variant) -> void:
 	ctx.focus = data["task"]
 
 	ctx.undo_redo.add_do_property(board_data.get_stage(data_uuid), &"tasks", tasks)
-	ctx.undo_redo.add_undo_property(board_data.get_stage(data_uuid), &"tasks", board_data.get_stage(data_uuid).tasks)
+	ctx.undo_redo.add_undo_property(
+		board_data.get_stage(data_uuid), &"tasks", board_data.get_stage(data_uuid).tasks
+	)
 	ctx.undo_redo.commit_action()
 
 
@@ -141,10 +149,12 @@ func _drop_data_fw(at_position: Vector2, data: Variant, from: Control) -> void:
 
 
 func _notification(what: int) -> void:
-	match(what):
+	match what:
 		NOTIFICATION_THEME_CHANGED:
 			if is_instance_valid(panel_container):
-				panel_container.add_theme_stylebox_override(&"panel", get_theme_stylebox(&"panel", &"Tree"))
+				panel_container.add_theme_stylebox_override(
+					&"panel", get_theme_stylebox(&"panel", &"Tree")
+				)
 			if is_instance_valid(create_button):
 				create_button.icon = get_theme_icon(&"Add", &"EditorIcons")
 			if is_instance_valid(preview_color):
@@ -174,10 +184,13 @@ func update(single: bool = false) -> void:
 		var task: __TaskScript = __TaskScene.instantiate()
 		task.board_data = board_data
 		task.data_uuid = uuid
-		task.set_drag_forwarding(
-			_get_drag_data_fw.bind(task),
-			_can_drop_data_fw.bind(task),
-			_drop_data_fw.bind(task),
+		(
+			task
+			. set_drag_forwarding(
+				_get_drag_data_fw.bind(task),
+				_can_drop_data_fw.bind(task),
+				_drop_data_fw.bind(task),
+			)
 		)
 		task_holder.add_child(task)
 
@@ -198,7 +211,7 @@ func __target_index_from_position(pos: Vector2) -> int:
 	var scroll_pos := global_pos - task_holder.get_global_position()
 	var c := 0
 	for task in task_holder.get_children():
-		var y = task.position.y + task.size.y/2
+		var y = task.position.y + task.size.y / 2
 		if scroll_pos.y < y:
 			return c
 		c += 1
@@ -212,7 +225,9 @@ func __set_title(value: String) -> void:
 
 func __on_create_button_pressed() -> void:
 	if board_data.get_category_count() > 1:
-		__category_menu.popup_at_local_position(create_button, Vector2(0, create_button.get_global_rect().size.y))
+		__category_menu.popup_at_local_position(
+			create_button, Vector2(0, create_button.get_global_rect().size.y)
+		)
 	else:
 		__create_task(board_data.get_categories()[0])
 		create_button.set_pressed_no_signal(false)
@@ -249,12 +264,12 @@ func __target_height_from_position(pos: Vector2) -> float:
 	var global_pos = pos + get_global_position()
 
 	if not scroll_container.get_global_rect().has_point(global_pos):
-		return - float(task_holder.get_theme_constant(&"separation")) / 2.0
+		return -float(task_holder.get_theme_constant(&"separation")) / 2.0
 
 	var scroll_pos: Vector2 = global_pos - task_holder.get_global_position()
 	var c := 0.0
 	for task in task_holder.get_children():
-		var y = task.position.y + task.size.y/2.0
+		var y = task.position.y + task.size.y / 2.0
 		if scroll_pos.y < y:
 			return c - float(task_holder.get_theme_constant(&"separation")) / 2.0
 		c += task.size.y + task_holder.get_theme_constant(&"separation")

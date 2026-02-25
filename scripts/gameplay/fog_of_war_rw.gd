@@ -71,9 +71,10 @@ const HIT_INSET_PX := 2.0
 const DOOR_STEP_MIN_PX := 2.0
 const DOOR_STEP_FRACTION_OF_TILE := 0.25
 
+
 func _ready() -> void:
 	set_anchors_preset(Control.PRESET_FULL_RECT)
-	
+
 	# Initialize from NodePath exports if direct references not set (backward compatibility)
 	if player == null and player_path != NodePath():
 		player = get_node_or_null(player_path) as Node2D
@@ -81,7 +82,7 @@ func _ready() -> void:
 		cam = get_node_or_null(camera_path) as Camera2D
 	if layer == null and layer_path != NodePath():
 		layer = get_node_or_null(layer_path) as TileMapLayer
-	
+
 	# Validate required references
 	if layer == null:
 		# Try fallback to find TileMapLayer
@@ -89,19 +90,19 @@ func _ready() -> void:
 		if layer == null:
 			push_error("[FogOfWar] TileMapLayer reference not found - fog system will not work")
 			return
-	
+
 	if player == null:
 		player = get_node_or_null("../Player") as Node2D
 		if player == null:
 			push_error("[FogOfWar] Player reference not found - fog system will not work")
 			return
-	
+
 	if cam == null:
 		cam = get_node_or_null("../Camera2D") as Camera2D
 		if cam == null:
 			push_error("[FogOfWar] Camera reference not found - fog system will not work")
 			return
-	
+
 	# Keep fog frozen until the level is fully ready.
 	suspended = true
 	_awaiting_level_start = true
@@ -135,9 +136,12 @@ func _ready() -> void:
 	if _pending_reveal and not _awaiting_level_start:
 		_resume_after_level_start()
 
+
 func _on_level_started(_spawn_cell: Vector2i, _maze: DungeonMazeLayer) -> void:
 	_maze = _maze
-	_room_rects = (_maze.get_room_rects() if _maze != null and _maze.has_method("get_room_rects") else [])
+	_room_rects = (
+		_maze.get_room_rects() if _maze != null and _maze.has_method("get_room_rects") else []
+	)
 	_room_hold_active = false
 	_room_hold_rect = Rect2i()
 	_room_entry_door_cell = Vector2i(2147483647, 2147483647)
@@ -149,6 +153,7 @@ func _on_level_started(_spawn_cell: Vector2i, _maze: DungeonMazeLayer) -> void:
 	_pending_reveal = true
 	_resume_after_level_start()
 
+
 func _on_level_transitioning() -> void:
 	suspended = true
 	_awaiting_level_start = true
@@ -158,6 +163,7 @@ func _on_level_transitioning() -> void:
 	_room_hold_rect = Rect2i()
 	_room_entry_door_cell = Vector2i(2147483647, 2147483647)
 	_update_sticky_polys()
+
 
 func _on_player_moved(_from_cell: Vector2i, to_cell: Vector2i) -> void:
 	if suspended or _awaiting_level_start:
@@ -189,6 +195,7 @@ func _on_player_moved(_from_cell: Vector2i, to_cell: Vector2i) -> void:
 		_room_entry_door_cell = Vector2i(2147483647, 2147483647)
 		_update_sticky_polys()
 
+
 func _process(dt: float) -> void:
 	_push_shader_uniforms()
 	_update_explored_decay(dt)
@@ -196,6 +203,7 @@ func _process(dt: float) -> void:
 	# Keep sticky polys up to date in case bounds shift (rare) or we want to keep door/room pinned.
 	if _room_hold_active:
 		_update_sticky_polys()
+
 
 func _get_explored_decay_white_tex() -> Texture2D:
 	if _explored_decay_white_tex != null:
@@ -205,6 +213,7 @@ func _get_explored_decay_white_tex() -> Texture2D:
 	img.fill(Color(1, 1, 1, 1))
 	_explored_decay_white_tex = ImageTexture.create_from_image(img)
 	return _explored_decay_white_tex
+
 
 func _ensure_explored_decay_sprite() -> void:
 	if explored_viewport == null:
@@ -233,6 +242,7 @@ func _ensure_explored_decay_sprite() -> void:
 		explored_viewport.add_child(_explored_decay_sprite)
 	_update_explored_decay_sprite_size()
 
+
 func _ensure_sticky_polys() -> void:
 	if explored_viewport == null:
 		return
@@ -254,6 +264,7 @@ func _ensure_sticky_polys() -> void:
 		_sticky_door_poly.color = Color(1, 1, 1, 1)
 		root.add_child(_sticky_door_poly)
 
+
 func _update_sticky_polys() -> void:
 	_ensure_sticky_polys()
 	if _sticky_room_poly == null or _sticky_door_poly == null:
@@ -269,6 +280,7 @@ func _update_sticky_polys() -> void:
 	# Sticky door tile
 	_sticky_door_poly.polygon = _cell_to_explored_tile_poly(_room_entry_door_cell)
 
+
 func _room_rect_to_explored_poly(rect: Rect2i) -> PackedVector2Array:
 	if rect.size == Vector2i.ZERO:
 		return PackedVector2Array()
@@ -281,12 +293,15 @@ func _room_rect_to_explored_poly(rect: Rect2i) -> PackedVector2Array:
 	var half := tile_size * 0.5
 	var min_world := Vector2(min(tl_world.x, br_world.x), min(tl_world.y, br_world.y)) - half
 	var max_world := Vector2(max(tl_world.x, br_world.x), max(tl_world.y, br_world.y)) + half
-	return PackedVector2Array([
-		min_world - maze_origin_world,
-		Vector2(max_world.x, min_world.y) - maze_origin_world,
-		max_world - maze_origin_world,
-		Vector2(min_world.x, max_world.y) - maze_origin_world,
-	])
+	return PackedVector2Array(
+		[
+			min_world - maze_origin_world,
+			Vector2(max_world.x, min_world.y) - maze_origin_world,
+			max_world - maze_origin_world,
+			Vector2(min_world.x, max_world.y) - maze_origin_world,
+		]
+	)
+
 
 func _cell_to_explored_tile_poly(cell: Vector2i) -> PackedVector2Array:
 	if tile_size == Vector2.ZERO:
@@ -295,17 +310,21 @@ func _cell_to_explored_tile_poly(cell: Vector2i) -> PackedVector2Array:
 	var half := tile_size * 0.5
 	var min_world := c_world - half
 	var max_world := c_world + half
-	return PackedVector2Array([
-		min_world - maze_origin_world,
-		Vector2(max_world.x, min_world.y) - maze_origin_world,
-		max_world - maze_origin_world,
-		Vector2(min_world.x, max_world.y) - maze_origin_world,
-	])
+	return PackedVector2Array(
+		[
+			min_world - maze_origin_world,
+			Vector2(max_world.x, min_world.y) - maze_origin_world,
+			max_world - maze_origin_world,
+			Vector2(min_world.x, max_world.y) - maze_origin_world,
+		]
+	)
+
 
 func _cell_center_world(cell: Vector2i) -> Vector2:
 	if layer == null:
 		return Vector2.ZERO
 	return layer.to_global(layer.map_to_local(cell))
+
 
 func _is_room_connected_door(cell: Vector2i) -> bool:
 	if _maze == null:
@@ -316,11 +335,13 @@ func _is_room_connected_door(cell: Vector2i) -> bool:
 		return false
 	return _room_rect_connected_to_door(cell).size != Vector2i.ZERO
 
+
 func _room_rect_connected_to_door(door_cell: Vector2i) -> Rect2i:
 	for r: Rect2i in _room_rects:
 		if _is_door_connected_to_rect(door_cell, r):
 			return r
 	return Rect2i()
+
 
 func _is_door_connected_to_rect(door_cell: Vector2i, rect: Rect2i) -> bool:
 	if rect.size == Vector2i.ZERO:
@@ -332,6 +353,7 @@ func _is_door_connected_to_rect(door_cell: Vector2i, rect: Rect2i) -> bool:
 			return true
 	return false
 
+
 func _update_explored_decay_sprite_size() -> void:
 	if explored_viewport == null:
 		return
@@ -342,6 +364,7 @@ func _update_explored_decay_sprite_size() -> void:
 		return
 	# The decay sprite uses a 1x1 texture; scale directly to viewport pixels.
 	_explored_decay_sprite.scale = Vector2(float(s.x), float(s.y))
+
 
 func _update_explored_decay(dt: float) -> void:
 	if _explored_decay_sprite == null or not is_instance_valid(_explored_decay_sprite):
@@ -378,6 +401,7 @@ func _update_explored_decay(dt: float) -> void:
 	var amount := clampf(rate * _EXPLORED_DECAY_STEP_SEC * float(steps), 0.0, 1.0)
 	_explored_decay_mat.set_shader_parameter("amount", amount)
 
+
 func set_facing_cardinal(dir) -> void:
 	var v: Vector2
 	if dir is Vector2:
@@ -390,21 +414,25 @@ func set_facing_cardinal(dir) -> void:
 	if v == Vector2.LEFT or v == Vector2.RIGHT or v == Vector2.UP or v == Vector2.DOWN:
 		facing = v
 
+
 func set_suspended(v: bool) -> void:
 	suspended = v
 
+
 func reveal_now() -> void:
 	_update_masks()
+
 
 # -------------------------
 # Bounds + viewports
 # -------------------------
 
+
 func _compute_layer_bounds() -> void:
 	if layer == null:
 		push_error("[FogOfWar._compute_layer_bounds] layer is null")
 		return
-	
+
 	var used: Rect2i = layer.get_used_rect()
 
 	var ts := layer.tile_set
@@ -423,12 +451,13 @@ func _compute_layer_bounds() -> void:
 
 	maze_origin_world = Vector2(min(world_a.x, world_b.x), min(world_a.y, world_b.y))
 	maze_size_world = Vector2(abs(world_b.x - world_a.x), abs(world_b.y - world_a.y))
-	
+
 	maze_origin_world -= Vector2(1, 1)
 	maze_size_world += Vector2(2, 2)
 
 	maze_size_world.x = max(maze_size_world.x, 1.0)
 	maze_size_world.y = max(maze_size_world.y, 1.0)
+
 
 func _setup_viewports() -> void:
 	var screen_size: Vector2 = get_viewport().get_visible_rect().size
@@ -455,6 +484,7 @@ func _setup_viewports() -> void:
 
 	_update_explored_decay_sprite_size()
 
+
 func _setup_darkness_shader() -> void:
 	var mat := darkness.material as ShaderMaterial
 	if mat == null:
@@ -468,10 +498,11 @@ func _setup_darkness_shader() -> void:
 	mat.set_shader_parameter("explored_alpha", GameConfig.fog_explored_alpha)
 	mat.set_shader_parameter("enable_memory", GameConfig.fog_enable_memory)
 
+
 func _push_shader_uniforms() -> void:
 	if cam == null:
 		return
-	
+
 	var mat := darkness.material as ShaderMaterial
 	if mat == null:
 		return
@@ -490,14 +521,16 @@ func _push_shader_uniforms() -> void:
 	mat.set_shader_parameter("maze_origin_world", maze_origin_world)
 	mat.set_shader_parameter("maze_size_world", maze_size_world)
 
+
 # -------------------------
 # Masks
 # -------------------------
 
+
 func _update_masks() -> void:
 	if player == null or cam == null:
 		return
-	
+
 	if suspended or _awaiting_level_start:
 		vision_poly.polygon = PackedVector2Array()
 		halo_poly.polygon = PackedVector2Array()
@@ -528,14 +561,15 @@ func _update_masks() -> void:
 		var origin_exp: Vector2 = player.global_position - maze_origin_world
 
 		# Occluded halo memory (does NOT see through walls)
-		var halo_world_pts := _build_occluded_halo_world(player.global_position, GameConfig.fog_halo_world_radius, GameConfig.fog_halo_rays)
+		var halo_world_pts := _build_occluded_halo_world(
+			player.global_position, GameConfig.fog_halo_world_radius, GameConfig.fog_halo_rays
+		)
 
 		var halo_exp := PackedVector2Array()
 		for p in halo_world_pts:
 			halo_exp.append(p - maze_origin_world)
 
 		explored_halo.polygon = halo_exp
-
 
 		var cone_exp := PackedVector2Array()
 		cone_exp.append(origin_exp)
@@ -549,10 +583,11 @@ func _update_masks() -> void:
 
 		explored_vision.polygon = cone_exp
 
+
 func _cast_ray_to_world(dir: Vector2) -> Vector2:
 	if player == null:
 		return Vector2.ZERO
-	
+
 	var n_dir := dir
 	if n_dir.length_squared() > 0.0:
 		n_dir = n_dir.normalized()
@@ -602,12 +637,15 @@ func _cast_ray_to_world(dir: Vector2) -> Vector2:
 	# Nudge slightly *into* the hit surface so the blocking tile itself becomes visible.
 	return best_hit_world + n_dir * HIT_INSET_PX
 
+
 func _cast_ray_to_screen(dir: Vector2) -> Vector2:
 	return _world_to_fog_local(_cast_ray_to_world(dir))
+
 
 func _world_to_fog_local(world_pos: Vector2) -> Vector2:
 	var screen_pos := get_viewport().get_canvas_transform() * world_pos
 	return get_global_transform_with_canvas().affine_inverse() * screen_pos
+
 
 func _make_circle(center: Vector2, radius: float) -> PackedVector2Array:
 	var pts := PackedVector2Array()
@@ -617,21 +655,24 @@ func _make_circle(center: Vector2, radius: float) -> PackedVector2Array:
 		pts.append(center + Vector2(cos(a), sin(a)) * radius)
 	return pts
 
+
 # -------------------------
 # Helpers
 # -------------------------
+
 
 func _wait_for_tiles() -> void:
 	if layer == null:
 		push_error("[FogOfWar._wait_for_tiles] layer is null")
 		return
-	
+
 	for i in range(240):
 		var used := layer.get_used_rect()
 		if used.size.x > 0 and used.size.y > 0:
 			return
 		await get_tree().process_frame
 	push_warning("MazeLayer still empty after waiting; fog bounds will be wrong.")
+
 
 func _clear_explored_once() -> void:
 	# Godot doesn't expose a clear color on SubViewport, but transparent_bg = true
@@ -643,7 +684,10 @@ func _clear_explored_once() -> void:
 		await get_tree().process_frame
 	explored_viewport.render_target_clear_mode = SubViewport.CLEAR_MODE_NEVER
 
-func _build_occluded_halo_world(origin_world: Vector2, radius: float, n_rays: int) -> PackedVector2Array:
+
+func _build_occluded_halo_world(
+	origin_world: Vector2, radius: float, n_rays: int
+) -> PackedVector2Array:
 	var pts := PackedVector2Array()
 	for i in range(n_rays):
 		var a := TAU * float(i) / float(n_rays)
@@ -694,6 +738,7 @@ func _build_occluded_halo_world(origin_world: Vector2, radius: float, n_rays: in
 		pts.append(hit_pos)
 	return pts
 
+
 func _first_closed_door_hit_world(from_world: Vector2, dir: Vector2, max_dist: float) -> Variant:
 	if layer == null:
 		return null
@@ -721,7 +766,8 @@ func _first_closed_door_hit_world(from_world: Vector2, dir: Vector2, max_dist: f
 		traveled += step
 
 	return null
-	
+
+
 func reset_fog_for_level() -> void:
 	await _wait_for_tiles()
 	_compute_layer_bounds()
@@ -738,6 +784,7 @@ func reset_fog_for_level() -> void:
 	if _explored_base != null:
 		_explored_base.texture = null
 
+
 func save_explored_to_file(path: String) -> Vector2i:
 	if explored_viewport == null:
 		return Vector2i.ZERO
@@ -752,6 +799,7 @@ func save_explored_to_file(path: String) -> Vector2i:
 		push_warning("[FogOfWarRW] Failed to save explored fog: %s" % path)
 		return Vector2i.ZERO
 	return Vector2i(img.get_width(), img.get_height())
+
 
 func load_explored_from_file(path: String, expected_size: Vector2i = Vector2i.ZERO) -> bool:
 	if path == "":
@@ -768,6 +816,7 @@ func load_explored_from_file(path: String, expected_size: Vector2i = Vector2i.ZE
 	_ensure_explored_base()
 	_explored_base.texture = ImageTexture.create_from_image(img)
 	return true
+
 
 func _ensure_explored_base() -> void:
 	if _explored_base != null and is_instance_valid(_explored_base):
@@ -788,6 +837,7 @@ func _ensure_explored_base() -> void:
 	_explored_base.position = Vector2.ZERO
 	_explored_base.z_index = -10
 	root.add_child(_explored_base)
+
 
 func _resume_after_level_start() -> void:
 	if not _pending_reveal:

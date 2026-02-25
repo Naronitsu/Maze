@@ -5,10 +5,10 @@ signal param_changed(name, value)
 signal param_reset(name)
 signal param_submitted(name)
 
-@export var label: String :
+@export var label: String:
 	set = set_label
 @export var parameter: String
-@export var bipolar := false :
+@export var bipolar := false:
 	set = set_bipolar
 
 
@@ -25,10 +25,10 @@ func set_label(v: String) -> void:
 
 func set_bipolar(v: bool) -> void:
 	bipolar = v
-	
+
 	if not is_inside_tree():
 		return
-	
+
 	if bipolar:
 		$HSlider.min_value = -1.0
 	else:
@@ -57,4 +57,3 @@ func _on_Reset_pressed():
 
 func _on_HSlider_value_submitted():
 	param_submitted.emit(parameter)
-

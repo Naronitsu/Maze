@@ -10,6 +10,7 @@ var settings_button: Button
 var quit_button: Button
 var settings_panel: Control
 
+
 func _ready() -> void:
 	print("PauseMenu: _ready() called, visible=%s" % visible)
 	# ensure this UI still processes input while the scene is paused
@@ -22,7 +23,6 @@ func _ready() -> void:
 	settings_button = find_child("SettingsButton", true, false) as Button
 	quit_button = find_child("QuitButton", true, false) as Button
 	settings_panel = find_child("SettingsPanel", true, false) as Control
-
 
 	if resume_button:
 		if not resume_button.pressed.is_connected(_on_resume_pressed):
@@ -62,8 +62,11 @@ func _ready() -> void:
 			quit_button.pressed.connect(_on_button_select)
 	else:
 		push_warning("PauseMenu: QuitButton not found")
+
+
 func _on_button_hover() -> void:
 	UI_SoundPlayer.play_hover()
+
 
 func _on_button_select() -> void:
 	UI_SoundPlayer.play_select()
@@ -90,15 +93,21 @@ func _on_button_select() -> void:
 		viewport.gui_focus_changed.connect(_on_gui_focus_changed)
 	print("PauseMenu: _ready() complete")
 
+
 func _input(event: InputEvent) -> void:
 	# Only handle input when visible and not consumed by a focused control
 	if not visible:
 		return
-	
+
 	if event is InputEventKey and event.is_pressed() and not event.echo:
-		print("PauseMenu: _input() received key event - keycode: %s, physical_keycode: %s" % [event.keycode, event.physical_keycode])
+		print(
+			(
+				"PauseMenu: _input() received key event - keycode: %s, physical_keycode: %s"
+				% [event.keycode, event.physical_keycode]
+			)
+		)
 		var handled = false
-		
+
 		# Check which action this key corresponds to
 		if _event_matches_action(event, "move_up"):
 			print("PauseMenu: Matched move_up")
@@ -134,11 +143,12 @@ func _input(event: InputEvent) -> void:
 			if focused is Range:
 				_adjust_range_value(focused, 0.1)
 				handled = true
-		
+
 		if handled:
 			print("PauseMenu: Input handled, consuming event")
 			if is_inside_tree():
 				get_viewport().set_input_as_handled()
+
 
 func _event_matches_action(event: InputEvent, action_name: String) -> bool:
 	var events = InputMap.action_get_events(action_name)
@@ -151,6 +161,7 @@ func _event_matches_action(event: InputEvent, action_name: String) -> bool:
 				return true
 	return false
 
+
 func _on_visibility_changed() -> void:
 	if visible:
 		# Set focus to first button when menu becomes visible
@@ -160,9 +171,11 @@ func _on_visibility_changed() -> void:
 		else:
 			push_warning("PauseMenu: No buttons found to focus")
 
+
 func _on_gui_focus_changed(control: Control) -> void:
 	var n := "null" if control == null else String(control.name)
 	print("PauseMenu: GUI focus changed to: %s" % n)
+
 
 func _get_menu_buttons() -> Array:
 	# If settings panel active, prefer its buttons (recurses into child Controls)
@@ -176,6 +189,7 @@ func _get_menu_buttons() -> Array:
 		buttons.append(b)
 	return buttons
 
+
 func _collect_buttons_from_control(ctrl: Control) -> Array:
 	var buttons: Array = []
 	for child in ctrl.get_children():
@@ -185,7 +199,7 @@ func _collect_buttons_from_control(ctrl: Control) -> Array:
 			var is_disabled = false
 			if child is BaseButton or child is OptionButton or child is Range:
 				is_disabled = child.disabled
-			
+
 			if not is_disabled:
 				if child.focus_mode == Control.FOCUS_ALL or child.focus_mode == Control.FOCUS_CLICK:
 					# Include BaseButton subclasses and other focusable controls
@@ -194,6 +208,7 @@ func _collect_buttons_from_control(ctrl: Control) -> Array:
 			# Recurse into ALL Control children to find nested buttons (not just Containers)
 			buttons += _collect_buttons_from_control(child)
 	return buttons
+
 
 func _is_descendant(node: Node, ancestor: Node) -> bool:
 	if ancestor == null:
@@ -204,6 +219,7 @@ func _is_descendant(node: Node, ancestor: Node) -> bool:
 			return true
 		cur = cur.get_parent()
 	return false
+
 
 func _navigate_menu(delta: int) -> void:
 	var buttons := _get_menu_buttons()
@@ -227,6 +243,7 @@ func _navigate_menu(delta: int) -> void:
 	buttons[idx].grab_focus()
 	print("PauseMenu: Navigated to button: %s" % buttons[idx].name)
 
+
 func _activate_focused() -> void:
 	var buttons := _get_menu_buttons()
 	for b in buttons:
@@ -240,18 +257,24 @@ func _activate_focused() -> void:
 				pass
 			return
 
+
 func _adjust_range_value(range_control: Range, delta: float) -> void:
 	# Adjust slider value by a percentage of its range
 	var range_size = range_control.max_value - range_control.min_value
 	var adj = range_size * delta
-	range_control.value = clamp(range_control.value + adj, range_control.min_value, range_control.max_value)
+	range_control.value = clamp(
+		range_control.value + adj, range_control.min_value, range_control.max_value
+	)
+
 
 func _settings_set_active(active: bool) -> void:
 	if settings_panel == null:
 		return
 	# show/hide settings and toggle mouse_filter so clicks work only when visible
 	settings_panel.visible = active
-	settings_panel.mouse_filter = Control.MOUSE_FILTER_STOP if active else Control.MOUSE_FILTER_IGNORE
+	settings_panel.mouse_filter = (
+		Control.MOUSE_FILTER_STOP if active else Control.MOUSE_FILTER_IGNORE
+	)
 
 	# enable/disable main pause buttons while settings active (skip buttons inside settings panel)
 	for b in _collect_buttons_from_control(self):
@@ -269,14 +292,18 @@ func _settings_set_active(active: bool) -> void:
 		if not main_buttons.is_empty() and main_buttons[0].is_inside_tree():
 			main_buttons[0].grab_focus()
 
+
 func _on_resume_pressed() -> void:
 	resume_pressed.emit()
+
 
 func _on_settings_pressed() -> void:
 	settings_pressed.emit()
 
+
 func _on_quit_pressed() -> void:
 	quit_pressed.emit()
+
 
 func _on_settings_back() -> void:
 	_settings_set_active(false)

@@ -10,25 +10,30 @@ var controller: GameController
 var _container: Node2D
 var _rng: RandomNumberGenerator = RandomNumberGenerator.new()
 
+
 func _ready() -> void:
 	EventBus.level_started.connect(_on_level_started)
 	EventBus.level_transitioning.connect(_on_level_transitioning)
 
 	_ensure_container()
 
+
 func set_refs(p_maze: DungeonMazeLayer, p_controller: GameController) -> void:
 	maze = p_maze
 	controller = p_controller
 	_ensure_container()
 
+
 func _on_level_transitioning() -> void:
 	_clear()
+
 
 func _on_level_started(spawn_cell: Vector2i, p_maze: DungeonMazeLayer) -> void:
 	if maze == null:
 		maze = p_maze
 	_seed_rng_from_maze()
 	_spawn_markings(spawn_cell)
+
 
 func _ensure_container() -> void:
 	if _container != null and is_instance_valid(_container):
@@ -38,6 +43,7 @@ func _ensure_container() -> void:
 	# TileMap renders at z_index = -1; draw above it so markings are never hidden.
 	_container.z_index = 0
 	add_child(_container)
+
 
 func _seed_rng_from_maze() -> void:
 	if maze == null:
@@ -50,10 +56,12 @@ func _seed_rng_from_maze() -> void:
 	else:
 		_rng.randomize()
 
+
 func _clear() -> void:
 	_ensure_container()
 	for n in _container.get_children():
 		n.queue_free()
+
 
 func _is_door_cell(c: Vector2i) -> bool:
 	if maze == null:
@@ -66,8 +74,10 @@ func _is_door_cell(c: Vector2i) -> bool:
 		return true
 	return false
 
+
 func _is_near(a: Vector2i, b: Vector2i, radius_cells: int) -> bool:
 	return (abs(a.x - b.x) + abs(a.y - b.y)) <= radius_cells
+
 
 func _spawn_markings(spawn_cell: Vector2i) -> void:
 	if maze == null:
@@ -101,7 +111,9 @@ func _spawn_markings(spawn_cell: Vector2i) -> void:
 	if want <= 0:
 		return
 
-	var exit_cell: Vector2i = (maze.exit_cell if ("exit_cell" in maze) else Vector2i(2147483647, 2147483647))
+	var exit_cell: Vector2i = (
+		maze.exit_cell if ("exit_cell" in maze) else Vector2i(2147483647, 2147483647)
+	)
 	var placed_cells: Array[Vector2i] = []
 
 	# Guarantee one marking near spawn (but not right on top of spawn).
@@ -113,7 +125,10 @@ func _spawn_markings(spawn_cell: Vector2i) -> void:
 			var d0: int = abs(c0.x - spawn_cell.x) + abs(c0.y - spawn_cell.y)
 			if d0 < min_d or d0 > max_d:
 				continue
-			if exit_cell != Vector2i(2147483647, 2147483647) and _is_near(c0, exit_cell, GameConfig.markings_avoid_exit_radius_cells):
+			if (
+				exit_cell != Vector2i(2147483647, 2147483647)
+				and _is_near(c0, exit_cell, GameConfig.markings_avoid_exit_radius_cells)
+			):
 				continue
 			near.append(c0)
 
@@ -129,7 +144,10 @@ func _spawn_markings(spawn_cell: Vector2i) -> void:
 
 		if _is_near(c, spawn_cell, GameConfig.markings_avoid_spawn_radius_cells):
 			continue
-		if exit_cell != Vector2i(2147483647, 2147483647) and _is_near(c, exit_cell, GameConfig.markings_avoid_exit_radius_cells):
+		if (
+			exit_cell != Vector2i(2147483647, 2147483647)
+			and _is_near(c, exit_cell, GameConfig.markings_avoid_exit_radius_cells)
+		):
 			continue
 
 		var too_close := false
@@ -148,6 +166,7 @@ func _spawn_markings(spawn_cell: Vector2i) -> void:
 	else:
 		print("[Markings] placed %d / wanted %d at %s" % [placed_cells.size(), want, placed_cells])
 
+
 func _place_one(cell: Vector2i) -> void:
 	_ensure_container()
 
@@ -156,7 +175,9 @@ func _place_one(cell: Vector2i) -> void:
 	spr.texture = MARKINGS_TEXTURE
 	spr.centered = true
 	spr.region_enabled = true
-	spr.region_rect = Rect2(idx * MARKINGS_SPRITE_SIZE.x, 0, MARKINGS_SPRITE_SIZE.x, MARKINGS_SPRITE_SIZE.y)
+	spr.region_rect = Rect2(
+		idx * MARKINGS_SPRITE_SIZE.x, 0, MARKINGS_SPRITE_SIZE.x, MARKINGS_SPRITE_SIZE.y
+	)
 	spr.z_index = 0
 	spr.modulate = Color(1, 1, 1, 1)
 

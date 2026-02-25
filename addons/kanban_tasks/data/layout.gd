@@ -3,7 +3,6 @@ extends "kanban_resource.gd"
 
 ## Layout data.
 
-
 # Use `PackedStringArray` because nested typed collections are not supported.
 var columns: Array[PackedStringArray] = []:
 	get:

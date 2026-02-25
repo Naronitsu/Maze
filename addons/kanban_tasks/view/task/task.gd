@@ -3,7 +3,6 @@ extends MarginContainer
 
 ## The visual representation of a task.
 
-
 const __Singletons := preload("../../plugin_singleton/singletons.gd")
 const __Shortcuts := preload("../shortcuts.gd")
 const __EditContext := preload("../edit_context.gd")
@@ -61,7 +60,7 @@ func _ready() -> void:
 
 	context_menu.id_pressed.connect(__action)
 	edit_button.pressed.connect(__action.bind(ACTIONS.DETAILS))
-	expand_button.state_changed.connect(func (expanded): __update_step_holder())
+	expand_button.state_changed.connect(func(expanded): __update_step_holder())
 
 	category_button.pressed.connect(__on_category_button_pressed)
 	add_child(__category_menu)
@@ -95,7 +94,12 @@ func _gui_input(event: InputEvent) -> void:
 			context_menu.position += get_window().position
 		context_menu.popup()
 
-	if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT and event.is_pressed() and event.is_double_click():
+	if (
+		event is InputEventMouseButton
+		and event.button_index == MOUSE_BUTTON_LEFT
+		and event.is_pressed()
+		and event.is_double_click()
+	):
 		__action(ACTIONS.DETAILS)
 
 
@@ -126,7 +130,7 @@ func _make_custom_tooltip(for_text) -> Object:
 
 
 func _notification(what: int) -> void:
-	match(what):
+	match what:
 		NOTIFICATION_THEME_CHANGED:
 			if panel_container:
 				var tab_panel = get_theme_stylebox(&"panel", &"TabContainer")
@@ -140,12 +144,15 @@ func _notification(what: int) -> void:
 		NOTIFICATION_DRAW:
 			if has_focus():
 				await get_tree().create_timer(0.0).timeout
-				__style_focus.draw(
-					get_canvas_item(),
-					Rect2(
-						panel_container.get_global_rect().position - get_global_rect().position,
-						panel_container.size
-					),
+				(
+					__style_focus
+					. draw(
+						get_canvas_item(),
+						Rect2(
+							panel_container.get_global_rect().position - get_global_rect().position,
+							panel_container.size
+						),
+					)
 				)
 
 
@@ -182,7 +189,10 @@ func update() -> void:
 			description_label.max_lines_visible = ctx.settings.max_displayed_lines_in_description
 		else:
 			description_label.max_lines_visible = -1
-		description_label.visible = ctx.settings.show_description_preview and description_label.text.strip_edges().length() != 0
+		description_label.visible = (
+			ctx.settings.show_description_preview
+			and description_label.text.strip_edges().length() != 0
+		)
 	else:
 		description_label.text = ""
 	description_label.visible = (description_label.text.length() > 0)
@@ -287,8 +297,10 @@ func __update_tooltip() -> void:
 	#var category_bullet = "[color=#" + task_category.color.to_html(false) + "]\u2588\u2588[/color]"
 	#var category_bullet = "[color=#" + task_category.color.to_html(false) + "]\u220E[/color]"
 	#var category_bullet = "[color=#" + task_category.color.to_html(false) + "]\u25A0[/color]"
-	tooltip_text = category_bullet + " " + board_data.get_category(task.category).title + ": " + task.title
-	if task.description !=null and task.description.length() > 0:
+	tooltip_text = (
+		category_bullet + " " + board_data.get_category(task.category).title + ": " + task.title
+	)
+	if task.description != null and task.description.length() > 0:
 		tooltip_text += "[p]" + task.description + "[/p]"
 
 	var open_steps = []
@@ -302,19 +314,23 @@ func __update_tooltip() -> void:
 	#var done_step_bullet = "\u2714" # Heavy check mark
 	#var open_step_bullet = "\u2717" # Ballot X
 	#var done_step_bullet = "\u2713" # Check mark
-	var open_step_bullet = "[color=#F08080]\u25A0[/color]" # Filled red square
-	var done_step_bullet = "[color=#98FB98]\u25A0[/color]" # Filled green square
+	var open_step_bullet = "[color=#F08080]\u25A0[/color]"  # Filled red square
+	var done_step_bullet = "[color=#98FB98]\u25A0[/color]"  # Filled green square
 	if open_steps.size() > 0 or done_steps.size() > 0:
 		tooltip_text += "[p]"
 		if open_steps.size() > 0:
 			tooltip_text += "Open steps:\n[table=2]"
 			for step in open_steps:
-				tooltip_text += "[cell]" + open_step_bullet + "[/cell][cell]" + step.details + "[/cell]\n"
+				tooltip_text += (
+					"[cell]" + open_step_bullet + "[/cell][cell]" + step.details + "[/cell]\n"
+				)
 			tooltip_text += "[/table]\n"
 		if done_steps.size() > 0:
 			tooltip_text += "Done steps:\n[table=2]"
 			for step in done_steps:
-				tooltip_text += "[cell]" + done_step_bullet + "[/cell][cell]" + step.details + "[/cell]\n"
+				tooltip_text += (
+					"[cell]" + done_step_bullet + "[/cell][cell]" + step.details + "[/cell]\n"
+				)
 			tooltip_text += "[/table]\n"
 		tooltip_text += "[/p]"
 
@@ -372,8 +388,12 @@ func __update_context_menu() -> void:
 	context_menu.add_icon_item(get_theme_icon(&"Rename", &"EditorIcons"), "Rename", ACTIONS.RENAME)
 	context_menu.set_item_shortcut(context_menu.get_item_index(ACTIONS.RENAME), shortcuts.rename)
 
-	context_menu.add_icon_item(get_theme_icon(&"Duplicate", &"EditorIcons"), "Duplicate", ACTIONS.DUPLICATE)
-	context_menu.set_item_shortcut(context_menu.get_item_index(ACTIONS.DUPLICATE), shortcuts.duplicate)
+	context_menu.add_icon_item(
+		get_theme_icon(&"Duplicate", &"EditorIcons"), "Duplicate", ACTIONS.DUPLICATE
+	)
+	context_menu.set_item_shortcut(
+		context_menu.get_item_index(ACTIONS.DUPLICATE), shortcuts.duplicate
+	)
 
 	context_menu.add_icon_item(get_theme_icon(&"Remove", &"EditorIcons"), "Delete", ACTIONS.DELETE)
 	context_menu.set_item_shortcut(context_menu.get_item_index(ACTIONS.DELETE), shortcuts.delete)
@@ -382,7 +402,7 @@ func __update_context_menu() -> void:
 func __action(action) -> void:
 	var undo_redo: UndoRedo = __Singletons.instance_of(__EditContext, self).undo_redo
 
-	match(action):
+	match action:
 		ACTIONS.DELETE:
 			var task = board_data.get_task(data_uuid)
 			for uuid in board_data.get_stages():
@@ -393,7 +413,9 @@ func __action(action) -> void:
 					undo_redo.add_do_property(board_data.get_stage(uuid), &"tasks", tasks)
 					undo_redo.add_do_method(board_data.remove_task.bind(data_uuid, true))
 					undo_redo.add_undo_method(board_data.__add_task.bind(task, data_uuid))
-					undo_redo.add_undo_property(board_data.get_stage(uuid), &"tasks", board_data.get_stage(uuid).tasks)
+					undo_redo.add_undo_property(
+						board_data.get_stage(uuid), &"tasks", board_data.get_stage(uuid).tasks
+					)
 					undo_redo.add_undo_reference(task)
 					undo_redo.commit_action()
 					break
@@ -414,7 +436,9 @@ func __action(action) -> void:
 					undo_redo.create_action("Duplicate task")
 					undo_redo.add_do_method(board_data.__add_task.bind(copy, copy_uuid))
 					undo_redo.add_do_property(board_data.get_stage(uuid), &"tasks", tasks)
-					undo_redo.add_undo_property(board_data.get_stage(uuid), &"tasks", board_data.get_stage(uuid).tasks)
+					undo_redo.add_undo_property(
+						board_data.get_stage(uuid), &"tasks", board_data.get_stage(uuid).tasks
+					)
 					undo_redo.add_undo_method(board_data.remove_task.bind(copy_uuid))
 					undo_redo.commit_action(false)
 

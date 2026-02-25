@@ -3,8 +3,10 @@ extends Node
 
 var controller: GameController
 
+
 func _ready() -> void:
 	EventBus.level_started.connect(_on_level_started)
+
 
 func _on_level_started(_player_pos: Vector2i, _maze: Node) -> void:
 	"""When level starts, only spawn Presence if a shrine has been charged."""
@@ -23,32 +25,33 @@ func _on_level_started(_player_pos: Vector2i, _maze: Node) -> void:
 
 	print("[PresenceSpawn] Waiting for player history...")
 	await _wait_for_player_history(
-		GameConfig.presence_min_history_steps,
-		GameConfig.presence_wait_history_max_seconds
+		GameConfig.presence_min_history_steps, GameConfig.presence_wait_history_max_seconds
 	)
 
 	var hist = controller.player_history if "player_history" in controller else []
 	print("[PresenceSpawn] Emitting presence_should_spawn (history: %d cells)" % hist.size())
 	EventBus.presence_should_spawn.emit(hist)
 
+
 func _wait_for_player_history(min_len: int, max_seconds: float) -> void:
 	if controller == null or not is_inside_tree():
 		return
-	
+
 	var waited := 0.0
 	while waited < max_seconds:
 		if not is_inside_tree():
 			return
-		
+
 		var hist_v: Variant = controller.get("player_history")
 		if typeof(hist_v) == TYPE_ARRAY and (hist_v as Array).size() >= min_len:
 			print("[PresenceSpawn] History ready (%d cells)" % (hist_v as Array).size())
 			return
-		
+
 		await get_tree().process_frame
 		waited += get_process_delta_time()
-	
+
 	print("[PresenceSpawn] History timeout, proceeding anyway")
+
 
 func _get_controller() -> Node:
 	if SceneReferences.controller != null:

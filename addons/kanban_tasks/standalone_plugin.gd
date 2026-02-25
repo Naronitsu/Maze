@@ -8,7 +8,6 @@ extends EditorPlugin
 ## This file violates DRY. It should not contain references to other files
 ## of standalone plugin. This allows the independent use as editor plugin.
 
-
 ## Additional containers for add_control_to_container
 # CONTAINER_TOOLBAR = 0,
 # CONTAINER_SPATIAL_EDITOR_MENU = 1,

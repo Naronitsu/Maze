@@ -1,5 +1,6 @@
 extends Control
 
+
 func animate_fall_off_screen(duration: float = 0.4) -> void:
 	# Animate the Control node falling off the screen (downwards)
 	var tween := create_tween()

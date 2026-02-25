@@ -1,7 +1,6 @@
 @tool
 extends Node
 
-
 var delete := Shortcut.new()
 var duplicate := Shortcut.new()
 var create := Shortcut.new()

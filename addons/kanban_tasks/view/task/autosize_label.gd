@@ -1,7 +1,6 @@
 @tool
 extends Label
 
-
 @export var auto_size_height: bool = true:
 	set(value):
 		auto_size_height = value

@@ -1,7 +1,6 @@
 @tool
 extends VBoxContainer
 
-
 const __BoardData := preload("../../../data/board.gd")
 const __CategoryEntry := preload("../../settings/categories/category_entry.gd")
 const __CategoryData := preload("../../../data/category.gd")
@@ -29,7 +28,9 @@ func _notification(what: int) -> void:
 			if is_instance_valid(add_category_button):
 				add_category_button.icon = get_theme_icon(&"Add", &"EditorIcons")
 			if is_instance_valid(panel_container):
-				panel_container.add_theme_stylebox_override(&"panel", get_theme_stylebox(&"panel", &"Tree"))
+				panel_container.add_theme_stylebox_override(
+					&"panel", get_theme_stylebox(&"panel", &"Tree")
+				)
 
 
 func update() -> void:
@@ -45,7 +46,9 @@ func update() -> void:
 
 
 func __add_category() -> void:
-	var color = Color.from_hsv(randomizer.randf(), randomizer.randf_range(0.8, 1.0), randomizer.randf_range(0.7, 1.0))
+	var color = Color.from_hsv(
+		randomizer.randf(), randomizer.randf_range(0.8, 1.0), randomizer.randf_range(0.7, 1.0)
+	)
 	var data = __CategoryData.new("New category", color)
 	var uuid = board_data.add_category(data)
 	update()

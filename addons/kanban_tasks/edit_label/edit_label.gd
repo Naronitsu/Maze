@@ -10,7 +10,6 @@ extends VBoxContainer
 ## by using [member show_edit]. When editing press [kbd]Enter[/kbd] to finish
 ## editing or press [kbd]Esc[/kbd] to discard your changes.
 
-
 ## Emitted when the text changed.
 ##
 ## [b]Note:[/b] This is only emitted when you confirm your editing by pressing
@@ -20,8 +19,8 @@ signal text_changed(new_text: String)
 
 ## The intentions with which the label can be edited.
 enum INTENTION {
-	REPLACE,	## The text will be marked completly when editing.
-	ADDITION,	## The cursor is placed at the end when editing.
+	REPLACE,  ## The text will be marked completly when editing.
+	ADDITION,  ## The cursor is placed at the end when editing.
 }
 
 ## The text to display and edit.

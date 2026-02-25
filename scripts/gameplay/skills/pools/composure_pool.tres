@@ -3,7 +3,7 @@
 [ext_resource type="Script" uid="uid://cq8h62iibduhs" path="res://scripts/gameplay/skills/system/active_def.gd" id="1_8g2f2"]
 [ext_resource type="Script" uid="uid://ggkv2oom1raw" path="res://scripts/gameplay/skills/system/passive_def.gd" id="2_f5kdk"]
 [ext_resource type="Script" uid="uid://btwdoxqpknn1w" path="res://scripts/gameplay/skills/skill_pool.gd" id="3_47gga"]
-[ext_resource type="Resource" uid="uid://cbii0tbomaiwh" path="res://scripts/gameplay/skills/skillScripts/Player/Composure/Passive/thick_skin/thick_skin.tres" id="3_f5kdk"]
+[ext_resource type="Resource" uid="uid://cbii0tbomaiwh" path="res://scripts/gameplay/skills/skillScripts/Player/Resolve/Passive/thick_skin/thick_skin.tres" id="3_f5kdk"]
 
 [resource]
 script = ExtResource("3_47gga")

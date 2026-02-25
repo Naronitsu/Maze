@@ -4,12 +4,12 @@ class_name GrabMinigame
 signal escaped
 signal failed
 
-@export var gravity := 900.0          # px/s^2
-@export var lift_accel := 1400.0      # px/s^2 while holding Q
-@export var max_speed := 900.0        # clamp vertical speed
+@export var gravity := 900.0  # px/s^2
+@export var lift_accel := 1400.0  # px/s^2 while holding Q
+@export var max_speed := 900.0  # clamp vertical speed
 
 @export var time_in_safe_to_escape := 2.8
-@export var safe_margin := 26.0       # distance from bounds considered "safe band"
+@export var safe_margin := 26.0  # distance from bounds considered "safe band"
 
 @export var trail_max_points := 40
 @export var trail_point_every := 0.03
@@ -50,10 +50,10 @@ var _trail_timer := 0.0
 var _difficulty_t := 0.0
 
 @export var scroll_speed := 140.0  # px/s, how fast the “graph” moves
-@export var pixel_x := 110.0       # where the dot lives inside the minigame area
+@export var pixel_x := 110.0  # where the dot lives inside the minigame area
 @export var trail_width := 2.0
 
-@export var time_to_reach_min_gap := 6.0 # seconds to go from start gap -> min_gap (linear)
+@export var time_to_reach_min_gap := 6.0  # seconds to go from start gap -> min_gap (linear)
 
 @export var materialize_time := 0.35
 
@@ -64,6 +64,7 @@ var _start_gap := 0.0
 
 var _mat_tween: Tween
 
+
 func _ready() -> void:
 	visible = false
 	set_process(false)
@@ -72,9 +73,11 @@ func _ready() -> void:
 	viewport.transparent_bg = true
 	viewport.size = size
 
+
 func _notification(what):
 	if what == NOTIFICATION_RESIZED:
 		viewport.size = size
+
 
 func start() -> void:
 	active = true
@@ -110,12 +113,12 @@ func start() -> void:
 		mat.set_shader_parameter("reveal", 1.0)
 
 
-
 func stop() -> void:
 	active = false
 	visible = false
 	set_process(false)
 	mg.position = _mg_base_pos
+
 
 func _process(delta: float) -> void:
 	_follow_target()
@@ -140,7 +143,7 @@ func _process(delta: float) -> void:
 
 	_update_trail(delta)
 
-		# Bounds collision check (touching red = bad)
+	# Bounds collision check (touching red = bad)
 	var top_limit := upper.position.y + upper.size.y
 	var bottom_limit := lower.position.y - pixel.size.y
 
@@ -173,10 +176,12 @@ func _process(delta: float) -> void:
 		emit_signal("escaped")
 		stop()
 
+
 func _set_pixel_y(y: float) -> void:
 	# clamp within minigame rect (soft clamp; hard clamp is handled by bounds)
 	y = clamp(y, 0.0, mg.size.y - pixel.size.y)
 	pixel.position.y = y
+
 
 func _update_trail(delta: float) -> void:
 	_trail_timer += delta
@@ -202,6 +207,7 @@ func _update_trail(delta: float) -> void:
 	while trail.get_point_count() > trail_max_points:
 		trail.remove_point(0)
 
+
 func _update_bounds(_delta: float) -> void:
 	if time_to_reach_min_gap <= 0.0:
 		return
@@ -213,7 +219,7 @@ func _update_bounds(_delta: float) -> void:
 	var target_gap: float = lerp(_start_gap, min_gap, t)
 
 	# How much total height we need to add to bounds to achieve target gap
-	var total_added := (_start_gap - target_gap)
+	var total_added := _start_gap - target_gap
 	if total_added < 0.0:
 		total_added = 0.0
 
@@ -246,15 +252,18 @@ func _follow_target() -> void:
 
 	position = desired
 
+
 func start_follow(target: Node2D) -> void:
 	_target = target
 	print("[GrabMinigame] following:", target.name)
-	set_process(true)  
+	set_process(true)
 	# make sure it's positioned correctly immediately
 	_follow_target()
 
+
 func stop_follow() -> void:
 	_target = null
+
 
 func show_message(text: String, _seconds: float = 0.6) -> void:
 	visible = true
@@ -265,8 +274,10 @@ func show_message(text: String, _seconds: float = 0.6) -> void:
 	set_process(true)
 	_follow_target()
 
+
 func hide_message() -> void:
 	status_label.visible = false
+
 
 func _apply_shake(delta: float, top_limit: float, bottom_limit: float) -> void:
 	# distance to nearest bound (0 = touching)
@@ -277,20 +288,18 @@ func _apply_shake(delta: float, top_limit: float, bottom_limit: float) -> void:
 	# map closeness -> intensity
 	var intensity := 0.0
 	if closest < shake_start_dist:
-		var t := 1.0 - (closest / shake_start_dist) # 0..1
-		intensity = (t * t) * shake_max_px          # ease-in (quadratic)
+		var t := 1.0 - (closest / shake_start_dist)  # 0..1
+		intensity = (t * t) * shake_max_px  # ease-in (quadratic)
 
 	# deterministic “noisy” shake using 2 sines (feels like jitter, not drifting)
 	_shake_time += delta * shake_freq
-	var target := Vector2(
-		sin(_shake_time * 1.7),
-		cos(_shake_time * 2.3)
-	) * intensity
+	var target := Vector2(sin(_shake_time * 1.7), cos(_shake_time * 2.3)) * intensity
 
 	# smooth so it doesn’t look like teleporting pixels
 	_shake_offset = _shake_offset.lerp(target, 1.0 - exp(-shake_smooth * delta))
 
 	mg.position = _mg_base_pos + _shake_offset
+
 
 func materialize() -> void:
 	visible = true
@@ -306,9 +315,12 @@ func materialize() -> void:
 		_mat_tween.kill()
 
 	_mat_tween = create_tween()
-	_mat_tween.tween_property(mat, "shader_parameter/reveal", 1.0, materialize_time)\
-		.set_trans(Tween.TRANS_SINE)\
-		.set_ease(Tween.EASE_OUT)
+	(
+		_mat_tween
+		. tween_property(mat, "shader_parameter/reveal", 1.0, materialize_time)
+		. set_trans(Tween.TRANS_SINE)
+		. set_ease(Tween.EASE_OUT)
+	)
 
 	# When reveal finishes, trigger particles
 	_mat_tween.finished.connect(_play_pixel_rain)
@@ -317,6 +329,7 @@ func materialize() -> void:
 func play_spawn_fx() -> void:
 	materialize()
 	_play_pixel_rain()
+
 
 func _play_pixel_rain() -> void:
 	if pixel_rain == null:

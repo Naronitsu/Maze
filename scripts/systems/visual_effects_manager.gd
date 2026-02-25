@@ -7,17 +7,21 @@ extends Node
 var _is_flickering: bool = false
 var _blackout_running: bool = false
 
+
 func _ready() -> void:
 	# Subscribe to visual effect events
 	EventBus.presence_flicker.connect(_on_presence_flicker)
 	EventBus.presence_caught_player.connect(_on_presence_caught)
 
+
 func _on_presence_flicker() -> void:
 	presence_blackout(0.55, 0.08)
+
 
 func _on_presence_caught(_presence_cell: Vector2i, _player_cell: Vector2i) -> void:
 	# Longer blackout when caught
 	presence_blackout(1.0, 0.2)
+
 
 func presence_flicker() -> void:
 	if _is_flickering:
@@ -37,11 +41,12 @@ func presence_flicker() -> void:
 	cm.color = old
 	_is_flickering = false
 
+
 func presence_blackout(duration: float = 0.45, fade: float = 0.08) -> void:
 	if _blackout_running:
 		return
 	_blackout_running = true
-	
+
 	if not game.has_node("SubViewport/Overlay/Blackout"):
 		_blackout_running = false
 		return

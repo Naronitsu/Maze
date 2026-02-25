@@ -1,7 +1,9 @@
 extends Node2D
 class_name Pillar
 
-const CHARGE_PARTICLE_TEX: Texture2D = preload("res://sprites/map/interactables/pillar/Particles/charge.png")
+const CHARGE_PARTICLE_TEX: Texture2D = preload(
+	"res://sprites/map/interactables/pillar/Particles/charge.png"
+)
 const CHARGE_LOOP_STREAM: AudioStream = preload("res://sounds/charging.sfxr")
 const CHARGE_STAGE_STREAM: AudioStream = preload("res://sounds/charging-stage.sfxr")
 const CHARGE_FINISH_STREAM: AudioStream = preload("res://sounds/charge_finish.sfxr")
@@ -29,31 +31,18 @@ var _charge_stage_player: AudioStreamPlayer2D
 var _charge_finish_player: AudioStreamPlayer2D
 var _charge_fade_tween: Tween
 
-
-
 # Powerup system
 const POWERUP_SPRITE_PATH = "res://sprites/powerups/powerup.png"
 const POWERUP_SPRITE_SIZE = Vector2i(32, 32)
 const POWERUP_TYPES = [
-	{
-		"type": "vision",
-		"region": Rect2(0, 0, 32, 32),
-		"desc": "Vision Boost"
-	},
-	{
-		"type": "move_speed",
-		"region": Rect2(32, 0, 32, 32),
-		"desc": "Move Speed"
-	},
-	{
-		"type": "charge_speed",
-		"region": Rect2(64, 0, 32, 32),
-		"desc": "Charge Speed"
-	}
+	{"type": "vision", "region": Rect2(0, 0, 32, 32), "desc": "Vision Boost"},
+	{"type": "move_speed", "region": Rect2(32, 0, 32, 32), "desc": "Move Speed"},
+	{"type": "charge_speed", "region": Rect2(64, 0, 32, 32), "desc": "Charge Speed"}
 ]
 
 @onready var sprite: AnimatedSprite2D = $AnimatedSprite2D
 @onready var particles: GPUParticles2D = $GPUParticles2D
+
 
 # Call this to trigger a burst effect
 func play_pillar_particles():
@@ -62,6 +51,7 @@ func play_pillar_particles():
 		particles.restart()
 		particles.emitting = true
 
+
 func _ready() -> void:
 	add_to_group("pillars")
 	set_process(false)
@@ -69,6 +59,7 @@ func _ready() -> void:
 		_set_idle_visual()
 	_setup_audio()
 	EventBus.player_moved.connect(_on_player_moved)
+
 
 func _setup_audio() -> void:
 	_charge_loop_player = AudioStreamPlayer2D.new()
@@ -94,6 +85,7 @@ func _setup_audio() -> void:
 	_charge_finish_player.attenuation = 1.0
 	add_child(_charge_finish_player)
 
+
 func _on_charge_loop_finished() -> void:
 	# Keep looping while actively charging.
 	if not _started_charging:
@@ -106,6 +98,7 @@ func _on_charge_loop_finished() -> void:
 	if _charge_loop_player.volume_db <= -60.0:
 		return
 	_charge_loop_player.play()
+
 
 func _play_charge_loop() -> void:
 	if _charge_loop_player == null or _charge_loop_player.stream == null:
@@ -124,6 +117,7 @@ func _play_charge_loop() -> void:
 	_charge_fade_tween = create_tween()
 	_charge_fade_tween.tween_property(_charge_loop_player, "volume_db", -6.0, 0.20)
 
+
 func _stop_charge_loop_fade_out() -> void:
 	if _charge_loop_player == null:
 		return
@@ -134,20 +128,24 @@ func _stop_charge_loop_fade_out() -> void:
 		return
 	_charge_fade_tween = create_tween()
 	_charge_fade_tween.tween_property(_charge_loop_player, "volume_db", -80.0, 0.35)
-	_charge_fade_tween.tween_callback(func():
-		if _charge_loop_player != null:
-			_charge_loop_player.stop()
+	_charge_fade_tween.tween_callback(
+		func():
+			if _charge_loop_player != null:
+				_charge_loop_player.stop()
 	)
+
 
 func _play_charge_stage_sfx() -> void:
 	if _charge_stage_player == null or _charge_stage_player.stream == null:
 		return
 	_charge_stage_player.play()
 
+
 func _play_charge_finish_sfx() -> void:
 	if _charge_finish_player == null or _charge_finish_player.stream == null:
 		return
 	_charge_finish_player.play()
+
 
 func _set_idle_visual() -> void:
 	if sprite == null:
@@ -160,12 +158,16 @@ func _set_idle_visual() -> void:
 	sprite.frame = 0
 	sprite.stop()
 
-func setup(p_room_rect: Rect2i, initial_player_cell: Vector2i, p_maze: DungeonMazeLayer = null) -> void:
+
+func setup(
+	p_room_rect: Rect2i, initial_player_cell: Vector2i, p_maze: DungeonMazeLayer = null
+) -> void:
 	room_rect = p_room_rect
 	_maze = p_maze
 	_player_inside_room = room_rect.has_point(initial_player_cell)
 	if _player_inside_room:
 		_start_charging()
+
 
 func _on_player_moved(_from_cell: Vector2i, to_cell: Vector2i) -> void:
 	var inside := room_rect.has_point(to_cell)
@@ -180,14 +182,17 @@ func _on_player_moved(_from_cell: Vector2i, to_cell: Vector2i) -> void:
 	if inside:
 		_start_charging()
 
+
 func _is_fully_charged() -> bool:
 	if not _started_charging:
 		return false
 	var duration := maxf(_charge_duration, 0.001)
 	return _charge_elapsed >= duration
 
+
 func is_completed() -> bool:
 	return _completed
+
 
 func _reset_charge() -> void:
 	_started_charging = false
@@ -199,6 +204,7 @@ func _reset_charge() -> void:
 	set_process(false)
 	_set_idle_visual()
 
+
 func _start_charging() -> void:
 	_started_charging = true
 	_charge_elapsed = 0.0
@@ -207,12 +213,17 @@ func _start_charging() -> void:
 	if _charge_duration <= 0.0:
 		_charge_duration = charge_duration_seconds
 	_play_charge_loop()
-	if sprite != null and sprite.sprite_frames != null and sprite.sprite_frames.has_animation(charging_anim_name):
+	if (
+		sprite != null
+		and sprite.sprite_frames != null
+		and sprite.sprite_frames.has_animation(charging_anim_name)
+	):
 		sprite.animation = charging_anim_name
 		sprite.stop()
 		sprite.frame = 0
 		_last_stage_idx = 0
 	set_process(true)
+
 
 func _process(delta: float) -> void:
 	if not _started_charging:
@@ -280,6 +291,7 @@ func _process(delta: float) -> void:
 			_stop_charge_loop_fade_out()
 		set_process(false)
 
+
 func _apply_powerup_to_player() -> void:
 	# Track shrine charges globally (Presence pacing)
 	GameConfig.shrines_charged += 1
@@ -287,13 +299,13 @@ func _apply_powerup_to_player() -> void:
 	# On first shrine charged, emit signal to spawn Presence and set slow speed
 	if GameConfig.shrines_charged == 1:
 		EventBus.emit_signal("presence_should_spawn", [])
-		GameConfig.presence_move_interval = 1.2 # slow initial speed
+		GameConfig.presence_move_interval = 1.2  # slow initial speed
 		print("[Pillar] First shrine charged: Presence spawned, speed slow.")
 		return
 
 	# After the first, ramp toward normal speed
-	var min_speed := 0.35   # fastest cap
-	var max_speed := 1.2    # slowest
+	var min_speed := 0.35  # fastest cap
+	var max_speed := 1.2  # slowest
 	var normal_speed := 0.45
 	var total_shrines := 3  # adjust if needed
 
@@ -303,6 +315,7 @@ func _apply_powerup_to_player() -> void:
 		GameConfig.presence_move_interval = min_speed
 
 	print("[Pillar] Shrine charged: Presence speed now %f" % GameConfig.presence_move_interval)
+
 
 func _room_bounds_world(maze: DungeonMazeLayer, rect: Rect2i) -> Rect2:
 	if rect.size == Vector2i.ZERO:

@@ -1,12 +1,15 @@
 extends HBoxContainer
 
 @export var heart_texture: Texture2D
-@onready var player: CharacterBody2D;
+@onready var player: CharacterBody2D
+
 
 func init_hearts() -> void:
-	player =  $"../../../Player"
+	player = $"../../../Player"
+
 
 var _last_heart_count: int = -1
+
 
 func update_hearts() -> void:
 	var current_count = player.current_health

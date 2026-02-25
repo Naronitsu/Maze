@@ -3,7 +3,6 @@ extends "kanban_resource.gd"
 
 ## Data of a stage.
 
-
 var title: String:
 	set(value):
 		title = value

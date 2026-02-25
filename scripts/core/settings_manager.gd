@@ -24,11 +24,13 @@ var sfx_volume: float = 1.0
 var music_volume: float = 1.0
 var minimap_size_px: int = DEFAULT_MINIMAP_SIZE_PX
 
+
 func _ready() -> void:
 	add_to_group("persist")
 	load_settings()
 	apply_display()
 	apply_audio()
+
 
 func load_settings() -> void:
 	var config := ConfigFile.new()
@@ -48,6 +50,7 @@ func load_settings() -> void:
 	minimap_size_px = clampi(minimap_size_px, 120, 400)
 	_apply_ui()
 
+
 func save_settings() -> void:
 	var config := ConfigFile.new()
 	config.set_value("video", "crt_enabled", crt_enabled)
@@ -59,11 +62,14 @@ func save_settings() -> void:
 	config.set_value("audio", "music_volume", music_volume)
 	config.set_value("ui", "minimap_size_px", minimap_size_px)
 	config.save(SETTINGS_PATH)
+
+
 func set_music_volume(v: float) -> void:
 	music_volume = clamp(v, 0.0, 1.0)
 	save_settings()
 	apply_audio()
 	music_volume_changed.emit(music_volume)
+
 
 func set_crt_enabled(v: bool) -> void:
 	crt_enabled = v
@@ -71,11 +77,13 @@ func set_crt_enabled(v: bool) -> void:
 	apply_visuals_to_scene(get_tree().current_scene)
 	crt_enabled_changed.emit(crt_enabled)
 
+
 func set_chromatic_aberration(v: bool) -> void:
 	chromatic_aberration = v
 	save_settings()
 	apply_visuals_to_scene(get_tree().current_scene)
 	chromatic_aberration_changed.emit(chromatic_aberration)
+
 
 func set_resolution(v: Vector2i) -> void:
 	resolution = v
@@ -83,11 +91,13 @@ func set_resolution(v: Vector2i) -> void:
 	apply_display()
 	resolution_changed.emit(resolution)
 
+
 func set_window_mode(v: String) -> void:
 	window_mode = v
 	save_settings()
 	apply_display()
 	window_mode_changed.emit(window_mode)
+
 
 func set_master_volume(v: float) -> void:
 	master_volume = clamp(v, 0.0, 1.0)
@@ -95,11 +105,13 @@ func set_master_volume(v: float) -> void:
 	apply_audio()
 	master_volume_changed.emit(master_volume)
 
+
 func set_sfx_volume(v: float) -> void:
 	sfx_volume = clamp(v, 0.0, 1.0)
 	save_settings()
 	apply_audio()
 	sfx_volume_changed.emit(sfx_volume)
+
 
 func set_minimap_size_px(v: int) -> void:
 	minimap_size_px = clampi(v, 120, 400)
@@ -107,11 +119,12 @@ func set_minimap_size_px(v: int) -> void:
 	_apply_ui()
 	minimap_size_changed.emit(minimap_size_px)
 
+
 func apply_display() -> void:
 	var win := get_tree().root as Window
 	if win == null:
 		return
-	
+
 	# Change window mode first
 	match window_mode:
 		"fullscreen":
@@ -123,15 +136,17 @@ func apply_display() -> void:
 		"windowed":
 			win.mode = Window.MODE_WINDOWED
 			win.borderless = false
-	
+
 	# Only set size for windowed mode - fullscreen uses monitor resolution
 	if window_mode == "windowed":
 		win.size = resolution
+
 
 func apply_audio() -> void:
 	_set_bus_volume("Master", master_volume)
 	_set_bus_volume("SFX", sfx_volume)
 	_set_bus_volume("Music", music_volume)
+
 
 func apply_visuals_to_scene(scene_root: Node) -> void:
 	if scene_root == null:
@@ -145,6 +160,7 @@ func apply_visuals_to_scene(scene_root: Node) -> void:
 		var ab = DEFAULT_ABERRATION_PX if chromatic_aberration else 0.0
 		mat.set_shader_parameter("aberration_px", ab)
 
+
 func _set_bus_volume(bus_name: String, linear: float) -> void:
 	var idx := AudioServer.get_bus_index(bus_name)
 	if idx == -1:
@@ -152,11 +168,13 @@ func _set_bus_volume(bus_name: String, linear: float) -> void:
 	var db := _linear_to_db(linear)
 	AudioServer.set_bus_volume_db(idx, db)
 
+
 func _linear_to_db(value: float) -> float:
 	var v: float = clamp(value, 0.0, 1.0)
 	if v <= 0.0001:
 		return -80.0
 	return linear_to_db(v)
+
 
 func _apply_ui() -> void:
 	# GameConfig is the single source of truth for runtime tuning.

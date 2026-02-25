@@ -4,15 +4,7 @@ class_name TransitionController
 ## Sequence: pause → level up (pick) → fade in text → hold → generate → fade out → resume
 
 enum Phase {
-	IDLE,
-	DOOR_PAUSE,
-	LEVEL_UP,
-	FADE_IN,
-	TEXT_HOLD,
-	GENERATING,
-	FADE_OUT,
-	SETTLING,
-	COMPLETE
+	IDLE, DOOR_PAUSE, LEVEL_UP, FADE_IN, TEXT_HOLD, GENERATING, FADE_OUT, SETTLING, COMPLETE
 }
 
 var _current_phase: Phase = Phase.IDLE
@@ -30,7 +22,8 @@ var level_intro_text: Label
 var level_up_panel: LevelUpPanel
 
 @export var skill_pools: Array[SkillPool] = []
-var _pool_by_stat: Dictionary = {} # StringName -> SkillPool
+var _pool_by_stat: Dictionary = {}  # StringName -> SkillPool
+
 
 func _ready() -> void:
 	game = get_parent() as Node2D
@@ -51,6 +44,7 @@ func _ready() -> void:
 
 	print("[TransitionController] _pool_by_stat keys:", _pool_by_stat.keys())
 
+
 func _process(delta: float) -> void:
 	if _current_phase == Phase.IDLE:
 		return
@@ -62,6 +56,7 @@ func _process(delta: float) -> void:
 	_phase_timer -= delta
 	if _phase_timer <= 0.0:
 		_advance_phase()
+
 
 ## Start a level transition
 func start_transition() -> void:
@@ -94,6 +89,7 @@ func start_transition() -> void:
 	_phase_timer = GameConfig.door_pause_time
 	print("[TransitionController] Phase: DOOR_PAUSE")
 
+
 func _advance_phase() -> void:
 	match _current_phase:
 		Phase.DOOR_PAUSE:
@@ -116,7 +112,7 @@ func _advance_phase() -> void:
 		Phase.GENERATING:
 			_current_phase = Phase.FADE_OUT
 			_fade_out_text(GameConfig.door_fade_time)
-			_phase_timer = GameConfig.door_fade_time * 2 # text fade + panel fade
+			_phase_timer = GameConfig.door_fade_time * 2  # text fade + panel fade
 			print("[TransitionController] Phase: FADE_OUT")
 
 		Phase.FADE_OUT:
@@ -128,6 +124,7 @@ func _advance_phase() -> void:
 			_current_phase = Phase.COMPLETE
 			_complete_transition()
 			print("[TransitionController] Phase: COMPLETE")
+
 
 func _fade_in_text(msg: String, fade_time: float) -> void:
 	if level_intro_text == null:
@@ -151,9 +148,10 @@ func _fade_in_text(msg: String, fade_time: float) -> void:
 	await get_tree().process_frame
 
 	var t := create_tween()
-	t.set_pause_mode(Tween.TWEEN_PAUSE_PROCESS) # IMPORTANT: run tween while paused
+	t.set_pause_mode(Tween.TWEEN_PAUSE_PROCESS)  # IMPORTANT: run tween while paused
 	t.tween_property(level_intro_text, "modulate:a", 1.0, fade_time)
 	await t.finished
+
 
 func _fade_out_text(fade_time: float) -> void:
 	if level_intro_text == null or level_intro_panel == null:
@@ -174,6 +172,7 @@ func _fade_out_text(fade_time: float) -> void:
 	level_intro_panel.visible = false
 	level_intro_text.visible = false
 
+
 func _generate_new_level() -> void:
 	if maze == null or controller == null:
 		return
@@ -186,6 +185,7 @@ func _generate_new_level() -> void:
 
 	var info: Dictionary = maze.generate()
 	game._start_new_level(info)
+
 
 func _complete_transition() -> void:
 	print("[TransitionController] Setting GameState to PLAYING")
@@ -200,16 +200,13 @@ func _complete_transition() -> void:
 	GameState.current = GameState.State.PLAYING
 
 	# Emit level_started for other systems
-	EventBus.level_started.emit(
-		game.player.cell if "cell" in game.player else Vector2i.ZERO,
-		maze
-	)
+	EventBus.level_started.emit(game.player.cell if "cell" in game.player else Vector2i.ZERO, maze)
 
 	_current_phase = Phase.IDLE
 	print("[TransitionController] Transition complete")
 
-func _run_level_up() -> void:
 
+func _run_level_up() -> void:
 	if level_up_panel == null or game == null or game.player == null:
 		print("[TransitionController] LEVEL UP SKIPPED: panel/player missing")
 		return
@@ -249,7 +246,9 @@ func _run_level_up() -> void:
 
 		var skill_choice: Dictionary = await level_up_panel.choice_chosen
 		if String(skill_choice.get("kind", "")) != "skill":
-			push_warning("[TransitionController] Expected skill choice, got: %s" % str(skill_choice))
+			push_warning(
+				"[TransitionController] Expected skill choice, got: %s" % str(skill_choice)
+			)
 		else:
 			_apply_skill_choice(game.player, skill_choice)
 
@@ -258,6 +257,7 @@ func _run_level_up() -> void:
 	_fade_in_text(GameConfig.door_message, GameConfig.door_fade_time)
 	_phase_timer = GameConfig.door_fade_time
 	print("[TransitionController] Phase: FADE_IN")
+
 
 func _roll_three_upgrades(player: Node) -> Array[Dictionary]:
 	var stats := player.get_node_or_null("Stats")
@@ -286,16 +286,19 @@ func _roll_three_upgrades(player: Node) -> Array[Dictionary]:
 
 	var amount := 1
 	var out: Array[Dictionary] = []
-	var n : int = min(3, eligible.size())
+	var n: int = min(3, eligible.size())
 	for i in range(n):
 		var s: StringName = eligible[i]
-		out.append({
-			"kind": "stat",
-			"stat": String(s),
-			"amount": amount,
-			"text": "+%d %s" % [amount, String(s)]
-		})
+		out.append(
+			{
+				"kind": "stat",
+				"stat": String(s),
+				"amount": amount,
+				"text": "+%d %s" % [amount, String(s)]
+			}
+		)
 	return out
+
 
 func _apply_upgrade(player: Node, stat_name: String, amount: int) -> void:
 	var stats: Node = player.get_node_or_null("Stats")
@@ -305,7 +308,13 @@ func _apply_upgrade(player: Node, stat_name: String, amount: int) -> void:
 	stats.apply_progression_upgrade(stat_name, amount)
 	var cur := int(stats.get_stat(stat_name))
 
-	print("[TransitionController] Applied upgrade: %s +%d (new value: %d)" % [stat_name, amount, cur + amount])
+	print(
+		(
+			"[TransitionController] Applied upgrade: %s +%d (new value: %d)"
+			% [stat_name, amount, cur + amount]
+		)
+	)
+
 
 func _roll_three_skills_for_stat(player: Node, stat_id: StringName) -> Array[Dictionary]:
 	print("[TransitionController] _roll_three_skills_for_stat stat_id:", stat_id)
@@ -334,7 +343,7 @@ func _roll_three_skills_for_stat(player: Node, stat_id: StringName) -> Array[Dic
 
 		var cur_level := 0
 		if "levels" in sm:
-			cur_level = int((sm.levels as Dictionary).get(id, 0)) # 0-based
+			cur_level = int((sm.levels as Dictionary).get(id, 0))  # 0-based
 
 		var label := def.display_name
 		if owned:
@@ -343,16 +352,13 @@ func _roll_three_skills_for_stat(player: Node, stat_id: StringName) -> Array[Dic
 		else:
 			label = "%s (New)" % def.display_name
 
-		candidates.append({
-			"kind": "skill",
-			"type": "passive",
-			"skill_id": id,
-			"def": def,
-			"text": label
-		})
+		candidates.append(
+			{"kind": "skill", "type": "passive", "skill_id": id, "def": def, "text": label}
+		)
 
 	candidates.shuffle()
 	return candidates.slice(0, min(3, candidates.size()))
+
 
 func _apply_skill_choice(player: Node, choice: Dictionary) -> void:
 	var sm := player.get_node_or_null("SkillManager")
@@ -377,16 +383,17 @@ func _apply_skill_choice(player: Node, choice: Dictionary) -> void:
 	if owned:
 		var cur := 0
 		if "levels" in sm:
-			cur = int((sm.levels as Dictionary).get(id, 0)) # 0-based
+			cur = int((sm.levels as Dictionary).get(id, 0))  # 0-based
 		sm.set_level(id, cur + 1)
 		print("[TransitionController] Upgraded skill: %s -> %d" % [String(id), cur + 1])
 	else:
 		sm.equip_passive(def)
 		print("[TransitionController] Equipped new skill: %s" % String(id))
-		
+
 	var stats := player.get_node_or_null("Stats")
 	if stats and stats.has_method("debug_dump"):
 		stats.call("debug_dump")
+
 
 func _find_passive_def(skill_id: StringName) -> PassiveDef:
 	for p in skill_pools:

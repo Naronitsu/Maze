@@ -1,7 +1,6 @@
 @tool
 extends VBoxContainer
 
-
 const __Singletons := preload("../../../plugin_singleton/singletons.gd")
 const __EditContext := preload("../../edit_context.gd")
 const __BoardData = preload("../../../data/board.gd")
@@ -45,7 +44,7 @@ func _ready() -> void:
 
 
 func _notification(what) -> void:
-	match(what):
+	match what:
 		NOTIFICATION_THEME_CHANGED:
 			stylebox_n = get_theme_stylebox(&"normal", &"Button").duplicate()
 			stylebox_n.set_border_width_all(1)
@@ -56,14 +55,18 @@ func _notification(what) -> void:
 			stylebox_hp.border_color = Color8(32, 32, 32, 128)
 
 			if is_instance_valid(column_add):
-				column_add.get_child(0).get_child(0).texture = get_theme_icon(&"Add", &"EditorIcons")
+				column_add.get_child(0).get_child(0).texture = get_theme_icon(
+					&"Add", &"EditorIcons"
+				)
 				column_add.add_theme_stylebox_override(&"normal", stylebox_n)
 				column_add.add_theme_stylebox_override(&"hover", stylebox_hp)
 				column_add.add_theme_stylebox_override(&"pressed", stylebox_hp)
 			if is_instance_valid(warning_sign):
 				warning_sign.icon = get_theme_icon(&"NodeWarning", &"EditorIcons")
 			if is_instance_valid(panel_container):
-				panel_container.add_theme_stylebox_override(&"panel", get_theme_stylebox(&"panel", &"Tree"))
+				panel_container.add_theme_stylebox_override(
+					&"panel", get_theme_stylebox(&"panel", &"Tree")
+				)
 
 
 func update() -> void:
@@ -96,7 +99,9 @@ func update() -> void:
 			stage_entry.add_theme_stylebox_override(&"pressed", stylebox_hp)
 			stage_entry.add_theme_stylebox_override(&"disabled", stylebox_hp)
 			stage_entry.pressed.connect(__on_remove_stage.bind(stage))
-			stage_entry.disabled = len(board_data.layout.columns) <= 1 and len(board_data.layout.columns[0]) <= 1
+			stage_entry.disabled = (
+				len(board_data.layout.columns) <= 1 and len(board_data.layout.columns[0]) <= 1
+			)
 			column_entry.add_child(stage_entry)
 
 			var center_container := CenterContainer.new()

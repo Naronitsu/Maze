@@ -35,5 +35,6 @@ signal return_to_menu_requested
 
 signal minimap_size_changed(size: Vector2)
 
+
 func _ready() -> void:
 	add_to_group("persist")  # Singleton pattern - survives scene changes

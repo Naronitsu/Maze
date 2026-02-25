@@ -28,13 +28,7 @@ var player_interact_action: StringName = &"interact"
 var player_trail_history_max: int = 80
 
 #Player Default Stats
-var default_stats := {
-	"Agility": 3,
-	"Perception": 3,
-	"Focus": 3,
-	"Resolve": 3,
-	"Composure": 3
-}
+var default_stats := {"Agility": 3, "Perception": 3, "Focus": 3, "Resolve": 3, "Composure": 3}
 
 # Game progression
 var max_levels_before_reset: int = 10
@@ -69,7 +63,7 @@ var presence_near_cells: int = 4
 var presence_far_cells: int = 25
 var presence_catch_distance_cells: int = -1
 
- # FOV/Vision
+# FOV/Vision
 
 # Track number of shrines charged (for Presence logic)
 static var shrines_charged: int = 0
@@ -105,8 +99,10 @@ var minimap_size: Vector2 = Vector2(200, 200)
 var minimap_border_padding: float = 10.0
 var minimap_update_interval: float = 0.5
 
+
 func _init() -> void:
 	pass
+
 
 func get_all_vars() -> Dictionary:
 	"""Return all config variables as a dictionary for debugging/export."""

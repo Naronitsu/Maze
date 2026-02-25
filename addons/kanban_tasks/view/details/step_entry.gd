@@ -3,7 +3,6 @@ extends HBoxContainer
 
 ## Visual representation of a step.
 
-
 signal action_triggered(entry: __StepEntry, action: Actions)
 
 const __EditLabel := preload("../../edit_label/edit_label.gd")
@@ -16,8 +15,8 @@ enum Actions {
 	DELETE,
 	MOVE_UP,
 	MOVE_DOWN,
-	EDIT_HARD, ## Forces the step details to open.
-	EDIT_SOFT, ## Only switches to this step if the details are opened.
+	EDIT_HARD,  ## Forces the step details to open.
+	EDIT_SOFT,  ## Only switches to this step if the details are opened.
 	CLOSE,
 }
 
@@ -84,12 +83,17 @@ func _gui_input(event: InputEvent) -> void:
 				context_menu.position += get_window().position
 			context_menu.popup()
 
-	if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT and event.is_pressed() and event.is_double_click():
+	if (
+		event is InputEventMouseButton
+		and event.button_index == MOUSE_BUTTON_LEFT
+		and event.is_pressed()
+		and event.is_double_click()
+	):
 		__action(Actions.EDIT_HARD)
 
 
 func _notification(what) -> void:
-	match(what):
+	match what:
 		NOTIFICATION_DRAW:
 			if has_focus() or being_edited:
 				focus_box.draw(get_canvas_item(), Rect2(Vector2.ZERO, get_rect().size))
@@ -117,13 +121,24 @@ func __update_context_menu() -> void:
 	if being_edited:
 		context_menu.add_icon_item(get_theme_icon(&"Close", &"EditorIcons"), "Close", Actions.CLOSE)
 	else:
-		context_menu.add_icon_item(get_theme_icon(&"Rename", &"EditorIcons"), "Edit", Actions.EDIT_HARD)
-		context_menu.set_item_shortcut(context_menu.get_item_index(Actions.EDIT_HARD), shortcuts.rename)
+		context_menu.add_icon_item(
+			get_theme_icon(&"Rename", &"EditorIcons"), "Edit", Actions.EDIT_HARD
+		)
+		context_menu.set_item_shortcut(
+			context_menu.get_item_index(Actions.EDIT_HARD), shortcuts.rename
+		)
 
-	context_menu.add_icon_item(get_theme_icon(&"MoveUp", &"EditorIcons"), "Move Up", Actions.MOVE_UP)
+	context_menu.add_icon_item(
+		get_theme_icon(&"MoveUp", &"EditorIcons"), "Move Up", Actions.MOVE_UP
+	)
 	context_menu.set_item_disabled(context_menu.get_item_index(Actions.MOVE_UP), get_index() == 0)
-	context_menu.add_icon_item(get_theme_icon(&"MoveDown", &"EditorIcons"), "Move Down", Actions.MOVE_DOWN)
-	context_menu.set_item_disabled(context_menu.get_item_index(Actions.MOVE_DOWN), get_index() == get_parent().get_child_count() - 1)
+	context_menu.add_icon_item(
+		get_theme_icon(&"MoveDown", &"EditorIcons"), "Move Down", Actions.MOVE_DOWN
+	)
+	context_menu.set_item_disabled(
+		context_menu.get_item_index(Actions.MOVE_DOWN),
+		get_index() == get_parent().get_child_count() - 1
+	)
 
 	context_menu.add_separator()
 

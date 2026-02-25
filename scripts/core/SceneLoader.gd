@@ -10,9 +10,11 @@ var _status: int = 0
 var _finishing: bool = false
 var _loading: bool = false
 
+
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
 	set_process(false)
+
 
 func change_scene_with_loading(path: String) -> void:
 	is_loading = true
@@ -41,6 +43,7 @@ func change_scene_with_loading(path: String) -> void:
 	ResourceLoader.load_threaded_request(_path)
 	_status = ResourceLoader.THREAD_LOAD_IN_PROGRESS
 	set_process(true)
+
 
 func _process(_dt: float) -> void:
 	if _finishing:
@@ -79,11 +82,13 @@ func _process(_dt: float) -> void:
 	elif _status == ResourceLoader.THREAD_LOAD_FAILED:
 		_fail("threaded load failed")
 
+
 func _fail(reason: String) -> void:
 	_finishing = true
 	push_error("SceneLoader: %s: %s" % [reason, _path])
 	LoadingOverlay.visible = false
 	_done()
+
 
 func _done() -> void:
 	is_loading = false

@@ -1,7 +1,6 @@
 @tool
 extends AcceptDialog
 
-
 const __BoardData := preload("../../data/board.gd")
 const __StepData := preload("../../data/step.gd")
 const __StepEntry := preload("../details/step_entry.gd")
@@ -36,10 +35,12 @@ func _ready() -> void:
 
 
 func _notification(what: int) -> void:
-	match(what):
+	match what:
 		NOTIFICATION_THEME_CHANGED:
 			if is_instance_valid(steps_panel_container):
-				steps_panel_container.add_theme_stylebox_override(&"panel", get_theme_stylebox(&"panel", &"Tree"))
+				steps_panel_container.add_theme_stylebox_override(
+					&"panel", get_theme_stylebox(&"panel", &"Tree")
+				)
 			if is_instance_valid(create_step_edit):
 				create_step_edit.right_icon = get_theme_icon(&"Add", &"EditorIcons")
 			if is_instance_valid(close_step_details_button):
@@ -77,8 +78,10 @@ func update() -> void:
 
 	var ctx: __EditContext = __Singletons.instance_of(__EditContext, self)
 
-	step_details.visible  = is_instance_valid(__step_data)
-	description_edit.visible = not (ctx.settings.edit_step_details_exclusively and is_instance_valid(__step_data))
+	step_details.visible = is_instance_valid(__step_data)
+	description_edit.visible = not (
+		ctx.settings.edit_step_details_exclusively and is_instance_valid(__step_data)
+	)
 	if is_instance_valid(__step_data):
 		if step_edit.text_changed.is_connected(__on_step_details_changed):
 			step_edit.text_changed.disconnect(__on_step_details_changed)
@@ -89,7 +92,12 @@ func update() -> void:
 # Workaround for godotengine/godot#70451
 func popup_centered_ratio_no_fullscreen(ratio: float = 0.8) -> void:
 	var viewport: Viewport = get_parent().get_viewport()
-	popup(Rect2i(Vector2(viewport.position) + viewport.size / 2.0 - viewport.size * ratio / 2.0, viewport.size * ratio))
+	popup(
+		Rect2i(
+			Vector2(viewport.position) + viewport.size / 2.0 - viewport.size * ratio / 2.0,
+			viewport.size * ratio
+		)
+	)
 
 
 func edit_step_details(step: __StepData) -> void:
@@ -154,7 +162,9 @@ func __on_step_action_triggered(entry: __StepEntry, action: __StepEntry.Actions)
 			move_step_down(entry.step_data)
 
 
-func __step_move_requesed(moved_entry: __StepEntry, target_entry: __StepEntry, move_after_target: bool) -> void:
+func __step_move_requesed(
+	moved_entry: __StepEntry, target_entry: __StepEntry, move_after_target: bool
+) -> void:
 	var steps = board_data.get_task(data_uuid).steps
 	var moved_idx = steps.find(moved_entry.step_data)
 	var target_idx = steps.find(target_entry.step_data)
@@ -174,13 +184,17 @@ func __step_move_requesed(moved_entry: __StepEntry, target_entry: __StepEntry, m
 func __load_internal_state() -> void:
 	var ctx: __EditContext = __Singletons.instance_of(__EditContext, self)
 	if ctx.settings.internal_states.has("details_editor_step_holder_width"):
-		h_split_container.split_offset = ctx.settings.internal_states["details_editor_step_holder_width"]
+		h_split_container.split_offset = (
+			ctx.settings.internal_states["details_editor_step_holder_width"]
+		)
 
 
 func __save_internal_state() -> void:
 	if not visible:
 		var ctx: __EditContext = __Singletons.instance_of(__EditContext, self)
-		ctx.settings.set_internal_state("details_editor_step_holder_width", h_split_container.split_offset)
+		ctx.settings.set_internal_state(
+			"details_editor_step_holder_width", h_split_container.split_offset
+		)
 
 
 func __close_step_details() -> void:

@@ -21,10 +21,13 @@ var _continue_fog_size: Vector2i = Vector2i.ZERO
 var _exit_shrine_hint_shown: bool = false
 
 const FOG_SAVE_PATH := "user://fog_explored.png"
-const TRANSITION_CONTROLLER_SCENE : PackedScene = preload("res://scenes/utils/transition_controller.tscn")
+const TRANSITION_CONTROLLER_SCENE: PackedScene = preload(
+	"res://scenes/utils/transition_controller.tscn"
+)
 
 @export_category("Debug")
 @export var debug_disable_pillar_requirement: bool = false
+
 
 func _ready() -> void:
 	if SceneLoader.has_signal("scene_loading_finished") and SceneLoader.is_loading:
@@ -35,12 +38,12 @@ func _ready() -> void:
 	EventBus.pause_requested.connect(_on_pause_requested)
 	EventBus.resume_requested.connect(_on_resume_requested)
 	EventBus.return_to_menu_requested.connect(_return_to_main_menu)
-	
+
 	# Initialize scene references
 	if not SceneReferences.validate_all(self):
 		push_error("[Game] Failed to validate scene references")
 		return
-	
+
 	# Cache references from SceneReferences
 	maze = SceneReferences.maze
 	presence = SceneReferences.presence
@@ -55,14 +58,14 @@ func _ready() -> void:
 	if markings_spawner.has_method("set_refs"):
 		markings_spawner.call("set_refs", maze, controller)
 	SettingsManager.apply_visuals_to_scene(self)
-	
+
 	transition_controller = TRANSITION_CONTROLLER_SCENE.instantiate() as TransitionController
 	add_child(transition_controller)
-		
+
 	# Wire fog to player for vision updates
 	if fog and fog.has_method("set_player_and_presence"):
 		fog.call("set_player_and_presence", player, presence)
-	
+
 	# Initialize vision controller
 	vision_controller = VisionController.new()
 	if vision_controller.initialize(player, cam, fog, presence):
@@ -72,43 +75,48 @@ func _ready() -> void:
 		print("[Game] VisionController initialized")
 	else:
 		push_error("[Game] Failed to initialize VisionController")
-	
+
 	# Wire vision_controller and fog to heartbeat_ui if it exists
 	var heartbeat_ui = get_node_or_null("HeartbeatUI")
 	if heartbeat_ui != null:
 		heartbeat_ui.vision_controller = vision_controller
 		heartbeat_ui.fog = fog
-	
+
 	# Check if loading from save
 	var save_data = SaveManager.current_save_data
 	print("[Game] Save data: ", save_data)
 	_is_continuing = save_data.has("level") and save_data.has("run")
 	print("[Game] Is continuing: ", _is_continuing)
-	
+
 	if _is_continuing:
 		# Load saved level/run/position/seed
 		maze.level = save_data.get("level", 1)
 		maze.run = save_data.get("run", 1)
 		maze.rng_seed = save_data.get("maze_seed", 12345)
 		var saved_cell: Vector2i = save_data.get("player_cell", Vector2i.ZERO)
-		print("[Game] Loading saved game: Level %d, Run %d, Seed: %d, Position: %s" % [maze.level, maze.run, maze.rng_seed, saved_cell])
+		print(
+			(
+				"[Game] Loading saved game: Level %d, Run %d, Seed: %d, Position: %s"
+				% [maze.level, maze.run, maze.rng_seed, saved_cell]
+			)
+		)
 		_continue_fog_path = save_data.get("fog_path", "")
 		_continue_fog_size = save_data.get("fog_size", Vector2i.ZERO)
 	else:
 		# New game - generate random seed
 		maze.rng_seed = randi()
 		print("[Game] New game with random seed: %d" % maze.rng_seed)
-	
+
 	# Generate + spawn first level
 	print("[Game] Generating maze...")
 	var maze_info = maze.generate()
-	
+
 	# Override spawn position if continuing from save
 	if _is_continuing:
 		var saved_cell: Vector2i = save_data.get("player_cell", Vector2i.ZERO)
 		if saved_cell != Vector2i.ZERO:
 			maze_info["spawn_override"] = saved_cell
-	
+
 	_start_new_level(maze_info)
 	print("[Game] Waiting for maze setup...")
 	await _after_maze_generated()
@@ -139,11 +147,11 @@ func _ready() -> void:
 	# Show intro at game start (new game only) - use transition controller
 	print("[Game] Showing intro sequence for new game")
 	await _show_intro_sequence()
-	
+
 	# Set game state to playing after intro
 	print("[Game] Intro complete, setting GameState to PLAYING")
 	GameState.current = GameState.State.PLAYING
-	
+
 	# Emit level_started - PresenceSpawnManager will handle spawning
 	EventBus.level_started.emit(player.cell if "cell" in player else Vector2i.ZERO, maze)
 	print("[Game] level_started signal emitted")
@@ -159,6 +167,7 @@ func _input(event: InputEvent) -> void:
 			set_paused_state(false)
 		else:
 			set_paused_state(true)
+
 
 func _physics_process(_delta: float) -> void:
 	if _is_transitioning:
@@ -176,7 +185,11 @@ func _physics_process(_delta: float) -> void:
 	if shrine_progress[0] < shrine_progress[1] and not debug_disable_pillar_requirement:
 		if not _exit_shrine_hint_shown:
 			_exit_shrine_hint_shown = true
-			_display_temp_panel("Charge all shrines to escape (%d/%d)." % [shrine_progress[0], shrine_progress[1]], 1.6, 0.5)
+			_display_temp_panel(
+				"Charge all shrines to escape (%d/%d)." % [shrine_progress[0], shrine_progress[1]],
+				1.6,
+				0.5
+			)
 		return
 
 	if on_exit:
@@ -184,7 +197,7 @@ func _physics_process(_delta: float) -> void:
 		if maze.level >= 5:
 			print("[Game] Player has beaten 5 levels! Game won.")
 			GameState.current = GameState.State.GAME_WON
-			EventBus.game_won.emit() # You may need to define this signal and handle it elsewhere
+			EventBus.game_won.emit()  # You may need to define this signal and handle it elsewhere
 			# Optionally, show a win screen or transition to credits here
 			return
 		# Proceed with transition to next level
@@ -211,40 +224,43 @@ func _get_shrine_progress() -> Vector2i:
 		return Vector2i(0, 0)
 	return Vector2i(completed, total)
 
+
 # ========================================
 # Intro Sequence
 # ========================================
+
 
 func _show_intro_sequence() -> void:
 	"""Show intro text and fade out for new game"""
 	if SceneReferences.level_intro_panel == null or SceneReferences.level_intro_text == null:
 		return
-	
+
 	var panel = SceneReferences.level_intro_panel
 	var label = SceneReferences.level_intro_text
-	
+
 	# Show text instantly
 	panel.visible = true
 	panel.modulate = Color(1, 1, 1, 1)
 	label.visible = true
 	label.text = GameConfig.door_message
 	label.modulate = Color(1, 1, 1, 1)
-	
+
 	GameState.current = GameState.State.PAUSED
-	
+
 	# Hold text
 	await get_tree().create_timer(GameConfig.door_text_hold_time).timeout
-	
+
 	# Fade out
 	var t := create_tween()
 	t.tween_property(label, "modulate:a", 0.0, GameConfig.door_fade_time)
 	await t.finished
-	
+
 	var t2 := create_tween()
 	t2.tween_property(panel, "modulate:a", 0.0, GameConfig.door_fade_time)
 	await t2.finished
-	
+
 	panel.visible = false
+
 
 func _display_temp_panel(msg: String, delay: float = 1.5, fade_time: float = 0.6) -> void:
 	# Deferred async helper to show a one-off panel message then hide it
@@ -270,6 +286,7 @@ func _display_temp_panel(msg: String, delay: float = 1.5, fade_time: float = 0.6
 	panel.visible = false
 	label.visible = false
 
+
 # ========================================
 # Level / player setup
 # ========================================
@@ -277,7 +294,7 @@ func _start_new_level(_info: Dictionary) -> void:
 	# New maze means old history/trail are invalid.
 	if controller is GameController:
 		(controller as GameController).reset_for_new_level()
-	
+
 	# Use spawn override if provided (from save file)
 	var spawn: Vector2i = _info.get("spawn_override", maze.get_spawn_cell())
 	# Safety: if a saved cell is no longer valid (e.g. generator changed), don't spawn in a wall.
@@ -324,7 +341,7 @@ func _coerce_spawn_to_walkable(desired: Vector2i) -> Vector2i:
 				var c := Vector2i(desired.x + dx, desired.y + dy)
 				if maze.is_floor(c):
 					return c
-	
+
 	# Fog should match new maze size and reset per level
 	# But defer fog updates during transition to avoid visual flash
 	if not _is_transitioning:
@@ -334,12 +351,13 @@ func _coerce_spawn_to_walkable(desired: Vector2i) -> Vector2i:
 			fog.call_deferred("reveal_now")
 
 	_after_maze_generated()
-	
+
 	return desired
+
 
 func _after_maze_generated() -> void:
 	_update_camera_limits_for_current_maze()
-	
+
 	if fog and fog.has_method("reset_fog_for_level"):
 		fog.reset_fog_for_level()
 		# Wait a frame for fog to settle
@@ -350,6 +368,7 @@ func _after_maze_generated() -> void:
 			fog.load_explored_from_file(_continue_fog_path, _continue_fog_size)
 		# Only restore explored fog once on initial continue.
 		_did_restore_fog = true
+
 
 func _update_camera_limits_for_current_maze() -> void:
 	if maze == null or cam == null:
@@ -362,6 +381,7 @@ func _update_camera_limits_for_current_maze() -> void:
 	# Avoid smoothing artifacts after teleports / limit changes.
 	if cam.has_method("reset_smoothing"):
 		cam.reset_smoothing()
+
 
 func _return_to_main_menu() -> void:
 	print("[Game] Returning to main menu")
@@ -383,6 +403,7 @@ func _return_to_main_menu() -> void:
 	# Use SceneLoader for scene change
 	await SceneLoader.change_scene_with_loading("res://scenes/ui/main_menu.tscn")
 
+
 func set_paused_state(is_paused: bool) -> void:
 	if GameState.current == GameState.State.GAME_OVER:
 		return
@@ -397,8 +418,10 @@ func set_paused_state(is_paused: bool) -> void:
 		get_tree().paused = false
 		GameState.current = GameState.State.PLAYING
 
+
 func _on_pause_requested() -> void:
 	set_paused_state(true)
+
 
 func _on_resume_requested() -> void:
 	set_paused_state(false)

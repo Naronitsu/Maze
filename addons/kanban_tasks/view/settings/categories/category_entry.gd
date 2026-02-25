@@ -3,7 +3,6 @@ extends HBoxContainer
 
 ## Visual representation of a category.
 
-
 const __EditLabel := preload("../../../edit_label/edit_label.gd")
 const __BoardData := preload("../../../data/board.gd")
 const __Singletons := preload("../../../plugin_singleton/singletons.gd")
@@ -60,7 +59,7 @@ func _shortcut_input(event: InputEvent) -> void:
 
 
 func _notification(what) -> void:
-	match(what):
+	match what:
 		NOTIFICATION_THEME_CHANGED:
 			if is_instance_valid(delete):
 				delete.icon = get_theme_icon(&"Remove", &"EditorIcons")

@@ -14,16 +14,18 @@ const ActiveInstanceScript = preload("res://scripts/gameplay/skills/system/activ
 @export var equipped_actives: Array[ActiveDefScript] = []
 
 # skill_id -> level (ZERO-BASED: 0 = Level 1)
-@export var levels: Dictionary = {} # { StringName: int }
+@export var levels: Dictionary = {}  # { StringName: int }
 
 # skill_id -> instance
-var passive_instances: Dictionary = {} # { StringName: SkillInstance }
+var passive_instances: Dictionary = {}  # { StringName: SkillInstance }
 var active_instances: Dictionary = {}  # { StringName: SkillInstance }
 
 @onready var owner_actor := get_parent()
 
+
 func _ready() -> void:
 	rebuild_all()
+
 
 func _process(delta: float) -> void:
 	# Tick only actives (cooldowns). Passives can implement tick too.
@@ -32,9 +34,11 @@ func _process(delta: float) -> void:
 	for inst in passive_instances.values():
 		(inst as SkillInstance).tick(delta)
 
+
 func get_level(skill_id: StringName) -> int:
 	# ZERO-BASED default: 0 = Level 1
 	return int(levels.get(skill_id, 0))
+
 
 func set_level(skill_id: StringName, new_level: int) -> void:
 	# new_level is ZERO-BASED
@@ -47,6 +51,7 @@ func set_level(skill_id: StringName, new_level: int) -> void:
 		(passive_instances[skill_id] as SkillInstance).set_level(new_level)
 	if active_instances.has(skill_id):
 		(active_instances[skill_id] as SkillInstance).set_level(new_level)
+
 
 func rebuild_all() -> void:
 	# Unequip existing
@@ -65,6 +70,7 @@ func rebuild_all() -> void:
 	for def in equipped_actives:
 		_equip_def(def, false)
 
+
 func equip_passive(def: PassiveDefScript, level: int = -1) -> void:
 	if def == null:
 		return
@@ -80,6 +86,7 @@ func equip_passive(def: PassiveDefScript, level: int = -1) -> void:
 	equipped_passives.append(def)
 	_equip_def(def, true)
 
+
 func equip_active(def: ActiveDefScript, level: int = -1) -> void:
 	if def == null:
 		return
@@ -93,6 +100,7 @@ func equip_active(def: ActiveDefScript, level: int = -1) -> void:
 	equipped_actives.append(def)
 	_equip_def(def, false)
 
+
 func unequip(skill_id: StringName) -> void:
 	if passive_instances.has(skill_id):
 		(passive_instances[skill_id] as SkillInstance).on_unequip()
@@ -104,11 +112,13 @@ func unequip(skill_id: StringName) -> void:
 		active_instances.erase(skill_id)
 	equipped_actives = equipped_actives.filter(func(d): return d.id != skill_id)
 
+
 func activate(skill_id: StringName, context := {}) -> bool:
 	if not active_instances.has(skill_id):
 		return false
 	var inst := active_instances[skill_id] as ActiveInstance
 	return inst.try_activate(context)
+
 
 func _equip_def(def: SkillDefScript, is_passive: bool) -> void:
 	if def == null:
@@ -121,7 +131,7 @@ func _equip_def(def: SkillDefScript, is_passive: bool) -> void:
 	if not levels.has(def.id):
 		levels[def.id] = 0
 
-	var lvl := get_level(def.id) # ZERO-BASED
+	var lvl := get_level(def.id)  # ZERO-BASED
 	var inst: SkillInstance = def.create_instance(owner_actor, lvl)
 	if inst == null:
 		push_warning("SkillDef.create_instance returned null for %s" % [String(def.id)])

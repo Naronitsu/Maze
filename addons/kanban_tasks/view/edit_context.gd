@@ -3,14 +3,13 @@ extends Node
 
 ## Global stuff for the view system.
 
-
 const __Filter := preload("filter.gd")
 const __SettingData := preload("../data/settings.gd")
 
-signal filter_changed()
-signal save_board()
-signal create_board()
-signal reload_board()
+signal filter_changed
+signal save_board
+signal create_board
+signal reload_board
 
 ## The currently active filter.
 var filter: __Filter = null:

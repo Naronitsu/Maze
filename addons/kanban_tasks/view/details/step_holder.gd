@@ -1,9 +1,10 @@
 @tool
 extends VBoxContainer
 
-
 signal entry_action_triggered(entry: __StepEntry, action: __StepEntry.Actions)
-signal entry_move_requesed(moved_entry: __StepEntry, target_entry: __StepEntry, move_after_target: bool)
+signal entry_move_requesed(
+	moved_entry: __StepEntry, target_entry: __StepEntry, move_after_target: bool
+)
 
 const __StepData := preload("../../data/step.gd")
 const __StepEntry := preload("../details/step_entry.gd")
@@ -63,7 +64,7 @@ func _can_drop_data(at_position: Vector2, data: Variant) -> bool:
 		if __remove_area.get_global_rect().has_point(get_global_transform() * at_position):
 			return true
 		__update_move_target(at_position)
-		return (__move_target_entry != null)
+		return __move_target_entry != null
 	return false
 
 
@@ -117,7 +118,9 @@ func get_step_entries() -> Array[__StepEntry]:
 
 func __update_children_settings() -> void:
 	if is_instance_valid(__scroll_container):
-		__scroll_container.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_AUTO if scrollable else ScrollContainer.SCROLL_MODE_DISABLED
+		__scroll_container.vertical_scroll_mode = (
+			ScrollContainer.SCROLL_MODE_AUTO if scrollable else ScrollContainer.SCROLL_MODE_DISABLED
+		)
 	if is_instance_valid(__remove_separator):
 		__remove_separator.visible = steps_can_be_removed
 	if is_instance_valid(__remove_area):
@@ -167,10 +170,14 @@ func __on_step_list_mouse_exited() -> void:
 
 func __on_step_list_draw() -> void:
 	if __move_target_entry != null:
-		var target_rect := __step_list.get_global_transform().inverse() * __move_target_entry.get_global_rect()
+		var target_rect := (
+			__step_list.get_global_transform().inverse() * __move_target_entry.get_global_rect()
+		)
 		var separation = __step_list.get_theme_constant(&"separation")
 		var preview_rect := Rect2(
-			Vector2(0, target_rect.end.y if __move_after_target else target_rect.position.y - separation),
+			Vector2(
+				0, target_rect.end.y if __move_after_target else target_rect.position.y - separation
+			),
 			Vector2(target_rect.size.x, separation)
 		)
 		if preview_rect.position.y < 0:

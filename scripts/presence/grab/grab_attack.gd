@@ -18,14 +18,17 @@ var _zoom_in_tween: Tween = null
 var _zoom_out_tween: Tween = null
 var _ending := false
 
+
 func init_grab(player: Node2D, spawn_world: Vector2) -> void:
 	_player = player
 	global_position = spawn_world
+
 
 func _ready() -> void:
 	sprite.play("spawn")
 	await sprite.animation_finished
 	call_deferred("_do_grab")
+
 
 func _do_grab() -> void:
 	if _player == null:
@@ -41,7 +44,6 @@ func _do_grab() -> void:
 	_player.call("on_grabbed")
 	await get_tree().physics_frame
 
-
 	sprite.play("idle")
 
 	_camera = _player.get_node_or_null("Camera") as Camera2D
@@ -56,9 +58,12 @@ func _do_grab() -> void:
 		_kill_camera_tweens()
 
 		_zoom_in_tween = create_tween()
-		_zoom_in_tween.tween_property(_camera, "zoom", target_zoom, zoom_time)\
-			.set_trans(Tween.TRANS_SINE)\
-			.set_ease(Tween.EASE_OUT)
+		(
+			_zoom_in_tween
+			. tween_property(_camera, "zoom", target_zoom, zoom_time)
+			. set_trans(Tween.TRANS_SINE)
+			. set_ease(Tween.EASE_OUT)
+		)
 
 	_minigame = get_tree().current_scene.get_node_or_null("UI/grabMinigame")
 	if _minigame == null:
@@ -92,13 +97,16 @@ func _do_grab() -> void:
 	if is_inside_tree():
 		_end_grab()
 
+
 func _on_minigame_escaped() -> void:
 	_end_grab()
+
 
 func _on_minigame_failed() -> void:
 	if _player:
 		_player.call("_take_damage", 1)
 	_end_grab()
+
 
 func _kill_camera_tweens() -> void:
 	if _zoom_in_tween and _zoom_in_tween.is_valid():
@@ -108,6 +116,7 @@ func _kill_camera_tweens() -> void:
 	if _zoom_out_tween and _zoom_out_tween.is_valid():
 		_zoom_out_tween.kill()
 	_zoom_out_tween = null
+
 
 func _end_grab() -> void:
 	if _ending:
@@ -132,9 +141,12 @@ func _end_grab() -> void:
 
 		print("[GrabAttack] Grab end: restoring zoom to ", _original_zoom)
 		_zoom_out_tween = create_tween()
-		_zoom_out_tween.tween_property(_camera, "zoom", _original_zoom, zoom_time)\
-			.set_trans(Tween.TRANS_SINE)\
-			.set_ease(Tween.EASE_IN_OUT)
+		(
+			_zoom_out_tween
+			. tween_property(_camera, "zoom", _original_zoom, zoom_time)
+			. set_trans(Tween.TRANS_SINE)
+			. set_ease(Tween.EASE_IN_OUT)
+		)
 
 		await _zoom_out_tween.finished
 
@@ -143,6 +155,7 @@ func _end_grab() -> void:
 
 	finished.emit()
 	queue_free()
+
 
 # Failsafe: only snap if we're being torn down mid-grab and no tween is running
 func _exit_tree() -> void:

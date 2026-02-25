@@ -19,13 +19,14 @@ var _crt_has_saved_curvature: bool = false
 var _intro_running: bool = false
 var _is_loading_scene: bool = false
 
+
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
 	# Get UI element references
 	level_intro_panel = game.get_node_or_null("UI/LevelIntro")
 	if level_intro_panel:
 		level_intro_label = level_intro_panel.get_node_or_null("Text")
-	
+
 	level_counter_label = game.get_node_or_null("UI/LevelCounter")
 	game_over_panel = game.get_node_or_null("UI/GameOver")
 	pause_menu = game.get_node_or_null("UI/PauseMenu")
@@ -40,7 +41,7 @@ func _ready() -> void:
 
 	if pause_settings:
 		pause_settings.connect("back_pressed", _on_settings_back)
-	
+
 	# Subscribe to EventBus signals
 	EventBus.level_started.connect(_on_level_started)
 	EventBus.level_transitioning.connect(_on_level_transitioning)
@@ -62,11 +63,12 @@ func _on_scene_loading_started():
 	_is_loading_scene = true
 	_hide_pause_menu()
 
+
 func _on_scene_loading_finished():
 	_is_loading_scene = false
 
-func _on_level_started(_player_pos: Vector2i, maze: Node) -> void:
 
+func _on_level_started(_player_pos: Vector2i, maze: Node) -> void:
 	if SceneLoader.has_signal("scene_loading_finished") and SceneLoader.is_loading:
 		await SceneLoader.scene_loading_finished
 		await RenderingServer.frame_post_draw
@@ -74,24 +76,27 @@ func _on_level_started(_player_pos: Vector2i, maze: Node) -> void:
 	# Update level counter
 	if level_counter_label and maze and "level" in maze:
 		level_counter_label.text = "Level %d" % maze.level
-	
+
 	# Hide intro panel when level starts
 	if level_intro_panel:
 		await get_tree().create_timer(0.5).timeout  # Brief delay
 		_fade_out_intro()
 
+
 func _on_level_transitioning() -> void:
 	# Show transition message
 	_show_intro_instant(GameConfig.door_message)
+
 
 func _on_player_caught(_presence_cell: Vector2i, _player_cell: Vector2i) -> void:
 	# Show game over screen
 	if game_over_panel:
 		game_over_panel.visible = true
 		game_over_panel.modulate.a = 0.0
-		
+
 		var t := get_tree().create_tween()
 		t.tween_property(game_over_panel, "modulate:a", 1.0, 0.5)
+
 
 func _on_game_over() -> void:
 	if game_over_panel:
@@ -99,6 +104,7 @@ func _on_game_over() -> void:
 		game_over_panel.modulate.a = 0.0
 		var t := get_tree().create_tween()
 		t.tween_property(game_over_panel, "modulate:a", 1.0, 0.5)
+
 
 func _on_state_changed(from_state: String, to_state: String) -> void:
 	print("[UIManager] State changed: %s -> %s" % [from_state, to_state])
@@ -111,17 +117,22 @@ func _on_state_changed(from_state: String, to_state: String) -> void:
 		_hide_settings_menu()
 		_set_ui_mouse_mode(false)
 
+
 func _on_pause_resume() -> void:
 	EventBus.resume_requested.emit()
+
 
 func _on_pause_settings() -> void:
 	_show_settings_menu()
 
+
 func _on_pause_quit() -> void:
 	EventBus.return_to_menu_requested.emit()
 
+
 func _on_settings_back() -> void:
 	_show_pause_menu()
+
 
 func _show_pause_menu() -> void:
 	_set_ui_mouse_mode(true)
@@ -130,9 +141,11 @@ func _show_pause_menu() -> void:
 	if pause_menu:
 		pause_menu.visible = true
 
+
 func _hide_pause_menu() -> void:
 	if pause_menu:
 		pause_menu.visible = false
+
 
 func _show_settings_menu() -> void:
 	_set_ui_mouse_mode(true)
@@ -141,9 +154,11 @@ func _show_settings_menu() -> void:
 	if pause_settings:
 		pause_settings.visible = true
 
+
 func _hide_settings_menu() -> void:
 	if pause_settings:
 		pause_settings.visible = false
+
 
 func _cache_crt_curvature() -> void:
 	if _crt_overlay == null:
@@ -157,6 +172,7 @@ func _cache_crt_curvature() -> void:
 	if v is float:
 		_crt_saved_curvature = float(v)
 		_crt_has_saved_curvature = true
+
 
 func _set_ui_mouse_mode(active: bool) -> void:
 	# CRT warp is a post-process visual distortion; it does not warp input hitboxes.
@@ -174,6 +190,7 @@ func _set_ui_mouse_mode(active: bool) -> void:
 		if _crt_has_saved_curvature:
 			mat.set_shader_parameter("curvature", _crt_saved_curvature)
 
+
 # ------------------------
 # Intro screen methods
 # ------------------------
@@ -181,36 +198,38 @@ func _show_intro_instant(msg: String) -> void:
 	if _intro_running or not level_intro_panel:
 		return
 	_intro_running = true
-	
+
 	if level_intro_label:
 		level_intro_label.text = msg
-	
+
 	level_intro_panel.visible = true
 	level_intro_panel.modulate.a = 1.0
+
 
 func _fade_in_intro(msg: String, fade_time: float) -> void:
 	if _intro_running or not level_intro_panel:
 		return
 	_intro_running = true
-	
+
 	if level_intro_label:
 		level_intro_label.text = msg
-	
+
 	level_intro_panel.visible = true
 	level_intro_panel.modulate.a = 0.0
-	
+
 	var t := get_tree().create_tween()
 	t.tween_property(level_intro_panel, "modulate:a", 1.0, fade_time)
 	await t.finished
 
+
 func _fade_out_intro() -> void:
 	if not level_intro_panel or not _intro_running:
 		return
-	
+
 	var fade_time = GameConfig.door_fade_time
 	var t := get_tree().create_tween()
 	t.tween_property(level_intro_panel, "modulate:a", 0.0, fade_time)
 	await t.finished
-	
+
 	level_intro_panel.visible = false
 	_intro_running = false

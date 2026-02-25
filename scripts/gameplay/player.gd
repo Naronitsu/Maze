@@ -26,7 +26,7 @@ var _to: Vector2
 var _t: float = 0.0
 
 # --- Vision / eyes ---
-var vision_controller: VisionController = null # set externally
+var vision_controller: VisionController = null  # set externally
 var _eyes_closed: bool = false
 
 # --- Trail ---
@@ -35,6 +35,7 @@ var trail_history: Array[Vector2i] = []
 # --- Health ---
 var current_health: int = 0
 var _last_max_health: int = 0
+
 
 func _ready() -> void:
 	_init_stats_from_config()
@@ -141,14 +142,16 @@ func _physics_process(delta: float) -> void:
 # Skills integration
 # ---------------------------
 
+
 func _get_step_time() -> float:
 	# Prefer computed Step Time (base + modifiers)
 	if stats != null and stats.has_method("get_stat"):
 		var t := float(stats.call("get_stat", &"Step Time"))
-		return maxf(0.05, t) # clamp safety
+		return maxf(0.05, t)  # clamp safety
 
 	# Fallback
 	return float(GameConfig.player_step_time)
+
 
 func setupPlayer() -> void:
 	# Keep this for whatever calls it externally
@@ -162,6 +165,7 @@ func setupPlayer() -> void:
 # ---------------------------
 # Eyes / vision
 # ---------------------------
+
 
 func _update_eyes_state() -> void:
 	var want_closed: bool = Input.is_action_pressed(GameConfig.player_close_eyes_action)
@@ -179,6 +183,7 @@ func _update_eyes_state() -> void:
 			_update_vision_facing()
 		EventBus.player_opened_eyes.emit()
 
+
 func _update_vision_facing() -> void:
 	if vision_controller:
 		vision_controller.update_facing(facing)
@@ -187,6 +192,7 @@ func _update_vision_facing() -> void:
 # ---------------------------
 # Look / move
 # ---------------------------
+
 
 func _update_look_input() -> void:
 	var look_dir := Vector2i.ZERO
@@ -210,6 +216,7 @@ func _update_look_input() -> void:
 		_update_vision_facing()
 		if vision_controller:
 			vision_controller.reveal_now()
+
 
 func _try_step(dir: Vector2i) -> void:
 	if maze == null or controller == null:
@@ -259,7 +266,9 @@ func _try_step(dir: Vector2i) -> void:
 
 	# Presence trail
 	var is_running := Input.is_action_pressed("run")
-	var amount := GameConfig.controller_trail_add_run if is_running else GameConfig.controller_trail_add_walk
+	var amount := (
+		GameConfig.controller_trail_add_run if is_running else GameConfig.controller_trail_add_walk
+	)
 	controller.add_trail_at_world_pos(_to, amount)
 
 	# Snappy FOV update
@@ -270,6 +279,7 @@ func _try_step(dir: Vector2i) -> void:
 # ---------------------------
 # Doors
 # ---------------------------
+
 
 func _try_toggle_door() -> void:
 	var target := cell + facing
@@ -284,6 +294,7 @@ func _try_toggle_door() -> void:
 # ---------------------------
 # Position helpers
 # ---------------------------
+
 
 func reset_to_cell(new_cell: Vector2i) -> void:
 	cell = new_cell
@@ -302,12 +313,14 @@ func reset_to_cell(new_cell: Vector2i) -> void:
 	if anim:
 		anim.position = Vector2.ZERO
 
+
 func _cell_to_global(c: Vector2i) -> Vector2:
 	if controller:
 		return controller.cell_to_world_center(c)
 	if maze == null:
 		return Vector2.ZERO
 	return maze.to_global(maze.map_to_local(c))
+
 
 func _apply_sprite_scale() -> void:
 	if anim == null:
@@ -322,11 +335,13 @@ func _apply_sprite_scale() -> void:
 # Animation
 # ---------------------------
 
+
 func _update_sprite_facing(dir: Vector2i) -> void:
 	if anim == null:
 		return
 	if dir.x != 0:
 		anim.flip_h = (dir.x < 0)
+
 
 func _play_movement_anim(walking: bool, dir: Vector2i) -> void:
 	if anim == null or anim.sprite_frames == null:
@@ -344,6 +359,7 @@ func _play_movement_anim(walking: bool, dir: Vector2i) -> void:
 	var desired: StringName = StringName(anim_prefix + "_" + dir_suffix)
 	_play_anim(desired)
 
+
 func _play_anim(p_name: StringName) -> void:
 	if anim == null or anim.sprite_frames == null:
 		return
@@ -357,6 +373,7 @@ func _play_anim(p_name: StringName) -> void:
 # Health / damage
 # ---------------------------
 
+
 func _take_damage(amount: int) -> void:
 	current_health -= amount
 	if health_bar:
@@ -366,6 +383,7 @@ func _take_damage(amount: int) -> void:
 		current_health = 0
 		_die()
 
+
 func _die() -> void:
 	SceneLoader.change_scene_with_loading("res://scenes/gameplay/game.tscn")
 
@@ -374,10 +392,12 @@ func _die() -> void:
 # Grabbed state hooks
 # ---------------------------
 
+
 func on_grabbed() -> void:
 	is_grabbed = true
 	movement_locked = true
 	_play_anim(&"grabbed")
+
 
 func on_grab_release() -> void:
 	is_grabbed = false
@@ -391,12 +411,15 @@ func on_grab_release() -> void:
 func get_stat(stat_name: StringName) -> float:
 	return float(stats.get_stat(stat_name))
 
+
 func set_base_stat(stat_name: StringName, value: float) -> void:
 	stats.base[stat_name] = value
-	stats.stat_changed.emit(stat_name) # optional, if you rely on signal
+	stats.stat_changed.emit(stat_name)  # optional, if you rely on signal
+
 
 func add_base_stat(stat_name: StringName, amount: float) -> void:
 	set_base_stat(stat_name, float(stats.base.get(stat_name, 0.0)) + amount)
+
 
 func _init_stats_from_config() -> void:
 	stats.base[&"Agility"] = GameConfig.default_stats["Agility"]
@@ -407,6 +430,7 @@ func _init_stats_from_config() -> void:
 
 	stats.base[&"Step Time"] = float(GameConfig.player_step_time)
 	stats.base[&"Max Health"] = float(GameConfig.player_max_health)
+
 
 func _on_stat_changed(stat_name: StringName) -> void:
 	if stat_name != &"Max Health":

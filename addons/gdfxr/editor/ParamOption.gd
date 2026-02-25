@@ -5,9 +5,9 @@ signal param_changed(name, value)
 signal param_submitted(name)
 signal param_reset(name)
 
-@export var options: Array :
+@export var options: Array:
 	set = set_options
-@export var parameter: String # Could be PackedStringArray, but pybabel won't catch that
+@export var parameter: String  # Could be PackedStringArray, but pybabel won't catch that
 
 @onready var option_button := $OptionButton as OptionButton
 
@@ -18,7 +18,7 @@ func _ready():
 
 func set_options(v: Array) -> void:
 	options = v
-	
+
 	if is_inside_tree():
 		option_button.clear()
 		for item in options:

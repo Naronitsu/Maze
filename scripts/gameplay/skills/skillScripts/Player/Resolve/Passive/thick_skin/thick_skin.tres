@@ -1,6 +1,6 @@
 [gd_resource type="Resource" script_class="ThickSkinDef" format=3 uid="uid://cbii0tbomaiwh"]
 
-[ext_resource type="Script" uid="uid://c84tbwb327ptw" path="res://scripts/gameplay/skills/skillScripts/Player/Composure/Passive/thick_skin/thick_skin_def.gd" id="1_iynjn"]
+[ext_resource type="Script" uid="uid://c84tbwb327ptw" path="res://scripts/gameplay/skills/skillScripts/Player/Resolve/Passive/thick_skin/thick_skin_def.gd" id="1_iynjn"]
 
 [resource]
 script = ExtResource("1_iynjn")

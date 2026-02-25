@@ -3,10 +3,14 @@ extends Control
 @export var game_scene: PackedScene
 @export var fade_out_time: float = 0.35
 
-@onready var continue_btn: Button = $CenterContainer/MainMenuContainer/UIContainer/ButtonContainer/ContinueButton
-@onready var play_btn: Button = $CenterContainer/MainMenuContainer/UIContainer/ButtonContainer/PlayButton
-@onready var settings_btn: Button = $CenterContainer/MainMenuContainer/UIContainer/ButtonContainer/SettingsButton
-@onready var quit_btn: Button = $CenterContainer/MainMenuContainer/UIContainer/ButtonContainer/QuitButton
+@onready
+var continue_btn: Button = $CenterContainer/MainMenuContainer/UIContainer/ButtonContainer/ContinueButton
+@onready
+var play_btn: Button = $CenterContainer/MainMenuContainer/UIContainer/ButtonContainer/PlayButton
+@onready
+var settings_btn: Button = $CenterContainer/MainMenuContainer/UIContainer/ButtonContainer/SettingsButton
+@onready
+var quit_btn: Button = $CenterContainer/MainMenuContainer/UIContainer/ButtonContainer/QuitButton
 @onready var settings_panel: Control = $PauseSettings
 @onready var center_container: Control = $CenterContainer
 
@@ -17,6 +21,7 @@ var _is_continue := false
 var _crt_overlay: ColorRect
 var _crt_saved_curvature: float = 0.0
 var _crt_has_saved_curvature: bool = false
+
 
 func _ready() -> void:
 	# Create a guaranteed full-screen black overlay on top
@@ -52,8 +57,10 @@ func _ready() -> void:
 		btn.focus_entered.connect(_on_button_hover)
 		btn.pressed.connect(_on_button_select)
 
+
 func _on_button_hover() -> void:
 	UI_SoundPlayer.play_hover()
+
 
 func _on_button_select() -> void:
 	UI_SoundPlayer.play_select()
@@ -67,6 +74,7 @@ func _on_button_select() -> void:
 
 	# Ensure it draws on top
 	_fade_rect.z_index = 999
+
 
 func _unhandled_input(event: InputEvent) -> void:
 	if event is InputEventKey and event.is_pressed() and not event.echo:
@@ -82,6 +90,7 @@ func _unhandled_input(event: InputEvent) -> void:
 			if settings_panel and settings_panel.visible:
 				_on_settings_back()
 
+
 func _get_menu_buttons() -> Array:
 	# If settings panel active, prefer its buttons (recurses into child Controls)
 	if settings_panel and settings_panel.visible:
@@ -94,6 +103,7 @@ func _get_menu_buttons() -> Array:
 			buttons.append(child)
 	return buttons
 
+
 func _collect_buttons_from_control(ctrl: Control) -> Array:
 	var buttons: Array = []
 	for child in ctrl.get_children():
@@ -102,6 +112,7 @@ func _collect_buttons_from_control(ctrl: Control) -> Array:
 		elif child is Control:
 			buttons += _collect_buttons_from_control(child)
 	return buttons
+
 
 func _navigate_menu(delta: int) -> void:
 	var buttons := _get_menu_buttons()
@@ -123,12 +134,14 @@ func _navigate_menu(delta: int) -> void:
 		idx = buttons.size() - 1
 	buttons[idx].grab_focus()
 
+
 func _activate_focused() -> void:
 	var buttons := _get_menu_buttons()
 	for b in buttons:
 		if b.has_focus():
 			b.emit_signal("pressed")
 			return
+
 
 func _on_settings_pressed() -> void:
 	if settings_panel == null:
@@ -137,17 +150,22 @@ func _on_settings_pressed() -> void:
 	if settings_panel.has_method("refresh_from_settings"):
 		settings_panel.call("refresh_from_settings")
 
+
 func _on_settings_back() -> void:
 	_settings_set_active(false)
 
+
 func _settings_set_active(active: bool) -> void:
 	settings_panel.visible = active
-	settings_panel.mouse_filter = Control.MOUSE_FILTER_STOP if active else Control.MOUSE_FILTER_IGNORE
+	settings_panel.mouse_filter = (
+		Control.MOUSE_FILTER_STOP if active else Control.MOUSE_FILTER_IGNORE
+	)
 	_set_ui_mouse_mode(active)
 	play_btn.disabled = active
 	continue_btn.disabled = active
 	settings_btn.disabled = active
 	quit_btn.disabled = active
+
 
 func _cache_crt_curvature() -> void:
 	if _crt_overlay == null:
@@ -161,6 +179,7 @@ func _cache_crt_curvature() -> void:
 	if v is float:
 		_crt_saved_curvature = float(v)
 		_crt_has_saved_curvature = true
+
 
 func _set_ui_mouse_mode(active: bool) -> void:
 	if _crt_overlay == null or not (_crt_overlay.material is ShaderMaterial):
@@ -191,6 +210,7 @@ func _set_ui_mouse_mode(active: bool) -> void:
 		if not main_buttons.is_empty():
 			main_buttons[0].grab_focus()
 
+
 func _start_game() -> void:
 	if _transitioning:
 		return
@@ -220,14 +240,14 @@ func _start_game() -> void:
 		SaveManager.current_save_data = save_data
 		_is_continue = false
 
-	
-
 	# Use SceneLoader for scene change
 	await SceneLoader.change_scene_with_loading(game_scene.resource_path)
+
 
 func _on_continue_pressed() -> void:
 	_is_continue = true
 	_start_game()
+
 
 func _on_play_pressed() -> void:
 	# Clear save data for new game
@@ -239,6 +259,7 @@ func _on_play_pressed() -> void:
 		await center_container.animate_fall_off_screen()
 
 	_start_game()
+
 
 func _on_quit_pressed() -> void:
 	get_tree().quit()

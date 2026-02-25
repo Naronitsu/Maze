@@ -3,7 +3,6 @@ extends "kanban_resource.gd"
 
 ## Contains settings that are not bound to a board.
 
-
 const DEFAULT_EDITOR_DATA_PATH: String = "res://kanban_tasks_data.kanban"
 
 enum DescriptionOnBoard {
@@ -12,11 +11,7 @@ enum DescriptionOnBoard {
 	UNTIL_FIRST_BLANK_LINE,
 }
 
-enum StepsOnBoard {
-	ONLY_OPEN,
-	ALL_OPEN_FIRST,
-	ALL_IN_ORDER
-}
+enum StepsOnBoard { ONLY_OPEN, ALL_OPEN_FIRST, ALL_IN_ORDER }
 
 ## Whether the first line of the description is shown on the board.
 var show_description_preview: bool = true:
@@ -89,7 +84,7 @@ var recent_files: PackedStringArray = []:
 # Set via set_internal_state to trigger notification
 # (As no clean-up, during develolpment some mess can remain in it.
 # Use clear or erase in your code in such cases, just don't forget there)
-var internal_states: Dictionary = { }
+var internal_states: Dictionary = {}
 
 
 func set_internal_state(property: String, value: Variant) -> void:

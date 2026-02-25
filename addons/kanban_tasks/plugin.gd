@@ -1,7 +1,6 @@
 @tool
 extends "standalone_plugin.gd"
 
-
 const __Singletons := preload("./plugin_singleton/singletons.gd")
 const __Shortcuts := preload("./view/shortcuts.gd")
 const __EditContext := preload("./view/edit_context.gd")
@@ -207,25 +206,40 @@ func __update_menus() -> void:
 
 	var shortcuts: __Shortcuts = __Singletons.instance_of(__Shortcuts, self)
 
-	file_menu.set_item_disabled(
-		file_menu.get_item_index(ACTION_SAVE),
-		not is_instance_valid(board_view),
+	(
+		file_menu
+		. set_item_disabled(
+			file_menu.get_item_index(ACTION_SAVE),
+			not is_instance_valid(board_view),
+		)
 	)
-	file_menu.set_item_shortcut(
-		file_menu.get_item_index(ACTION_SAVE),
-		shortcuts.save,
+	(
+		file_menu
+		. set_item_shortcut(
+			file_menu.get_item_index(ACTION_SAVE),
+			shortcuts.save,
+		)
 	)
-	file_menu.set_item_disabled(
-		file_menu.get_item_index(ACTION_SAVE_AS),
-		not is_instance_valid(board_view),
+	(
+		file_menu
+		. set_item_disabled(
+			file_menu.get_item_index(ACTION_SAVE_AS),
+			not is_instance_valid(board_view),
+		)
 	)
-	file_menu.set_item_shortcut(
-		file_menu.get_item_index(ACTION_SAVE_AS),
-		shortcuts.save_as,
+	(
+		file_menu
+		. set_item_shortcut(
+			file_menu.get_item_index(ACTION_SAVE_AS),
+			shortcuts.save_as,
+		)
 	)
-	file_menu.set_item_disabled(
-		file_menu.get_item_index(ACTION_CLOSE),
-		not is_instance_valid(board_view),
+	(
+		file_menu
+		. set_item_disabled(
+			file_menu.get_item_index(ACTION_CLOSE),
+			not is_instance_valid(board_view),
+		)
 	)
 
 
@@ -307,16 +321,20 @@ func __request_save(force_new_location: bool = false) -> void:
 func __create_board() -> void:
 	var data := __BoardData.new()
 
-	data.layout = __LayoutData.new([
-		PackedStringArray([data.add_stage(__StageData.new("Todo"))]),
-		PackedStringArray([data.add_stage(__StageData.new("Doing"))]),
-		PackedStringArray([data.add_stage(__StageData.new("Done"))]),
-	])
+	data.layout = (
+		__LayoutData
+		. new(
+			[
+				PackedStringArray([data.add_stage(__StageData.new("Todo"))]),
+				PackedStringArray([data.add_stage(__StageData.new("Doing"))]),
+				PackedStringArray([data.add_stage(__StageData.new("Done"))]),
+			]
+		)
+	)
 	data.add_category(
 		__CategoryData.new(
 			"Task",
-			get_editor_interface().get_base_control().
-			get_theme_color(&"accent_color", &"Editor")
+			get_editor_interface().get_base_control().get_theme_color(&"accent_color", &"Editor")
 		)
 	)
 
@@ -401,14 +419,21 @@ func __save_settings() -> void:
 	var ctx: __EditContext = __Singletons.instance_of(__EditContext, self)
 	var data := JSON.stringify(ctx.settings.to_json())
 	if Engine.is_editor_hint():
-		get_editor_interface().get_editor_settings().set_setting(
-			SETTINGS_KEY,
-			data,
+		(
+			get_editor_interface()
+			. get_editor_settings()
+			. set_setting(
+				SETTINGS_KEY,
+				data,
+			)
 		)
 	else:
-		ProjectSettings.set_setting(
-			SETTINGS_KEY,
-			data,
+		(
+			ProjectSettings
+			. set_setting(
+				SETTINGS_KEY,
+				data,
+			)
 		)
 		save_project_settings()
 
@@ -427,12 +452,14 @@ func __load_settings() -> void:
 	var err = json.parse(data)
 	if err != OK:
 		push_error(
-			"Error "
-			+ str(err)
-			+ " while parsing settings. At line "
-			+ str(json.get_error_line())
-			+ " the following problem occured:\n"
-			+ json.get_error_message()
+			(
+				"Error "
+				+ str(err)
+				+ " while parsing settings. At line "
+				+ str(json.get_error_line())
+				+ " the following problem occured:\n"
+				+ json.get_error_message()
+			)
 		)
 		return
 

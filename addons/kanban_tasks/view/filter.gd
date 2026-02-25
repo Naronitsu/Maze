@@ -3,7 +3,6 @@ extends RefCounted
 
 ## A filter configuration for searching tasks.
 
-
 var text: String
 ## Whether to search in descriptions.
 var advanced: bool

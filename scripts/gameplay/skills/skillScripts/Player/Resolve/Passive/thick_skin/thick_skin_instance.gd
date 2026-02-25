@@ -1,6 +1,7 @@
 extends PassiveInstance
 class_name ThickSkinInstance
 
+
 func apply() -> void:
 	print("ThickSkinInstance apply")
 	var stats := _get_stats()
@@ -15,7 +16,7 @@ func apply() -> void:
 
 	# We implement this as a flat delta to Max Health, derived from base * (multiplier - 1).
 	# This keeps the modifier system additive while still supporting "percent" style tuning.
-	var increase = 0;
+	var increase = 0
 
 	if level >= 0 and level < pdef.hp_increase_by_level.size():
 		increase = float(pdef.hp_increase_by_level[level])

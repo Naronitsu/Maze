@@ -1,7 +1,6 @@
 @tool
 extends RichTextLabel
 
-
 @export var mimicked_paragraph_spacing_font_size: int = 6
 
 
@@ -42,6 +41,8 @@ func __take_over_label_style() -> void:
 func __on_resized() -> void:
 	# Reduce width if unnecessary, as there is no line wraps
 	var stylebox = get_theme_stylebox(&"normal")
-	var required_width = get_content_width() + stylebox.content_margin_left + stylebox.content_margin_right
+	var required_width = (
+		get_content_width() + stylebox.content_margin_left + stylebox.content_margin_right
+	)
 	if required_width < custom_minimum_size.x:
 		custom_minimum_size.x = required_width

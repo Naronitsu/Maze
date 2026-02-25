@@ -1,5 +1,5 @@
 # MazeLayer.gd
-# 
+#
 # REFACTORED: Now generates into a GridModel first, then renders to TileMap.
 # All public APIs preserved for backward compatibility.
 # Access the logical model via get_grid_model() if needed.
@@ -22,7 +22,7 @@ signal door_closed(cell: Vector2i)
 @export var rng_seed: int = 12345
 
 # Optional cap behavior for advance_run()
-@export var runs_per_level: int = 0 # 0 = never shows level progression, just increments run
+@export var runs_per_level: int = 0  # 0 = never shows level progression, just increments run
 
 # ---- Debug ----
 @export var debug_dump_on_fail: bool = false
@@ -82,39 +82,51 @@ var _door_closed_mask: PackedByteArray = PackedByteArray()
 # Public API
 # --------------------------------------------------------------------
 
+
 ## Get the logical grid model (optional; for advanced queries)
 ## Returns null if generation hasn't run yet.
 func get_grid_model() -> GridModel:
 	return _grid_model
+
 
 ## Debug helper: Verify GridModel matches legacy PackedByteArray representation
 ## Returns true if they match, false otherwise. Prints mismatches if found.
 func _verify_grid_model_sync() -> bool:
 	if _grid_model == null:
 		return true  # Nothing to verify yet
-	
+
 	var mismatches: int = 0
 	for y in range(_grid_h):
 		for x in range(_grid_w):
-			var legacy_is_floor: bool = (_grid[_idx(x, y, _grid_w)] == 1)
+			var legacy_is_floor: bool = _grid[_idx(x, y, _grid_w)] == 1
 			var model_is_floor: bool = _grid_model.is_floor(x, y)
-			
+
 			if legacy_is_floor != model_is_floor:
 				mismatches += 1
 				if mismatches <= 10:  # Limit output
-					print("[GridModel Mismatch] at (%d,%d): legacy=%s, model=%s" % [x, y, legacy_is_floor, model_is_floor])
-	
+					print(
+						(
+							"[GridModel Mismatch] at (%d,%d): legacy=%s, model=%s"
+							% [x, y, legacy_is_floor, model_is_floor]
+						)
+					)
+
 	if mismatches > 0:
-		push_warning("[GridModel] Found %d mismatches between legacy grid and GridModel" % mismatches)
+		push_warning(
+			"[GridModel] Found %d mismatches between legacy grid and GridModel" % mismatches
+		)
 		return false
 	return true
+
 
 func set_level_and_run(p_level: int, p_run: int) -> void:
 	level = max(1, p_level)
 	run = max(1, p_run)
 
+
 func build() -> void:
 	generate()
+
 
 func generate() -> Dictionary:
 	return generate_with_retries(12)
@@ -132,6 +144,7 @@ func _shuffle_in_place(arr: Array, rng: RandomNumberGenerator) -> void:
 		arr[i] = arr[j]
 		arr[j] = tmp
 
+
 func _generate_once() -> Dictionary:
 	var rng: RandomNumberGenerator = RandomNumberGenerator.new()
 	if rng_seed == 0:
@@ -141,7 +154,9 @@ func _generate_once() -> Dictionary:
 
 	# Difficulty curve: start easier on level 1 and ramp up gradually.
 	# raw in [0,1] then exponent skews early levels lower.
-	var raw: float = clamp(0.08 + (float(level - 1) * 0.045) + (float(run - 1) * run_growth), 0.0, 1.0)
+	var raw: float = clamp(
+		0.08 + (float(level - 1) * 0.045) + (float(run - 1) * run_growth), 0.0, 1.0
+	)
 	var difficulty: float = pow(raw, 0.85)
 
 	var w: int = _odd(base_width + (level - 1) * size_growth_per_level + (run - 1) * 2)
@@ -154,16 +169,16 @@ func _generate_once() -> Dictionary:
 
 	# Initialize legacy arrays (kept in sync for backward compatibility)
 	_door_closed_mask = PackedByteArray()
-	_door_closed_mask.resize(w * h) # defaults to 0
+	_door_closed_mask.resize(w * h)  # defaults to 0
 
 	_grid = PackedByteArray()
-	_grid.resize(w * h) # defaults to 0 (walls)
+	_grid.resize(w * h)  # defaults to 0 (walls)
 
 	_room_mask = PackedByteArray()
-	_room_mask.resize(w * h) # defaults to 0
+	_room_mask.resize(w * h)  # defaults to 0
 
 	_no_carve_mask = PackedByteArray()
-	_no_carve_mask.resize(w * h) # defaults to 0
+	_no_carve_mask.resize(w * h)  # defaults to 0
 
 	_doors_open.clear()
 	_doors_closed.clear()
@@ -326,8 +341,10 @@ func get_room_rects() -> Array[Rect2i]:
 	result.append_array(_minor_room_rects)
 	return result
 
+
 func get_reward_room_rect() -> Rect2i:
 	return _reward_room_rect
+
 
 func get_minor_room_rects() -> Array[Rect2i]:
 	return _minor_room_rects.duplicate()
@@ -336,6 +353,7 @@ func get_minor_room_rects() -> Array[Rect2i]:
 # --------------------------------------------------------------------
 # Rooms-first helpers
 # --------------------------------------------------------------------
+
 
 func _carve_room_rect_kind(rect: Rect2i, w: int, kind: GridModel.RoomKind) -> void:
 	for y: int in range(rect.position.y, rect.end.y):
@@ -421,27 +439,37 @@ func _place_minor_rooms(rng: RandomNumberGenerator, w: int, h: int, count: int) 
 	return result
 
 
-func _pick_room_doors(rng: RandomNumberGenerator, rect: Rect2i, door_count: int, w: int, h: int) -> Array[Dictionary]:
+func _pick_room_doors(
+	rng: RandomNumberGenerator, rect: Rect2i, door_count: int, w: int, h: int
+) -> Array[Dictionary]:
 	# Returns [{edge: Vector2i, outside: Vector2i}] and marks door candidates on GridModel.
 	var doors: Array[Dictionary] = []
 	var tries := door_count * 20
 	while doors.size() < door_count and tries > 0:
 		tries -= 1
-		var side := rng.randi_range(0, 3) # 0=top,1=bottom,2=left,3=right
+		var side := rng.randi_range(0, 3)  # 0=top,1=bottom,2=left,3=right
 		var edge := Vector2i.ZERO
 		var outside := Vector2i.ZERO
 		match side:
 			0:
-				edge = Vector2i(rng.randi_range(rect.position.x + 1, rect.end.x - 2), rect.position.y)
+				edge = Vector2i(
+					rng.randi_range(rect.position.x + 1, rect.end.x - 2), rect.position.y
+				)
 				outside = edge + Vector2i.UP
 			1:
-				edge = Vector2i(rng.randi_range(rect.position.x + 1, rect.end.x - 2), rect.end.y - 1)
+				edge = Vector2i(
+					rng.randi_range(rect.position.x + 1, rect.end.x - 2), rect.end.y - 1
+				)
 				outside = edge + Vector2i.DOWN
 			2:
-				edge = Vector2i(rect.position.x, rng.randi_range(rect.position.y + 1, rect.end.y - 2))
+				edge = Vector2i(
+					rect.position.x, rng.randi_range(rect.position.y + 1, rect.end.y - 2)
+				)
 				outside = edge + Vector2i.LEFT
 			3:
-				edge = Vector2i(rect.end.x - 1, rng.randi_range(rect.position.y + 1, rect.end.y - 2))
+				edge = Vector2i(
+					rect.end.x - 1, rng.randi_range(rect.position.y + 1, rect.end.y - 2)
+				)
 				outside = edge + Vector2i.RIGHT
 
 		if not _in_bounds(outside.x, outside.y, w, h):
@@ -548,7 +576,9 @@ func _gather_reachable_corridor_cells(visited: PackedByteArray, w: int, h: int) 
 	return out
 
 
-func _force_connect_room_rect(rect: Rect2i, anchors: Array[Vector2i], rng: RandomNumberGenerator, w: int, h: int) -> bool:
+func _force_connect_room_rect(
+	rect: Rect2i, anchors: Array[Vector2i], rng: RandomNumberGenerator, w: int, h: int
+) -> bool:
 	# Attempt to connect the room by carving to an "approach" tile one step beyond
 	# the door outside, then carving the final doorway tile (outside) as a dead-end.
 	var candidates: Array[Dictionary] = _enumerate_room_door_candidates(rect, w, h, rng)
@@ -556,20 +586,21 @@ func _force_connect_room_rect(rect: Rect2i, anchors: Array[Vector2i], rng: Rando
 		return false
 
 	# Rank by distance from approach to nearest anchor.
-	candidates.sort_custom(func(a: Dictionary, b: Dictionary) -> bool:
-		var da := 999999
-		var db := 999999
-		for an: Vector2i in anchors:
-			da = min(da, abs(an.x - a["approach"].x) + abs(an.y - a["approach"].y))
-			db = min(db, abs(an.x - b["approach"].x) + abs(an.y - b["approach"].y))
-		return da < db
+	candidates.sort_custom(
+		func(a: Dictionary, b: Dictionary) -> bool:
+			var da := 999999
+			var db := 999999
+			for an: Vector2i in anchors:
+				da = min(da, abs(an.x - a["approach"].x) + abs(an.y - a["approach"].y))
+				db = min(db, abs(an.x - b["approach"].x) + abs(an.y - b["approach"].y))
+			return da < db
 	)
 
 	for cand: Dictionary in candidates:
 		var edge: Vector2i = cand["edge"]
 		var outside: Vector2i = cand["outside"]
 		var approach: Vector2i = cand["approach"]
-		var step_dir: Vector2i = cand["step_dir"] # approach -> outside
+		var step_dir: Vector2i = cand["step_dir"]  # approach -> outside
 
 		# Approach may already be corridor floor; that's fine.
 		if _is_room(approach, w):
@@ -599,7 +630,9 @@ func _force_connect_room_rect(rect: Rect2i, anchors: Array[Vector2i], rng: Rando
 	return false
 
 
-func _enumerate_room_door_candidates(rect: Rect2i, w: int, h: int, rng: RandomNumberGenerator) -> Array[Dictionary]:
+func _enumerate_room_door_candidates(
+	rect: Rect2i, w: int, h: int, rng: RandomNumberGenerator
+) -> Array[Dictionary]:
 	# Enumerate non-corner edge tiles and their outside/approach tiles.
 	# Each candidate returns: {edge, outside, approach, step_dir}
 	var out: Array[Dictionary] = []
@@ -627,7 +660,9 @@ func _enumerate_room_door_candidates(rect: Rect2i, w: int, h: int, rng: RandomNu
 	return out
 
 
-func _append_door_candidate(dst: Array[Dictionary], edge: Vector2i, outside: Vector2i, w: int, h: int) -> void:
+func _append_door_candidate(
+	dst: Array[Dictionary], edge: Vector2i, outside: Vector2i, w: int, h: int
+) -> void:
 	if not _in_bounds(outside.x, outside.y, w, h):
 		return
 	if _is_room(outside, w):
@@ -662,13 +697,14 @@ func _connect_doors_to_network(
 
 	# Sort pool by (rough) distance to network to reduce failures.
 	var pool := doors_pool.duplicate()
-	pool.sort_custom(func(a: Dictionary, b: Dictionary) -> bool:
-		var da := 999999
-		var db := 999999
-		for an: Vector2i in anchors:
-			da = min(da, abs(an.x - a["outside"].x) + abs(an.y - a["outside"].y))
-			db = min(db, abs(an.x - b["outside"].x) + abs(an.y - b["outside"].y))
-		return da < db
+	pool.sort_custom(
+		func(a: Dictionary, b: Dictionary) -> bool:
+			var da := 999999
+			var db := 999999
+			for an: Vector2i in anchors:
+				da = min(da, abs(an.x - a["outside"].x) + abs(an.y - a["outside"].y))
+				db = min(db, abs(an.x - b["outside"].x) + abs(an.y - b["outside"].y))
+			return da < db
 	)
 
 	for pass_i in range(3):
@@ -687,12 +723,14 @@ func _connect_doors_to_network(
 			if _is_room(out, w):
 				continue
 
-			var anchor_candidates: Array[Vector2i] = _rank_anchor_candidates(out, anchors, rng, pass_i)
+			var anchor_candidates: Array[Vector2i] = _rank_anchor_candidates(
+				out, anchors, rng, pass_i
+			)
 			for anchor: Vector2i in anchor_candidates:
 				# Enforce perpendicular 1-tile doorway:
 				#   anchor -> approach (BFS)
 				#   approach -> out (single final carve touching the room edge)
-				var room_dir: Vector2i = edge - out # from doorway corridor tile -> room tile
+				var room_dir: Vector2i = edge - out  # from doorway corridor tile -> room tile
 				var away_dir: Vector2i = -room_dir
 				var approach: Vector2i = out + away_dir
 				if not _in_bounds(approach.x, approach.y, w, h):
@@ -719,11 +757,17 @@ func _connect_doors_to_network(
 				# else: try next anchor
 
 
-func _rank_anchor_candidates(target: Vector2i, anchors: Array[Vector2i], rng: RandomNumberGenerator, preference_index: int) -> Array[Vector2i]:
+func _rank_anchor_candidates(
+	target: Vector2i, anchors: Array[Vector2i], rng: RandomNumberGenerator, preference_index: int
+) -> Array[Vector2i]:
 	# preference_index 0: nearest-first; later passes include some far/random choices.
 	var ranked := anchors.duplicate()
-	ranked.sort_custom(func(a: Vector2i, b: Vector2i) -> bool:
-		return (abs(a.x - target.x) + abs(a.y - target.y)) < (abs(b.x - target.x) + abs(b.y - target.y))
+	ranked.sort_custom(
+		func(a: Vector2i, b: Vector2i) -> bool:
+			return (
+				(abs(a.x - target.x) + abs(a.y - target.y))
+				< (abs(b.x - target.x) + abs(b.y - target.y))
+			)
 	)
 	if ranked.is_empty():
 		return ranked
@@ -840,7 +884,11 @@ func _carve_maze_fill(rng: RandomNumberGenerator, w: int, h: int, difficulty: fl
 		_shuffle_in_place(dirs, rng)
 		var dir0: Vector2i = dirs[0]
 		var nxt := p + dir0
-		if _in_bounds(nxt.x, nxt.y, w, h) and _can_carve_corridor_cell(nxt, dir0, w, h, false, INVALID) and not _would_enclose_single_wall_pillar(nxt, w, h):
+		if (
+			_in_bounds(nxt.x, nxt.y, w, h)
+			and _can_carve_corridor_cell(nxt, dir0, w, h, false, INVALID)
+			and not _would_enclose_single_wall_pillar(nxt, w, h)
+		):
 			_set_corridor_floor(nxt, w)
 
 
@@ -854,7 +902,7 @@ func _would_enclose_single_wall_pillar(carve_cell: Vector2i, w: int, h: int) -> 
 		if _is_room(wall_cell, w):
 			continue
 		if _is_floor(_grid, wall_cell.x, wall_cell.y, w):
-			continue # not a wall pillar
+			continue  # not a wall pillar
 
 		var corridor_neighbors := 0
 		for d2 in DIR4:
@@ -881,7 +929,12 @@ func _gather_corridor_cells(w: int, h: int) -> Array[Vector2i]:
 	return out
 
 
-func _pick_anchor_for_room_door(door_outside: Vector2i, anchors: Array[Vector2i], rng: RandomNumberGenerator, preference_index: int) -> Vector2i:
+func _pick_anchor_for_room_door(
+	door_outside: Vector2i,
+	anchors: Array[Vector2i],
+	rng: RandomNumberGenerator,
+	preference_index: int
+) -> Vector2i:
 	# preference_index: 0 = nearest, 1+ = try to bias toward farther anchors (creates variety/loops)
 	if anchors.is_empty():
 		return door_outside
@@ -901,10 +954,12 @@ func _pick_anchor_for_room_door(door_outside: Vector2i, anchors: Array[Vector2i]
 	if preference_index <= 0:
 		return best
 	# 60% far anchor, 40% nearest.
-	return (worst if rng.randf() < 0.60 else best)
+	return worst if rng.randf() < 0.60 else best
 
 
-func _debug_validate_rooms_and_connectivity(reward_rect: Rect2i, minor_rects: Array[Rect2i]) -> void:
+func _debug_validate_rooms_and_connectivity(
+	reward_rect: Rect2i, minor_rects: Array[Rect2i]
+) -> void:
 	# Reward room checks
 	if reward_rect.size != Vector2i(7, 7):
 		push_error("[MazeGen] Reward room is not 7x7: %s" % [reward_rect.size])
@@ -994,7 +1049,9 @@ func _force_connect_points_safe(a: Vector2i, b: Vector2i, w: int, h: int) -> voi
 	_carve_thin_path_bfs(a, b, w, h)
 
 
-func _carve_thin_path_bfs(a: Vector2i, b: Vector2i, w: int, h: int, required_room_neighbor: Vector2i = INVALID) -> bool:
+func _carve_thin_path_bfs(
+	a: Vector2i, b: Vector2i, w: int, h: int, required_room_neighbor: Vector2i = INVALID
+) -> bool:
 	# Finds a 1-wide corridor path from a->b without carving rooms.
 	# When required_room_neighbor is provided, allows the final tile (b) to touch that room tile.
 	if a == b:
@@ -1039,7 +1096,7 @@ func _carve_thin_path_bfs(a: Vector2i, b: Vector2i, w: int, h: int, required_roo
 				continue
 
 			# For wall tiles, apply the same carve constraints.
-			var is_final := (n == b)
+			var is_final := n == b
 			var allow_room_touch := is_final and (required_room_neighbor != INVALID)
 			if not _can_carve_corridor_cell(n, d, w, h, allow_room_touch, required_room_neighbor):
 				continue
@@ -1070,6 +1127,7 @@ func _carve_thin_path_bfs(a: Vector2i, b: Vector2i, w: int, h: int, required_roo
 # Rendering
 # --------------------------------------------------------------------
 
+
 func _render_grid() -> void:
 	clear()
 
@@ -1090,6 +1148,7 @@ func _render_grid() -> void:
 
 	_place_doors()
 
+
 func _place_doors() -> void:
 	for c: Vector2i in _doors_open:
 		if _in_bounds(c.x, c.y, _grid_w, _grid_h):
@@ -1105,14 +1164,18 @@ func _place_doors() -> void:
 # Grid helpers
 # --------------------------------------------------------------------
 
+
 func _idx(x: int, y: int, w: int) -> int:
 	return y * w + x
+
 
 func _in_bounds(x: int, y: int, w: int, h: int) -> bool:
 	return x >= 0 and x < w and y >= 0 and y < h
 
+
 func _is_floor(grid: PackedByteArray, x: int, y: int, w: int) -> bool:
 	return grid[_idx(x, y, w)] == 1
+
 
 func _set_floor(grid: PackedByteArray, x: int, y: int, w: int) -> void:
 	grid[_idx(x, y, w)] = 1
@@ -1120,8 +1183,10 @@ func _set_floor(grid: PackedByteArray, x: int, y: int, w: int) -> void:
 	if _grid_model != null:
 		_grid_model.set_floor(x, y)
 
+
 func _is_room(c: Vector2i, w: int) -> bool:
 	return _room_mask[_idx(c.x, c.y, w)] == 1
+
 
 func _set_room(c: Vector2i, w: int) -> void:
 	_room_mask[_idx(c.x, c.y, w)] = 1
@@ -1129,8 +1194,10 @@ func _set_room(c: Vector2i, w: int) -> void:
 	if _grid_model != null:
 		_grid_model.add_tag(c.x, c.y, GridModel.CellTag.ROOM)
 
+
 func _is_corridor_floor(c: Vector2i, w: int) -> bool:
 	return _grid[_idx(c.x, c.y, w)] == 1 and _room_mask[_idx(c.x, c.y, w)] == 0
+
 
 func _set_corridor_floor(c: Vector2i, w: int) -> void:
 	_grid[_idx(c.x, c.y, w)] = 1
@@ -1174,14 +1241,28 @@ func _protect_doorway(doorway_cell: Vector2i, room_edge_cell: Vector2i, w: int, 
 # Geometry helpers
 # --------------------------------------------------------------------
 
+
 func _odd(v: int) -> int:
 	return v | 1
 
+
 func _rect_in_bounds(rect: Rect2i, w: int, h: int, pad: int) -> bool:
-	return rect.position.x >= pad and rect.position.y >= pad and rect.end.x <= (w - pad) and rect.end.y <= (h - pad)
+	return (
+		rect.position.x >= pad
+		and rect.position.y >= pad
+		and rect.end.x <= (w - pad)
+		and rect.end.y <= (h - pad)
+	)
+
 
 func _rect_touches_border(rect: Rect2i, w: int, h: int, pad: int) -> bool:
-	return rect.position.x <= pad or rect.position.y <= pad or rect.end.x >= (w - pad) or rect.end.y >= (h - pad)
+	return (
+		rect.position.x <= pad
+		or rect.position.y <= pad
+		or rect.end.x >= (w - pad)
+		or rect.end.y >= (h - pad)
+	)
+
 
 func _rect_overlaps_rooms(rect: Rect2i, w: int, buffer: int) -> bool:
 	var expanded: Rect2i = rect.grow(buffer)
@@ -1190,6 +1271,7 @@ func _rect_overlaps_rooms(rect: Rect2i, w: int, buffer: int) -> bool:
 			if _in_bounds(x, y, _grid_w, _grid_h) and _room_mask[_idx(x, y, w)] == 1:
 				return true
 	return false
+
 
 func _fill_rect_walls(rect: Rect2i, w: int) -> void:
 	for y: int in range(rect.position.y, rect.end.y):
@@ -1202,11 +1284,13 @@ func _fill_rect_walls(rect: Rect2i, w: int) -> void:
 					_grid_model.set_wall(x, y)
 					_grid_model.clear_tags(x, y)
 
+
 func _carve_room_rect(rect: Rect2i, w: int) -> void:
 	for y: int in range(rect.position.y, rect.end.y):
 		for x: int in range(rect.position.x, rect.end.x):
 			_set_floor(_grid, x, y, w)
 			_set_room(Vector2i(x, y), w)
+
 
 func _step_inside(border_cell: Vector2i, w: int, h: int) -> Vector2i:
 	if border_cell.x == 0:
@@ -1222,6 +1306,7 @@ func _step_inside(border_cell: Vector2i, w: int, h: int) -> Vector2i:
 # Border doors + floors
 # --------------------------------------------------------------------
 
+
 func _add_open_door(cell: Vector2i) -> void:
 	if not _doors_open.has(cell):
 		_doors_open.append(cell)
@@ -1232,6 +1317,7 @@ func _add_open_door(cell: Vector2i) -> void:
 	if _grid_model != null:
 		_grid_model.add_tag(cell.x, cell.y, GridModel.CellTag.DOOR)
 
+
 func _add_closed_door(cell: Vector2i) -> void:
 	if not _doors_closed.has(cell):
 		_doors_closed.append(cell)
@@ -1240,7 +1326,10 @@ func _add_closed_door(cell: Vector2i) -> void:
 	if _grid_model != null:
 		_grid_model.add_tag(cell.x, cell.y, GridModel.CellTag.DOOR)
 
-func _enforce_two_border_doors_and_floors(grid: PackedByteArray, w: int, h: int, start: Vector2i, exit: Vector2i) -> void:
+
+func _enforce_two_border_doors_and_floors(
+	grid: PackedByteArray, w: int, h: int, start: Vector2i, exit: Vector2i
+) -> void:
 	var s_in := _step_inside(start, w, h)
 	var e_in := _step_inside(exit, w, h)
 
@@ -1254,6 +1343,7 @@ func _enforce_two_border_doors_and_floors(grid: PackedByteArray, w: int, h: int,
 	_add_open_door(start)
 	_add_open_door(exit)
 
+
 func is_door_closed(cell: Vector2i) -> bool:
 	if _grid_w <= 0 or _grid_h <= 0:
 		return false
@@ -1261,10 +1351,12 @@ func is_door_closed(cell: Vector2i) -> bool:
 		return false
 	return _door_closed_mask[_idx(cell.x, cell.y, _grid_w)] == 1
 
+
 func _set_door_closed(cell: Vector2i, closed: bool) -> void:
 	if not _in_bounds(cell.x, cell.y, _grid_w, _grid_h):
 		return
 	_door_closed_mask[_idx(cell.x, cell.y, _grid_w)] = 1 if closed else 0
+
 
 func try_open_door_at(cell: Vector2i) -> bool:
 	if not is_door_closed(cell):
@@ -1279,13 +1371,16 @@ func try_open_door_at(cell: Vector2i) -> bool:
 
 	emit_signal("door_opened", cell)
 	return true
-	
+
+
 func is_door_open(cell: Vector2i) -> bool:
 	# "Open" means it's in doors_open (and not closed in the mask)
 	return _doors_open.has(cell) and not is_door_closed(cell)
 
+
 func is_door_cell(cell: Vector2i) -> bool:
 	return is_door_closed(cell) or _doors_open.has(cell)
+
 
 func try_close_door_at(cell: Vector2i) -> bool:
 	if not _doors_open.has(cell):
@@ -1307,14 +1402,17 @@ func try_close_door_at(cell: Vector2i) -> bool:
 	emit_signal("door_closed", cell)
 	return true
 
+
 func toggle_door_at(cell: Vector2i) -> bool:
 	if is_door_closed(cell):
 		return try_open_door_at(cell)
 	return try_close_door_at(cell)
 
+
 # --------------------------------------------------------------------
 # Room doorway selection
 # --------------------------------------------------------------------
+
 
 func _pick_room_edge_and_door_outside(anchor: Vector2i, rect: Rect2i) -> Dictionary:
 	var best_edge: Vector2i = rect.position
@@ -1349,6 +1447,7 @@ func _pick_room_edge_and_door_outside(anchor: Vector2i, rect: Rect2i) -> Diction
 
 	return {"room_edge": best_edge, "door_outside": door_outside}
 
+
 func _cardinal_dir_towards(from_cell: Vector2i, to_cell: Vector2i) -> Vector2i:
 	var dx: int = to_cell.x - from_cell.x
 	var dy: int = to_cell.y - from_cell.y
@@ -1361,6 +1460,7 @@ func _cardinal_dir_towards(from_cell: Vector2i, to_cell: Vector2i) -> Vector2i:
 # Corridor carving
 # --------------------------------------------------------------------
 
+
 func _carve_corridor_path(
 	grid: PackedByteArray,
 	w: int,
@@ -1371,7 +1471,6 @@ func _carve_corridor_path(
 	allow_bend: bool,
 	required_room_neighbor: Vector2i = INVALID
 ) -> Array[Vector2i]:
-
 	var carved: Array[Vector2i] = []
 	if a == b:
 		return carved
@@ -1380,7 +1479,7 @@ func _carve_corridor_path(
 	if allow_bend:
 		horiz_first = rng.randi() % 2 == 0
 
-	var mid: Vector2i = (Vector2i(b.x, a.y) if horiz_first else Vector2i(a.x, b.y))
+	var mid: Vector2i = Vector2i(b.x, a.y) if horiz_first else Vector2i(a.x, b.y)
 
 	var seg1: Array[Vector2i] = _carve_line_corridor(grid, w, h, a, mid)
 	carved.append_array(seg1)
@@ -1396,6 +1495,7 @@ func _carve_corridor_path(
 	carved.append_array(seg2)
 	return carved
 
+
 func _carve_line_corridor(
 	_p_grid_unused: PackedByteArray,
 	w: int,
@@ -1404,7 +1504,6 @@ func _carve_line_corridor(
 	b: Vector2i,
 	required_room_neighbor: Vector2i = INVALID
 ) -> Array[Vector2i]:
-
 	var carved: Array[Vector2i] = []
 	if a.x != b.x and a.y != b.y:
 		return carved
@@ -1425,7 +1524,7 @@ func _carve_line_corridor(
 			p = nxt
 			continue
 
-		var is_final: bool = (nxt == b)
+		var is_final: bool = nxt == b
 		var allow_room_touch: bool = is_final and (required_room_neighbor != INVALID)
 
 		if not _can_carve_corridor_cell(nxt, dir, w, h, allow_room_touch, required_room_neighbor):
@@ -1437,6 +1536,7 @@ func _carve_line_corridor(
 
 	return carved
 
+
 func _can_carve_corridor_cell(
 	c: Vector2i,
 	dir: Vector2i,
@@ -1445,7 +1545,6 @@ func _can_carve_corridor_cell(
 	allow_room_touch: bool,
 	required_room_neighbor: Vector2i
 ) -> bool:
-
 	if not _in_bounds(c.x, c.y, w, h):
 		return false
 	if _no_carve_mask.size() == w * h and _no_carve_mask[_idx(c.x, c.y, w)] == 1:
@@ -1500,6 +1599,7 @@ func _can_carve_corridor_cell(
 # Door rebuild: corridor-adjacent-to-room => door on corridor tile
 # --------------------------------------------------------------------
 
+
 func _rebuild_room_doors() -> void:
 	# Keep only border doors (entrance/exit)
 	var keep_open: Array[Vector2i] = []
@@ -1540,34 +1640,35 @@ func _rebuild_room_doors() -> void:
 			_add_closed_door(c)
 			_protect_doorway(c, room_cell, _grid_w, _grid_h)
 
+
 func _is_valid_room_entrance(corridor_cell: Vector2i, room_cell: Vector2i) -> bool:
 	# Determine the direction from corridor to room
 	var to_room := room_cell - corridor_cell
-	
+
 	# Check perpendicular directions from the corridor tile
 	var perp_dirs: Array[Vector2i] = []
 	if to_room.x != 0:  # Room is left/right
 		perp_dirs = [Vector2i.UP, Vector2i.DOWN]
 	else:  # Room is up/down
 		perp_dirs = [Vector2i.LEFT, Vector2i.RIGHT]
-	
+
 	# Count how many perpendicular sides are corridor
 	var perp_corridor_count := 0
 	for pd in perp_dirs:
 		var pn := corridor_cell + pd
 		if _in_bounds(pn.x, pn.y, _grid_w, _grid_h) and _is_corridor_floor(pn, _grid_w):
 			perp_corridor_count += 1
-	
+
 	# Check opposite direction (away from room)
 	var away_from_room := -to_room
 	var opposite_pos := corridor_cell + away_from_room
 	var opposite_is_corridor := false
 	if _in_bounds(opposite_pos.x, opposite_pos.y, _grid_w, _grid_h):
 		opposite_is_corridor = _is_corridor_floor(opposite_pos, _grid_w)
-	
+
 	# It's a parallel corridor wall (not entrance) if BOTH perp sides AND opposite are corridors
 	var is_parallel_wall := (perp_corridor_count == 2) and opposite_is_corridor
-	
+
 	# Valid entrance = NOT a parallel wall
 	return not is_parallel_wall
 
@@ -1596,24 +1697,27 @@ func get_world_bounds() -> Rect2:
 		cell_size = Vector2(ts.tile_size)
 
 	# Expand from centers to edges
-	var min_x :float= min(tl_center.x, br_center.x) - cell_size.x * 0.5
-	var min_y :float= min(tl_center.y, br_center.y) - cell_size.y * 0.5
-	var max_x :float= max(tl_center.x, br_center.x) + cell_size.x * 0.5
-	var max_y :float= max(tl_center.y, br_center.y) + cell_size.y * 0.5
+	var min_x: float = min(tl_center.x, br_center.x) - cell_size.x * 0.5
+	var min_y: float = min(tl_center.y, br_center.y) - cell_size.y * 0.5
+	var max_x: float = max(tl_center.x, br_center.x) + cell_size.x * 0.5
+	var max_y: float = max(tl_center.y, br_center.y) + cell_size.y * 0.5
 
 	# Include the full width/height across all tiles
-	max_x += cell_size.x * float(_grid_w - 1) * 0.0 # (kept explicit; centers already account for br_cell)
+	max_x += cell_size.x * float(_grid_w - 1) * 0.0  # (kept explicit; centers already account for br_cell)
 	max_y += cell_size.y * float(_grid_h - 1) * 0.0
 
 	return Rect2(Vector2(min_x, min_y), Vector2(max_x - min_x, max_y - min_y))
+
 
 func get_spawn_cell() -> Vector2i:
 	# Your game can spawn just inside the entrance...
 	return _step_inside(start_cell, _grid_w, _grid_h)
 
+
 func get_exit_cell() -> Vector2i:
 	# ...but progression logic can still use the border exit_cell if it wants.
 	return _step_inside(exit_cell, _grid_w, _grid_h)
+
 
 func is_floor(cell: Vector2i) -> bool:
 	if _grid_w <= 0 or _grid_h <= 0:
@@ -1627,8 +1731,10 @@ func is_floor(cell: Vector2i) -> bool:
 
 	return _grid[_idx(cell.x, cell.y, _grid_w)] == 1
 
+
 func is_wall(cell: Vector2i) -> bool:
 	return not is_floor(cell)
+
 
 func advance_run() -> Dictionary:
 	run += 1
@@ -1636,6 +1742,7 @@ func advance_run() -> Dictionary:
 		run = 1
 		level += 1
 	return generate()
+
 
 func generate_with_retries(max_attempts: int = 12) -> Dictionary:
 	for i in range(max_attempts):
@@ -1662,7 +1769,8 @@ func generate_with_retries(max_attempts: int = 12) -> Dictionary:
 		"doors_open": _doors_open,
 		"doors_closed": _doors_closed
 	}
-	
+
+
 func _has_path_from_start_to_exit() -> bool:
 	var s := _step_inside(start_cell, _grid_w, _grid_h)
 	var e := _step_inside(exit_cell, _grid_w, _grid_h)
@@ -1677,7 +1785,7 @@ func _has_path_from_start_to_exit() -> bool:
 	visited[_idx(s.x, s.y, _grid_w)] = 1
 
 	while not q.is_empty():
-		var c : Vector2i = q.pop_front()
+		var c: Vector2i = q.pop_front()
 		if c == e:
 			return true
 		for d in DIR4:
@@ -1694,6 +1802,7 @@ func _has_path_from_start_to_exit() -> bool:
 
 	return false
 
+
 func _is_passable_for_generation(c: Vector2i) -> bool:
 	if _grid_w <= 0 or _grid_h <= 0:
 		return false
@@ -1704,6 +1813,7 @@ func _is_passable_for_generation(c: Vector2i) -> bool:
 		return true
 	return _grid[_idx(c.x, c.y, _grid_w)] == 1
 
+
 func _force_connect_start_to_exit() -> void:
 	var s := _step_inside(start_cell, _grid_w, _grid_h)
 	var e := _step_inside(exit_cell, _grid_w, _grid_h)
@@ -1713,10 +1823,11 @@ func _force_connect_start_to_exit() -> void:
 		return
 
 	var horiz_first: bool = abs(s.x - e.x) >= abs(s.y - e.y)
-	var mid := (Vector2i(e.x, s.y) if horiz_first else Vector2i(s.x, e.y))
+	var mid := Vector2i(e.x, s.y) if horiz_first else Vector2i(s.x, e.y)
 
 	_force_line_carve(s, mid)
 	_force_line_carve(mid, e)
+
 
 func _force_line_carve(a: Vector2i, b: Vector2i) -> void:
 	if a.x != b.x and a.y != b.y:
@@ -1735,8 +1846,22 @@ func _force_line_carve(a: Vector2i, b: Vector2i) -> void:
 			_grid_model.set_floor(p.x, p.y)
 			_grid_model.add_tag(p.x, p.y, GridModel.CellTag.CORRIDOR)
 
+
 func _dump_grid_debug(tag: String) -> void:
-	print("[MazeGen] dump:", tag, " w=", _grid_w, " h=", _grid_h, " level=", level, " run=", run, " seed=", rng_seed)
+	print(
+		"[MazeGen] dump:",
+		tag,
+		" w=",
+		_grid_w,
+		" h=",
+		_grid_h,
+		" level=",
+		level,
+		" run=",
+		run,
+		" seed=",
+		rng_seed
+	)
 	for y in range(_grid_h):
 		var row := ""
 		for x in range(_grid_w):

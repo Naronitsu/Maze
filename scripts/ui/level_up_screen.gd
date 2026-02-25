@@ -9,6 +9,7 @@ signal choice_chosen(choice: Dictionary)
 
 var _choices: Array[Dictionary] = []
 
+
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
 	hide()
@@ -16,6 +17,7 @@ func _ready() -> void:
 	b1.pressed.connect(func() -> void: _pick(0))
 	b2.pressed.connect(func() -> void: _pick(1))
 	b3.pressed.connect(func() -> void: _pick(2))
+
 
 func show_choices(choices: Array[Dictionary]) -> void:
 	_choices = choices
@@ -27,6 +29,7 @@ func show_choices(choices: Array[Dictionary]) -> void:
 	mouse_filter = Control.MOUSE_FILTER_STOP
 	b1.grab_focus()
 
+
 func _set_button(btn: Button, idx: int) -> void:
 	if idx >= _choices.size():
 		btn.disabled = true
@@ -34,6 +37,7 @@ func _set_button(btn: Button, idx: int) -> void:
 		return
 	btn.disabled = false
 	btn.text = str(_choices[idx].get("text", "???"))
+
 
 func _pick(idx: int) -> void:
 	if idx < 0 or idx >= _choices.size():

@@ -1,11 +1,10 @@
 @tool
 extends Control
 
-
 const __Singletons := preload("../../plugin_singleton/singletons.gd")
 const __EditContext := preload("../edit_context.gd")
 
-signal create_board()
+signal create_board
 signal open_board(path: String)
 
 @onready var create_board_button: LinkButton = %CreateBoard

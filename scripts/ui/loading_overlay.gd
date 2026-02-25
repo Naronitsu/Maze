@@ -10,15 +10,18 @@ func _ready() -> void:
 	visible = false
 	control.modulate.a = 1.0
 
+
 func show_loading() -> void:
 	print("loading...")
 	visible = true
 	control.modulate.a = 1.0
 	progress_bar.value = 0
 
+
 func set_progress(p: float) -> void:
 	print("load progress... ", p)
 	progress_bar.value = clampf(p, 0.0, 1.0) * 100.0
+
 
 func fade_out(duration := 0.4) -> void:
 	var t := create_tween()

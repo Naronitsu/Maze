@@ -1,7 +1,6 @@
 @tool
 extends Button
 
-
 signal state_changed(expanded: bool)
 
 @export var expanded: bool = true:

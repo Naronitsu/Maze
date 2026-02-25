@@ -1,7 +1,6 @@
 @tool
 extends PopupMenu
 
-
 const __BoardData := preload("../../data/board.gd")
 
 var board_data: __BoardData

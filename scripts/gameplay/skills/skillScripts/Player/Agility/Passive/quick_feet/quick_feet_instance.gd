@@ -1,6 +1,7 @@
 extends PassiveInstance
 class_name QuickFeetInstance
 
+
 func apply() -> void:
 	var stats := _get_stats()
 	if stats == null:
@@ -21,7 +22,7 @@ func apply() -> void:
 	elif pdef.step_time_multiplier_by_level.size() > 0:
 		mult = float(pdef.step_time_multiplier_by_level.back())
 
-	var delta := base_step * (mult - 1.0) # negative reduces step time
+	var delta := base_step * (mult - 1.0)  # negative reduces step time
 	var key: StringName = StringName("%s:Step Time" % String(def.id))
 	stats.set_flat(key, StringName("Step Time"), delta)
 	applied_keys.append(key)

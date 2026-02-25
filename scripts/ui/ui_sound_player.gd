@@ -7,6 +7,7 @@ var select_stream: AudioStream = preload("res://sounds/ui_select.sfxr")
 var hover_player: AudioStreamPlayer
 var select_player: AudioStreamPlayer
 
+
 func _ready() -> void:
 	# Create and add AudioStreamPlayers
 	hover_player = AudioStreamPlayer.new()
@@ -19,8 +20,10 @@ func _ready() -> void:
 	select_player.bus = "SFX"
 	add_child(select_player)
 
+
 func play_hover() -> void:
 	hover_player.play()
+
 
 func play_select() -> void:
 	select_player.play()
