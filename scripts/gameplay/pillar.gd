@@ -209,7 +209,9 @@ func _start_charging() -> void:
 	_started_charging = true
 	_charge_elapsed = 0.0
 	_full_charge_burst_fired = false
-	_charge_duration = float(GameConfig.pillar_charge_time_seconds)
+	_charge_duration = float(
+		SceneReferences.get_safe("player").stats.get_stat(&"Pillar Charge Time")
+	)
 	if _charge_duration <= 0.0:
 		_charge_duration = charge_duration_seconds
 	_play_charge_loop()

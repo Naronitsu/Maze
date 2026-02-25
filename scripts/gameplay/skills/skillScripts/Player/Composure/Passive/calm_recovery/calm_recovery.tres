@@ -1,0 +1,9 @@
+[gd_resource type="Resource" script_class="CalmRecoveryDef" format=3 uid="uid://d21j37vuqwx6p"]
+
+[ext_resource type="Script" uid="uid://k5hlflc25nnx" path="res://scripts/gameplay/skills/skillScripts/Player/Composure/Passive/calm_recovery/calm_recovery_def.gd" id="1_8hxir"]
+
+[resource]
+script = ExtResource("1_8hxir")
+id = &"calm_recovery"
+display_name = "Calm Recovery"
+metadata/_custom_type_script = "uid://k5hlflc25nnx"

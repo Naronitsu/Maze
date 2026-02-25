@@ -1,6 +1,8 @@
 extends CharacterBody2D
 class_name Player
 
+signal health_changed(current: float, max: float)
+
 # --- State flags ---
 var movement_locked: bool = false
 var is_grabbed: bool = false
@@ -13,7 +15,6 @@ var is_grabbed: bool = false
 
 @onready var maze: DungeonMazeLayer = get_node_or_null("../TileMap/MazeLayer") as DungeonMazeLayer
 @onready var controller: GameController = get_node_or_null("../GameController") as GameController
-@onready var health_bar: HBoxContainer = get_node_or_null("../UI/HP/HealthBar") as HBoxContainer
 
 # --- Grid movement ---
 var cell: Vector2i
@@ -33,7 +34,8 @@ var _eyes_closed: bool = false
 var trail_history: Array[Vector2i] = []
 
 # --- Health ---
-var current_health: int = 0
+var current_health: float = 0.0
+var _regen_timer: float = 0.0
 var _last_max_health: int = 0
 
 
@@ -43,14 +45,9 @@ func _ready() -> void:
 	if stats and stats.has_signal("stat_changed"):
 		stats.stat_changed.connect(_on_stat_changed)
 
-	current_health = int(stats.get_stat("Max Health"))
-	_last_max_health = current_health
-	_last_max_health = int(stats.get_stat(&"Max Health"))
-	current_health = _last_max_health
-
-	if health_bar:
-		health_bar.call("init_hearts")
-		health_bar.call("update_hearts")
+	current_health = _get_max_health()
+	_last_max_health = int(_get_max_health())
+	emit_signal("health_changed", current_health, _get_max_health())
 
 	if maze == null:
 		push_error("[Player] Maze reference not found - player movement will not work")
@@ -85,6 +82,8 @@ func _ready() -> void:
 
 
 func _physics_process(delta: float) -> void:
+	_tick_regen(delta)
+
 	if is_grabbed:
 		_play_anim(&"grabbed")
 		return
@@ -375,9 +374,9 @@ func _play_anim(p_name: StringName) -> void:
 
 
 func _take_damage(amount: int) -> void:
-	current_health -= amount
-	if health_bar:
-		health_bar.call("update_hearts")
+	current_health = max(current_health - amount, 0.0)
+	_reset_regen_delay()
+	emit_signal("health_changed", current_health, _get_max_health())
 
 	if current_health <= 0:
 		current_health = 0
@@ -386,6 +385,39 @@ func _take_damage(amount: int) -> void:
 
 func _die() -> void:
 	SceneLoader.change_scene_with_loading("res://scenes/gameplay/game.tscn")
+
+
+func _reset_regen_delay() -> void:
+	var stats := _get_stats()
+	if stats == null:
+		return
+
+	_regen_timer = maxf(0.0, stats.get_stat(&"Regen Delay Seconds"))
+
+
+func _tick_regen(delta: float) -> void:
+	var stats := _get_stats()
+	if stats == null:
+		return
+
+	if current_health >= _get_max_health():
+		return
+
+	if _regen_timer > 0.0:
+		_regen_timer -= delta
+		return
+
+	var regen_speed := stats.get_stat(&"Regen HP Per Second")
+	if regen_speed <= 0.0:
+		return
+
+	current_health = min(current_health + regen_speed * delta, _get_max_health())
+
+	emit_signal("health_changed", current_health, _get_max_health())
+
+
+func get_max_health() -> float:
+	return stats.get_stat(&"Max Health")
 
 
 # ---------------------------
@@ -430,6 +462,7 @@ func _init_stats_from_config() -> void:
 
 	stats.base[&"Step Time"] = float(GameConfig.player_step_time)
 	stats.base[&"Max Health"] = float(GameConfig.player_max_health)
+	stats.base[&"Pillar Charge Time"] = float(GameConfig.pillar_charge_time_seconds)
 
 
 func _on_stat_changed(stat_name: StringName) -> void:
@@ -445,6 +478,15 @@ func _on_stat_changed(stat_name: StringName) -> void:
 	current_health = clampi(current_health, 0, new_max)
 	_last_max_health = new_max
 
-	if health_bar:
-		health_bar.call("init_hearts")
-		health_bar.call("update_hearts")
+	emit_signal("health_changed", current_health, new_max)
+
+
+func _get_stats() -> Stats:
+	return get_node_or_null("Stats") as Stats
+
+
+func _get_max_health() -> float:
+	var stats := _get_stats()
+	if stats == null:
+		return 100.0
+	return stats.get_stat(&"Max Health")

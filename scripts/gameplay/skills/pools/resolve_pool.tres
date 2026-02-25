@@ -3,7 +3,9 @@
 [ext_resource type="Script" uid="uid://cq8h62iibduhs" path="res://scripts/gameplay/skills/system/active_def.gd" id="1_f08e5"]
 [ext_resource type="Script" uid="uid://ggkv2oom1raw" path="res://scripts/gameplay/skills/system/passive_def.gd" id="2_n8enk"]
 [ext_resource type="Script" uid="uid://btwdoxqpknn1w" path="res://scripts/gameplay/skills/skill_pool.gd" id="3_bjxgx"]
+[ext_resource type="Resource" uid="uid://cbii0tbomaiwh" path="res://scripts/gameplay/skills/skillScripts/Player/Resolve/Passive/thick_skin/thick_skin.tres" id="3_n8enk"]
 
 [resource]
 script = ExtResource("3_bjxgx")
 stat_id = &"Resolve"
+passives = Array[ExtResource("2_n8enk")]([ExtResource("3_n8enk")])

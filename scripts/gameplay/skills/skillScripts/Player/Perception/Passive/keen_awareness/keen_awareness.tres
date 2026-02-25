@@ -1,0 +1,9 @@
+[gd_resource type="Resource" script_class="KeenAwarenessDef" format=3 uid="uid://ppdrqsvknq76"]
+
+[ext_resource type="Script" uid="uid://shvisiw8ut6u" path="res://scripts/gameplay/skills/skillScripts/Player/Perception/Passive/keen_awareness/keen_awareness_def.gd" id="1_p4h51"]
+
+[resource]
+script = ExtResource("1_p4h51")
+id = &"keen_awareness"
+display_name = "Keen Awareness"
+metadata/_custom_type_script = "uid://shvisiw8ut6u"

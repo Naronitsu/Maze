@@ -1,0 +1,9 @@
+[gd_resource type="Resource" script_class="SteadyHandsDef" format=3 uid="uid://d3dcr4wyx63pu"]
+
+[ext_resource type="Script" uid="uid://bvpjtcnim7dxu" path="res://scripts/gameplay/skills/skillScripts/Player/Focus/Passive/steady hands/steady_hands_def.gd" id="1_mb8sy"]
+
+[resource]
+script = ExtResource("1_mb8sy")
+id = &"steady_hands"
+display_name = "Steady Hands"
+metadata/_custom_type_script = "uid://bvpjtcnim7dxu"

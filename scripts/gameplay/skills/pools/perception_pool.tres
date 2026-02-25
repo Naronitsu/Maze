@@ -3,7 +3,9 @@
 [ext_resource type="Script" uid="uid://cq8h62iibduhs" path="res://scripts/gameplay/skills/system/active_def.gd" id="1_gbl67"]
 [ext_resource type="Script" uid="uid://ggkv2oom1raw" path="res://scripts/gameplay/skills/system/passive_def.gd" id="2_unef1"]
 [ext_resource type="Script" uid="uid://btwdoxqpknn1w" path="res://scripts/gameplay/skills/skill_pool.gd" id="3_rw5c2"]
+[ext_resource type="Resource" uid="uid://ppdrqsvknq76" path="res://scripts/gameplay/skills/skillScripts/Player/Perception/Passive/keen_awareness/keen_awareness.tres" id="3_unef1"]
 
 [resource]
 script = ExtResource("3_rw5c2")
 stat_id = &"Perception"
+passives = Array[ExtResource("2_unef1")]([ExtResource("3_unef1")])

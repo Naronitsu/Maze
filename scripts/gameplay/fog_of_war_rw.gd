@@ -44,6 +44,8 @@ var maze_origin_world: Vector2
 var maze_size_world: Vector2
 var tile_size: Vector2
 
+var _player_stats: Stats
+
 const _EXPLORED_DECAY_SHADER: Shader = preload("res://shaders/fog_explored_decay_mul.gdshader")
 
 var _explored_decay_sprite: Sprite2D
@@ -82,6 +84,8 @@ func _ready() -> void:
 		cam = get_node_or_null(camera_path) as Camera2D
 	if layer == null and layer_path != NodePath():
 		layer = get_node_or_null(layer_path) as TileMapLayer
+
+	_player_stats = player.get_node_or_null("Stats") as Stats
 
 	# Validate required references
 	if layer == null:
@@ -546,7 +550,14 @@ func _update_masks() -> void:
 	cone_screen.append(origin_screen)
 
 	var base: float = facing.angle()
-	var half: float = deg_to_rad(GameConfig.fog_half_angle_deg)
+	var half_angle_deg := GameConfig.fog_half_angle_deg
+	var vision_range := GameConfig.fog_vision_range
+
+	if _player_stats != null:
+		half_angle_deg = _player_stats.get_fog_half_angle_deg(half_angle_deg)
+		vision_range = _player_stats.get_fog_vision_range(vision_range)
+
+	var half: float = deg_to_rad(half_angle_deg)
 
 	for i in range(GameConfig.fog_rays):
 		var t := 0.0 if GameConfig.fog_rays == 1 else float(i) / float(GameConfig.fog_rays - 1)
@@ -595,7 +606,12 @@ func _cast_ray_to_world(dir: Vector2) -> Vector2:
 		n_dir = Vector2.RIGHT
 
 	var origin_world: Vector2 = player.global_position + n_dir * 6.0
-	var to_world: Vector2 = origin_world + n_dir * GameConfig.fog_vision_range
+
+	var vision_range := GameConfig.fog_vision_range
+	if _player_stats != null:
+		vision_range = _player_stats.get_fog_vision_range(vision_range)
+
+	var to_world: Vector2 = origin_world + n_dir * vision_range
 	var max_dist: float = origin_world.distance_to(to_world)
 
 	# 1) Find first CLOSED door along the ray (doors are non-colliding, so physics won't hit them).

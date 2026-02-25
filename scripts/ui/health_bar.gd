@@ -1,35 +1,43 @@
 extends HBoxContainer
 
 @export var heart_texture: Texture2D
-@onready var player: CharacterBody2D
 
-
-func init_hearts() -> void:
-	player = $"../../../Player"
-
+var player: CharacterBody2D
 
 var _last_heart_count: int = -1
 
 
-func update_hearts() -> void:
-	var current_count = player.current_health
-	var prev_count = get_child_count()
+func _ready() -> void:
+	await get_tree().process_frame
 
-	# Only update if heart count changed
+	player = get_tree().get_first_node_in_group("player")
+	if player == null:
+		push_warning("Health UI: Player not found.")
+		return
+
+	player.health_changed.connect(_on_health_changed)
+
+	_on_health_changed(player.current_health, player.get_max_health())
+
+
+func _on_health_changed(current: float, max: float) -> void:
+	var current_count := int(current)
+	var prev_count := get_child_count()
+
 	if current_count == prev_count:
 		return
 
-	# Animate removed hearts (if any)
+	# Remove hearts
 	if current_count < prev_count:
 		for i in range(current_count, prev_count):
 			var heart = get_child(i)
 			if heart:
 				var tween = create_tween()
-				tween.tween_property(heart, "modulate:a", 0.0, 0.5)
-				tween.tween_property(heart, "position:y", heart.position.y + 32, 0.5)
+				tween.tween_property(heart, "modulate:a", 0.0, 0.3)
+				tween.tween_property(heart, "position:y", heart.position.y + 16, 0.3)
 				tween.tween_callback(Callable(heart, "queue_free"))
 
-	# Add new hearts if needed
+	# Add hearts
 	if current_count > prev_count:
 		for i in range(prev_count, current_count):
 			var heart := TextureRect.new()
