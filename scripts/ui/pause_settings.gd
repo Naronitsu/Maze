@@ -1,8 +1,22 @@
 ## Settings menu UI for pause menu with keyboard navigation support.
 extends Control
 
+#region Signals
 signal back_pressed
+#endregion
 
+#region Constants
+const RESOLUTIONS: Array[Vector2i] = [
+	Vector2i(960, 540),
+	Vector2i(1280, 720),
+	Vector2i(1600, 900),
+	Vector2i(1920, 1080),
+	Vector2i(2560, 1440)
+]
+const WINDOW_MODES: Array[String] = ["windowed", "fullscreen", "windowed_fullscreen"]
+#endregion
+
+#region Onready
 @onready var back_button: Button = $Center/Panel/MarginContainer/VBox/BackRow/BackButton
 @onready var crt_toggle: CheckBox = $Center/Panel/MarginContainer/VBox/Grid/CrtToggle
 @onready var aberration_toggle: CheckBox = $Center/Panel/MarginContainer/VBox/Grid/AberrationToggle
@@ -14,18 +28,10 @@ var window_mode_option: OptionButton = $Center/Panel/MarginContainer/VBox/Grid/W
 @onready var sfx_volume: HSlider = $Center/Panel/MarginContainer/VBox/Grid/SfxVolume
 @onready var music_volume: HSlider = $Center/Panel/MarginContainer/VBox/Grid/MusicVolume
 @onready var minimap_size: HSlider = $Center/Panel/MarginContainer/VBox/Grid/MinimapSize
-
-const RESOLUTIONS: Array[Vector2i] = [
-	Vector2i(960, 540),
-	Vector2i(1280, 720),
-	Vector2i(1600, 900),
-	Vector2i(1920, 1080),
-	Vector2i(2560, 1440)
-]
-
-const WINDOW_MODES: Array[String] = ["windowed", "fullscreen", "windowed_fullscreen"]
+#endregion
 
 
+#region Lifecycle
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
 
@@ -96,6 +102,10 @@ func _ready() -> void:
 	_apply_current_settings()
 
 
+#endregion
+
+
+#region Signal Handlers
 func _on_button_hover() -> void:
 	UI_SoundPlayer.play_hover()
 
@@ -104,6 +114,10 @@ func _on_button_select(_dummy: float = 0.0) -> void:
 	UI_SoundPlayer.play_select()
 
 
+#endregion
+
+
+#region Private Methods
 func _input(event: InputEvent) -> void:
 	if not visible:
 		return
@@ -181,6 +195,18 @@ func _get_menu_controls() -> Array:
 	return controls
 
 
+#endregion
+
+
+#region Public Methods
+func refresh_from_settings() -> void:
+	_apply_current_settings()
+
+
+#endregion
+
+
+#region Private Methods (navigation / apply)
 func _navigate_menu(delta: int) -> void:
 	var controls := _get_menu_controls()
 	if controls.is_empty():
@@ -225,10 +251,6 @@ func _on_visibility_changed() -> void:
 		var controls := _get_menu_controls()
 		if not controls.is_empty():
 			controls[0].grab_focus()
-
-
-func refresh_from_settings() -> void:
-	_apply_current_settings()
 
 
 func _build_resolution_options() -> void:
@@ -324,3 +346,4 @@ func _on_sfx_volume_update(value: float) -> void:
 
 func _on_music_volume_update(value: float) -> void:
 	music_volume.set_value_no_signal(value)
+#endregion

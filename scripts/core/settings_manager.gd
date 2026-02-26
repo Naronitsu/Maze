@@ -1,6 +1,8 @@
 extends Node
 
-# Signals for live updates
+## Persists and applies video, audio, and UI settings.
+
+#region Signals
 signal master_volume_changed(new_value)
 signal sfx_volume_changed(new_value)
 signal music_volume_changed(new_value)
@@ -9,12 +11,16 @@ signal chromatic_aberration_changed(new_value)
 signal resolution_changed(new_value)
 signal window_mode_changed(new_value)
 signal minimap_size_changed(new_value)
+#endregion
 
-const SETTINGS_PATH := "user://settings.cfg"
-const DEFAULT_RESOLUTION := Vector2i(960, 540)
-const DEFAULT_ABERRATION_PX := 1.0
-const DEFAULT_MINIMAP_SIZE_PX := 200
+#region Constants
+const SETTINGS_PATH: String = "user://settings.cfg"
+const DEFAULT_RESOLUTION: Vector2i = Vector2i(960, 540)
+const DEFAULT_ABERRATION_PX: float = 1.0
+const DEFAULT_MINIMAP_SIZE_PX: int = 200
+#endregion
 
+#region Public Properties
 var crt_enabled: bool = true
 var chromatic_aberration: bool = true
 var resolution: Vector2i = DEFAULT_RESOLUTION
@@ -23,8 +29,10 @@ var master_volume: float = 1.0
 var sfx_volume: float = 1.0
 var music_volume: float = 1.0
 var minimap_size_px: int = DEFAULT_MINIMAP_SIZE_PX
+#endregion
 
 
+#region Lifecycle
 func _ready() -> void:
 	add_to_group("persist")
 	load_settings()
@@ -51,6 +59,10 @@ func load_settings() -> void:
 	_apply_ui()
 
 
+#endregion
+
+
+#region Public Methods
 func save_settings() -> void:
 	var config := ConfigFile.new()
 	config.set_value("video", "crt_enabled", crt_enabled)
@@ -64,6 +76,10 @@ func save_settings() -> void:
 	config.save(SETTINGS_PATH)
 
 
+#endregion
+
+
+#region Setters (public API)
 func set_music_volume(v: float) -> void:
 	music_volume = clamp(v, 0.0, 1.0)
 	save_settings()
@@ -120,6 +136,10 @@ func set_minimap_size_px(v: int) -> void:
 	minimap_size_changed.emit(minimap_size_px)
 
 
+#endregion
+
+
+#region Apply to runtime
 func apply_display() -> void:
 	var win := get_tree().root as Window
 	if win == null:
@@ -148,6 +168,9 @@ func apply_audio() -> void:
 	_set_bus_volume("Music", music_volume)
 
 
+#endregion
+
+
 func apply_visuals_to_scene(scene_root: Node) -> void:
 	if scene_root == null:
 		return
@@ -161,6 +184,10 @@ func apply_visuals_to_scene(scene_root: Node) -> void:
 		mat.set_shader_parameter("aberration_px", ab)
 
 
+#endregion
+
+
+#region Private Methods
 func _set_bus_volume(bus_name: String, linear: float) -> void:
 	var idx := AudioServer.get_bus_index(bus_name)
 	if idx == -1:
@@ -181,3 +208,4 @@ func _apply_ui() -> void:
 	GameConfig.minimap_size = Vector2(float(minimap_size_px), float(minimap_size_px))
 	# Broadcast for any live UI components (e.g., in-game minimap).
 	EventBus.minimap_size_changed.emit(GameConfig.minimap_size)
+#endregion

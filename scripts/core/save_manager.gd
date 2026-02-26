@@ -1,13 +1,16 @@
 extends Node
+
 ## SaveManager autoload - handles game save/load persistence.
 ## Saves current run state (level, run number, player position) to disk.
 
-const SAVE_FILE_PATH = "user://save_data.json"
-const RUN_WON_FILE_PATH = "user://run_won.txt"
-const FOG_SAVE_PATH = "user://fog_explored.png"
-const INVALID_CELL := Vector2i(-999999, -999999)
+#region Constants
+const SAVE_FILE_PATH: String = "user://save_data.json"
+const RUN_WON_FILE_PATH: String = "user://run_won.txt"
+const FOG_SAVE_PATH: String = "user://fog_explored.png"
+const INVALID_CELL: Vector2i = Vector2i(-999999, -999999)
+#endregion
 
-# Current run state
+#region Public Properties
 var current_save_data: Dictionary = {
 	"level": 1,
 	"run": 1,
@@ -17,19 +20,25 @@ var current_save_data: Dictionary = {
 	"fog_path": "",
 	"fog_size": Vector2i.ZERO
 }
+#endregion
 
+#region Private Fields
 var _auto_save_enabled: bool = true
+#endregion
 
 
+#region Lifecycle
 func _ready() -> void:
 	add_to_group("persist")
-
-	# Subscribe to game events for auto-save
 	EventBus.level_started.connect(_on_level_started)
 	EventBus.presence_caught_player.connect(_on_player_caught)
 	EventBus.game_won.connect(_on_game_won)
 
 
+#endregion
+
+
+#region Public Methods
 func has_save() -> bool:
 	return FileAccess.file_exists(SAVE_FILE_PATH)
 
@@ -43,9 +52,8 @@ func save_game(
 	fog_size: Vector2i = Vector2i.ZERO,
 	player_stats: Dictionary = {}
 ) -> bool:
-	var fog_size_dict := {"w": fog_size.x, "h": fog_size.y}
-
-	var save_dict = {
+	var fog_size_dict: Dictionary = {"w": fog_size.x, "h": fog_size.y}
+	var save_dict: Dictionary = {
 		"level": level,
 		"run": run,
 		"player_cell": {"x": player_cell.x, "y": player_cell.y},
@@ -56,9 +64,8 @@ func save_game(
 		"player_stats": player_stats
 	}
 
-	var json_string = JSON.stringify(save_dict, "\t")
-	var file = FileAccess.open(SAVE_FILE_PATH, FileAccess.WRITE)
-
+	var json_string: String = JSON.stringify(save_dict, "\t")
+	var file: FileAccess = FileAccess.open(SAVE_FILE_PATH, FileAccess.WRITE)
 	if file == null:
 		push_error("SaveManager: Failed to open save file for writing")
 		return false
@@ -67,7 +74,6 @@ func save_game(
 	file.close()
 
 	current_save_data = save_dict
-	# Keep runtime copy in native types
 	current_save_data.fog_path = fog_path
 	current_save_data.fog_size = fog_size
 	print("[SaveManager] Game saved: Level %d, Run %d" % [level, run])
@@ -79,37 +85,34 @@ func load_game() -> Dictionary:
 		print("[SaveManager] No save file found")
 		return {}
 
-	var file = FileAccess.open(SAVE_FILE_PATH, FileAccess.READ)
-
+	var file: FileAccess = FileAccess.open(SAVE_FILE_PATH, FileAccess.READ)
 	if file == null:
 		push_error("SaveManager: Failed to open save file for reading")
 		return {}
 
-	var json_string = file.get_as_text()
+	var json_string: String = file.get_as_text()
 	file.close()
 
-	var json = JSON.new()
-	var parse_result = json.parse(json_string)
-
+	var json: JSON = JSON.new()
+	var parse_result: Error = json.parse(json_string)
 	if parse_result != OK:
 		push_error("SaveManager: Failed to parse save file JSON")
 		return {}
 
-	var data = json.data
+	var data: Variant = json.data
 	if typeof(data) != TYPE_DICTIONARY:
 		push_error("SaveManager: Save file is not a dictionary")
 		return {}
 
-	# Convert player_cell dict back to Vector2i
+	# Restore native types
 	if data.has("player_cell") and typeof(data.player_cell) == TYPE_DICTIONARY:
-		var pc = data.player_cell
+		var pc: Dictionary = data.player_cell
 		data.player_cell = Vector2i(pc.get("x", 0), pc.get("y", 0))
 	else:
 		data.player_cell = Vector2i.ZERO
 
-	# Convert fog_size dict back to Vector2i
 	if data.has("fog_size") and typeof(data.fog_size) == TYPE_DICTIONARY:
-		var fs = data.fog_size
+		var fs: Dictionary = data.fog_size
 		data.fog_size = Vector2i(fs.get("w", 0), fs.get("h", 0))
 	else:
 		data.fog_size = Vector2i.ZERO
@@ -143,40 +146,11 @@ func delete_save() -> void:
 func get_save_info() -> Dictionary:
 	if not has_save():
 		return {}
-
 	return load_game()
 
 
-# Auto-save on level completion
-func _on_level_started(player_pos: Vector2i, maze: Node) -> void:
-	if not _auto_save_enabled:
-		return
-
-	if maze and "level" in maze and "run" in maze and "rng_seed" in maze:
-		var fog_path: String = current_save_data.get("fog_path", "")
-		var fog_size_val: Variant = current_save_data.get("fog_size", Vector2i.ZERO)
-		var fog_size: Vector2i = Vector2i.ZERO
-		if fog_size_val is Vector2i:
-			fog_size = fog_size_val
-		elif typeof(fog_size_val) == TYPE_DICTIONARY:
-			fog_size = Vector2i(fog_size_val.get("w", 0), fog_size_val.get("h", 0))
-		save_game(maze.level, maze.run, player_pos, maze.rng_seed, fog_path, fog_size)
-
-
-# Delete save on death (permadeath)
-func _on_player_caught(_presence_cell: Vector2i, _player_cell: Vector2i) -> void:
-	delete_save()
-	print("[SaveManager] Run ended - save deleted")
-
-
-# Save player stats on game won
-func _on_game_won():
-	save_player_stats(current_save_data.get("player_stats", {}))
-
-
 func save_player_stats(stats: Dictionary) -> void:
-	# Save player stats to the run-won file path for use on next runs
-	var file := FileAccess.open(RUN_WON_FILE_PATH, FileAccess.WRITE)
+	var file: FileAccess = FileAccess.open(RUN_WON_FILE_PATH, FileAccess.WRITE)
 	if file:
 		file.store_var(stats)
 		file.close()
@@ -186,19 +160,46 @@ func save_player_stats(stats: Dictionary) -> void:
 
 
 func check_for_win() -> bool:
-	# Check if the run-won file exists to determine if the player has won before
 	return FileAccess.file_exists(RUN_WON_FILE_PATH)
 
 
 func load_previous_win_stats() -> Dictionary:
-	# Load player stats from the run-won file if it exists
-	if check_for_win():
-		var file := FileAccess.open(RUN_WON_FILE_PATH, FileAccess.READ)
-		if file:
-			var stats = file.get_var()
-			file.close()
-			print("[SaveManager] Loaded previous win stats: %s" % str(stats))
-			return stats
-		else:
-			push_error("[SaveManager] Failed to load player stats from %s" % RUN_WON_FILE_PATH)
-	return {}
+	if not check_for_win():
+		return {}
+	var file: FileAccess = FileAccess.open(RUN_WON_FILE_PATH, FileAccess.READ)
+	if file == null:
+		push_error("[SaveManager] Failed to load player stats from %s" % RUN_WON_FILE_PATH)
+		return {}
+	var stats: Variant = file.get_var()
+	file.close()
+	print("[SaveManager] Loaded previous win stats: %s" % str(stats))
+	return stats if stats is Dictionary else {}
+
+
+#endregion
+
+
+#region Signal Handlers
+func _on_level_started(player_pos: Vector2i, maze: Node) -> void:
+	if not _auto_save_enabled:
+		return
+	if maze == null or not "level" in maze or not "run" in maze or not "rng_seed" in maze:
+		return
+	var fog_path: String = current_save_data.get("fog_path", "")
+	var fog_size_val: Variant = current_save_data.get("fog_size", Vector2i.ZERO)
+	var fog_size: Vector2i = Vector2i.ZERO
+	if fog_size_val is Vector2i:
+		fog_size = fog_size_val
+	elif typeof(fog_size_val) == TYPE_DICTIONARY:
+		fog_size = Vector2i(fog_size_val.get("w", 0), fog_size_val.get("h", 0))
+	save_game(maze.level, maze.run, player_pos, maze.rng_seed, fog_path, fog_size)
+
+
+func _on_player_caught(_presence_cell: Vector2i, _player_cell: Vector2i) -> void:
+	delete_save()
+	print("[SaveManager] Run ended - save deleted")
+
+
+func _on_game_won() -> void:
+	save_player_stats(current_save_data.get("player_stats", {}))
+#endregion

@@ -49,28 +49,27 @@ func _ready() -> void:
 	EventBus.game_over.connect(_on_game_over)
 	EventBus.state_changed.connect(_on_state_changed)
 
-	# Listen for loading events from SceneLoader
-	if SceneLoader.has_signal("scene_loading_started"):
-		SceneLoader.scene_loading_started.connect(_on_scene_loading_started)
-	if SceneLoader.has_signal("scene_loading_finished"):
-		SceneLoader.scene_loading_finished.connect(_on_scene_loading_finished)
+	if SceneLoader.has_signal("loading_started"):
+		SceneLoader.loading_started.connect(_on_loading_started)
+	if SceneLoader.has_signal("loading_finished"):
+		SceneLoader.loading_finished.connect(_on_loading_finished)
 
 	_hide_pause_menu()
 	_hide_settings_menu()
 
 
-func _on_scene_loading_started():
+func _on_loading_started() -> void:
 	_is_loading_scene = true
 	_hide_pause_menu()
 
 
-func _on_scene_loading_finished():
+func _on_loading_finished() -> void:
 	_is_loading_scene = false
 
 
 func _on_level_started(_player_pos: Vector2i, maze: Node) -> void:
-	if SceneLoader.has_signal("scene_loading_finished") and SceneLoader.is_loading:
-		await SceneLoader.scene_loading_finished
+	if SceneLoader.has_signal("loading_finished") and SceneLoader.is_loading:
+		await SceneLoader.loading_finished
 		await RenderingServer.frame_post_draw
 
 	# Update level counter

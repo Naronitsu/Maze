@@ -2,18 +2,24 @@ extends Node
 ## Manages visual effects via EventBus signals.
 ## Handles screen flickers, blackouts, and other visual feedback.
 
+#region Private Fields
 @onready var game: Node2D = get_parent() if get_parent() is Node2D else null
-
 var _is_flickering: bool = false
 var _blackout_running: bool = false
+#endregion
 
 
+#region Lifecycle
 func _ready() -> void:
 	# Subscribe to visual effect events
 	EventBus.presence_flicker.connect(_on_presence_flicker)
 	EventBus.presence_caught_player.connect(_on_presence_caught)
 
 
+#endregion
+
+
+#region Signal Handlers
 func _on_presence_flicker() -> void:
 	presence_blackout(0.55, 0.08)
 
@@ -23,6 +29,10 @@ func _on_presence_caught(_presence_cell: Vector2i, _player_cell: Vector2i) -> vo
 	presence_blackout(1.0, 0.2)
 
 
+#endregion
+
+
+#region Public Methods
 func presence_flicker() -> void:
 	if _is_flickering:
 		return
@@ -63,3 +73,4 @@ func presence_blackout(duration: float = 0.45, fade: float = 0.08) -> void:
 
 	rect.visible = false
 	_blackout_running = false
+#endregion

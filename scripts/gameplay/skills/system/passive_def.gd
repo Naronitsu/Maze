@@ -11,5 +11,7 @@ class_name PassiveDef
 @export var description: String = ""
 
 
-func create_instance(owner: Node, level: int):
+#region Public Methods
+func create_instance(owner: Node, level: int) -> PassiveInstance:
 	return PassiveInstance.new(owner, self, level)
+#endregion

@@ -1,0 +1,8 @@
+[gd_resource type="Resource" format=3]
+
+[ext_resource type="Script" path="res://scripts/gameplay/skills/skillScripts/Player/Focus/Passive/concentration/concentration_def.gd" id="1_conc"]
+
+[resource]
+script = ExtResource("1_conc")
+id = &"concentration"
+display_name = "Concentration"

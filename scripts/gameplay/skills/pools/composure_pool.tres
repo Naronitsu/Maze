@@ -4,8 +4,9 @@
 [ext_resource type="Script" uid="uid://ggkv2oom1raw" path="res://scripts/gameplay/skills/system/passive_def.gd" id="2_f5kdk"]
 [ext_resource type="Script" uid="uid://btwdoxqpknn1w" path="res://scripts/gameplay/skills/skill_pool.gd" id="3_47gga"]
 [ext_resource type="Resource" uid="uid://d21j37vuqwx6p" path="res://scripts/gameplay/skills/skillScripts/Player/Composure/Passive/calm_recovery/calm_recovery.tres" id="3_f5kdk"]
+[ext_resource type="Resource" path="res://scripts/gameplay/skills/skillScripts/Player/Composure/Passive/steady_breath/steady_breath.tres" id="4_sb"]
 
 [resource]
 script = ExtResource("3_47gga")
 stat_id = &"Composure"
-passives = Array[ExtResource("2_f5kdk")]([ExtResource("3_f5kdk")])
+passives = Array[ExtResource("2_f5kdk")]([ExtResource("3_f5kdk"), ExtResource("4_sb")])

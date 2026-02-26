@@ -3,23 +3,8 @@ extends Node
 ## Centralized game configuration.
 ## All tuning variables in one place for easy balancing.
 
-# Player stats
+#region Public Properties — Player
 var player_max_health: int = 3
-
-# Door transition tuning
-var door_pause_time: float = 0.25
-var door_fade_time: float = 0.20
-var door_text_hold_time: float = 0.8
-var door_message_time: float = 1.2
-var door_message: String = "there is a monster behind you, run"
-
-# Presence pacing / spawning
-var presence_head_start_time: float = 2.5
-var presence_min_spawn_dist_cells: int = 12
-var presence_min_history_steps: int = 8
-var presence_wait_history_max_seconds: float = 6.0
-
-# Player movement
 var player_step_time: float = 0.22
 var player_walk_step_time: float = 0.38
 var player_sprite_scale: float = 0.75
@@ -33,47 +18,60 @@ var player_close_eyes_action: StringName = &"close_eyes"
 var player_run_grace_time: float = 0.20
 var player_interact_action: StringName = &"interact"
 var player_trail_history_max: int = 80
+var default_stats: Dictionary = {
+	"Agility": 3, "Perception": 3, "Focus": 3, "Resolve": 3, "Composure": 3
+}
+#endregion
 
-#Player Default Stats
-var default_stats := {"Agility": 3, "Perception": 3, "Focus": 3, "Resolve": 3, "Composure": 3}
+#region Public Properties — Doors
+var door_pause_time: float = 0.25
+var door_fade_time: float = 0.20
+var door_text_hold_time: float = 0.8
+var door_message_time: float = 1.2
+var door_message: String = "there is a monster behind you, run"
+#endregion
 
-# Game progression
+#region Public Properties — Presence
+var presence_head_start_time: float = 2.5
+var presence_min_spawn_dist_cells: int = 12
+var presence_min_history_steps: int = 8
+var presence_wait_history_max_seconds: float = 6.0
+var presence_move_interval: float = 0.45
+var presence_near_cells: int = 4
+var presence_far_cells: int = 25
+var presence_catch_distance_cells: int = -1
+#endregion
+
+#region Public Properties — Maze & progression
 var max_levels_before_reset: int = 10
-
-# Maze generation
 var maze_base_width: int = 25
 var maze_base_height: int = 25
 var maze_size_growth_per_level: int = 2
 var maze_run_growth: float = 0.12
+#endregion
 
-# Decorations (markings.png)
+#region Public Properties — Markings
 var markings_density_per_floor: float = 0.008
 var markings_min_per_level: int = 30
 var markings_max_per_level: int = 40
 var markings_min_spacing_cells: int = 2
 var markings_avoid_spawn_radius_cells: int = 2
 var markings_avoid_exit_radius_cells: int = 2
+#endregion
 
-# Pillar (room center interactable)
+#region Public Properties — Pillar
 var pillar_charge_time_seconds: float = 12.0
+#endregion
 
-# GameController tuning
+#region Public Properties — GameController
 var controller_trail_add_walk: float = 1.0
 var controller_trail_add_run: float = 2.0
 var controller_trail_decay_per_second: float = 0.8
 var controller_trail_floor: float = 0.0
 var controller_history_max: int = 250
+#endregion
 
-# Presence AI
-var presence_move_interval: float = 0.45
-var presence_near_cells: int = 4
-var presence_far_cells: int = 25
-var presence_catch_distance_cells: int = -1
-
-# FOV/Vision
-
-# Track number of shrines charged (for Presence logic)
-static var shrines_charged: int = 0
+#region Public Properties — FOV / Vision
 var fog_vision_range: float = 32
 var fog_half_angle_deg: float = 35.0
 var fog_rays: int = 81
@@ -84,8 +82,9 @@ var fog_darkness_alpha: float = 1.0
 var fog_explored_alpha: float = 0.20
 var fog_enable_memory: bool = true
 var fog_memory_forget_rate_per_second: float = 0.1
+#endregion
 
-# Heartbeat UI
+#region Public Properties — Heartbeat UI
 var heartbeat_bpm_min: float = 48.0
 var heartbeat_bpm_max: float = 140.0
 var heartbeat_veins_alpha_min: float = 0.00
@@ -99,22 +98,26 @@ var heartbeat_beat_fade_out: float = 0.12
 var heartbeat_cam_thump_zoom: float = 0.985
 var heartbeat_cam_thump_in: float = 0.03
 var heartbeat_cam_thump_out: float = 0.10
+#endregion
 
-# Minimap
+#region Public Properties — Minimap
 var minimap_enabled: bool = true
 var minimap_size: Vector2 = Vector2(200, 200)
 var minimap_border_padding: float = 10.0
 var minimap_update_interval: float = 0.5
+#endregion
+
+#region Static
+static var shrines_charged: int = 0
+#endregion
 
 
-func _init() -> void:
-	pass
-
-
+#region Public Methods
 func get_all_vars() -> Dictionary:
 	"""Return all config variables as a dictionary for debugging/export."""
-	var result = {}
+	var result: Dictionary = {}
 	for property in get_property_list():
 		if property.usage & PROPERTY_USAGE_STORAGE:
 			result[property.name] = get(property.name)
 	return result
+#endregion

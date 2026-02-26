@@ -1,35 +1,72 @@
 extends Node2D
-signal finished
 
+## Grab attack minigame: snaps player to grab position, runs minigame UI, then releases or damages.
+
+#region Signals
+signal finished
+#endregion
+
+#region Exported (Inspector)
+@export var max_grab_time: float = 3.0
+@export var zoom_time: float = 0.25
+#endregion
+
+#region Private Fields
 @onready var grab_pos_node: Node2D = $grabPosition
 @onready var sprite: AnimatedSprite2D = $AnimatedSprite2D
 
 var _player: Node2D = null
 var _minigame: Node = null
-
-@export var max_grab_time := 3.0
-@export var zoom_time := 0.25
-
 var _camera: Camera2D = null
-var _original_zoom: Vector2
-var _original_offset: Vector2
-
+var _original_zoom: Vector2 = Vector2.ZERO
+var _original_offset: Vector2 = Vector2.ZERO
 var _zoom_in_tween: Tween = null
 var _zoom_out_tween: Tween = null
-var _ending := false
+var _ending: bool = false
+#endregion
 
 
+#region Public Methods
 func init_grab(player: Node2D, spawn_world: Vector2) -> void:
 	_player = player
 	global_position = spawn_world
 
 
+#endregion
+
+
+#region Lifecycle
 func _ready() -> void:
 	sprite.play("spawn")
 	await sprite.animation_finished
 	call_deferred("_do_grab")
 
 
+func _exit_tree() -> void:
+	if _camera:
+		_kill_camera_tweens()
+		_camera.zoom = _original_zoom
+		_camera.offset = _original_offset
+
+
+#endregion
+
+
+#region Signal Handlers
+func _on_minigame_escaped() -> void:
+	_end_grab()
+
+
+func _on_minigame_failed() -> void:
+	if _player:
+		_player.call("_take_damage", 1)
+	_end_grab()
+
+
+#endregion
+
+
+#region Private Methods
 func _do_grab() -> void:
 	if _player == null:
 		_player = get_tree().get_first_node_in_group("player") as Node2D
@@ -38,7 +75,7 @@ func _do_grab() -> void:
 		_end_grab()
 		return
 
-	var p := grab_pos_node.global_position
+	var p: Vector2 = grab_pos_node.global_position
 	_player.movement_locked = true
 	_player.global_position = p
 	_player.call("on_grabbed")
@@ -53,17 +90,14 @@ func _do_grab() -> void:
 		_original_offset = _camera.offset
 
 		_camera.offset = Vector2(randf_range(-4, 4), randf_range(-4, 4))
-		var target_zoom := _original_zoom + Vector2(8, 8)
+		var target_zoom: Vector2 = _original_zoom + Vector2(8, 8)
 
 		_kill_camera_tweens()
 
 		_zoom_in_tween = create_tween()
-		(
-			_zoom_in_tween
-			. tween_property(_camera, "zoom", target_zoom, zoom_time)
-			. set_trans(Tween.TRANS_SINE)
-			. set_ease(Tween.EASE_OUT)
-		)
+		_zoom_in_tween.tween_property(_camera, "zoom", target_zoom, zoom_time)
+		_zoom_in_tween.set_trans(Tween.TRANS_SINE)
+		_zoom_in_tween.set_ease(Tween.EASE_OUT)
 
 	_minigame = get_tree().current_scene.get_node_or_null("UI/grabMinigame")
 	if _minigame == null:
@@ -72,10 +106,8 @@ func _do_grab() -> void:
 		if _minigame.has_method("start_follow"):
 			_minigame.call("start_follow", _player.get_node("minigamePosition") as Marker2D)
 
-		# >>> MATERIALIZE HERE <<<
 		if _minigame.has_method("materialize"):
 			_minigame.call("materialize")
-			# optional: wait for the effect before showing text
 			await get_tree().create_timer(_minigame.materialize_time).timeout
 
 		if _minigame.has_method("show_message"):
@@ -96,16 +128,6 @@ func _do_grab() -> void:
 	await get_tree().create_timer(max_grab_time).timeout
 	if is_inside_tree():
 		_end_grab()
-
-
-func _on_minigame_escaped() -> void:
-	_end_grab()
-
-
-func _on_minigame_failed() -> void:
-	if _player:
-		_player.call("_take_damage", 1)
-	_end_grab()
 
 
 func _kill_camera_tweens() -> void:
@@ -135,18 +157,13 @@ func _end_grab() -> void:
 
 	if _camera:
 		_kill_camera_tweens()
-
-		# reset offset immediately, zoom smoothly
 		_camera.offset = _original_offset
 
 		print("[GrabAttack] Grab end: restoring zoom to ", _original_zoom)
 		_zoom_out_tween = create_tween()
-		(
-			_zoom_out_tween
-			. tween_property(_camera, "zoom", _original_zoom, zoom_time)
-			. set_trans(Tween.TRANS_SINE)
-			. set_ease(Tween.EASE_IN_OUT)
-		)
+		_zoom_out_tween.tween_property(_camera, "zoom", _original_zoom, zoom_time)
+		_zoom_out_tween.set_trans(Tween.TRANS_SINE)
+		_zoom_out_tween.set_ease(Tween.EASE_IN_OUT)
 
 		await _zoom_out_tween.finished
 
@@ -155,11 +172,4 @@ func _end_grab() -> void:
 
 	finished.emit()
 	queue_free()
-
-
-# Failsafe: only snap if we're being torn down mid-grab and no tween is running
-func _exit_tree() -> void:
-	if _camera:
-		_kill_camera_tweens()
-		_camera.zoom = _original_zoom
-		_camera.offset = _original_offset
+#endregion

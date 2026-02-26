@@ -1,16 +1,20 @@
 extends Control
 
+#region Signals
 signal resume_pressed
 signal settings_pressed
 signal quit_pressed
+#endregion
 
-# replace fragile onready $-lookups with lazy/find logic
+#region Public Properties
 var resume_button: Button
 var settings_button: Button
 var quit_button: Button
 var settings_panel: Control
+#endregion
 
 
+#region Lifecycle
 func _ready() -> void:
 	print("PauseMenu: _ready() called, visible=%s" % visible)
 	# ensure this UI still processes input while the scene is paused
@@ -64,6 +68,10 @@ func _ready() -> void:
 		push_warning("PauseMenu: QuitButton not found")
 
 
+#endregion
+
+
+#region Signal Handlers
 func _on_button_hover() -> void:
 	UI_SoundPlayer.play_hover()
 
@@ -76,24 +84,23 @@ func _on_button_select() -> void:
 			settings_panel.connect("back_pressed", _on_settings_back)
 		print("PauseMenu: SettingsPanel found")
 	else:
-		# if there is no settings panel, ensure mouse behavior doesn't block clicks
-		# (but keep this control capturing clicks for the pause menu itself)
 		push_warning("PauseMenu: SettingsPanel not found")
 
-	# apply initial settings visibility/state
 	_settings_set_active(settings_panel and settings_panel.visible)
 
-	# Connect visibility changed to set focus
 	if not visibility_changed.is_connected(_on_visibility_changed):
 		visibility_changed.connect(_on_visibility_changed)
 
-	# Connect focus changes for debugging
-	var viewport = get_viewport()
+	var viewport: Viewport = get_viewport()
 	if viewport and not viewport.gui_focus_changed.is_connected(_on_gui_focus_changed):
 		viewport.gui_focus_changed.connect(_on_gui_focus_changed)
 	print("PauseMenu: _ready() complete")
 
 
+#endregion
+
+
+#region Lifecycle (_input)
 func _input(event: InputEvent) -> void:
 	# Only handle input when visible and not consumed by a focused control
 	if not visible:
@@ -106,7 +113,7 @@ func _input(event: InputEvent) -> void:
 				% [event.keycode, event.physical_keycode]
 			)
 		)
-		var handled = false
+		var handled: bool = false
 
 		# Check which action this key corresponds to
 		if _event_matches_action(event, "move_up"):
@@ -150,8 +157,12 @@ func _input(event: InputEvent) -> void:
 				get_viewport().set_input_as_handled()
 
 
+#endregion
+
+
+#region Private Methods
 func _event_matches_action(event: InputEvent, action_name: String) -> bool:
-	var events = InputMap.action_get_events(action_name)
+	var events: Array = InputMap.action_get_events(action_name)
 	for ev in events:
 		if ev is InputEventKey:
 			# In Godot 4.x, physical_keycode is preferred over keycode
@@ -164,8 +175,7 @@ func _event_matches_action(event: InputEvent, action_name: String) -> bool:
 
 func _on_visibility_changed() -> void:
 	if visible:
-		# Set focus to first button when menu becomes visible
-		var buttons := _get_menu_buttons()
+		var buttons: Array = _get_menu_buttons()
 		if not buttons.is_empty():
 			buttons[0].grab_focus()
 		else:
@@ -173,10 +183,14 @@ func _on_visibility_changed() -> void:
 
 
 func _on_gui_focus_changed(control: Control) -> void:
-	var n := "null" if control == null else String(control.name)
+	var n: String = "null" if control == null else String(control.name)
 	print("PauseMenu: GUI focus changed to: %s" % n)
 
 
+#endregion
+
+
+#region Private Methods (menu buttons / navigation)
 func _get_menu_buttons() -> Array:
 	# If settings panel active, prefer its buttons (recurses into child Controls)
 	if settings_panel and settings_panel.visible:
@@ -307,3 +321,4 @@ func _on_quit_pressed() -> void:
 
 func _on_settings_back() -> void:
 	_settings_set_active(false)
+#endregion

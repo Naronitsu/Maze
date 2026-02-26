@@ -1,11 +1,18 @@
 extends PassiveDef
 class_name ThickSkinDef
 
-## Increased Max HP while equipped.
-## Non-stacking across levels because it overwrites a keyed modifier.
+## Increased Max HP while equipped. Non-stacking; overwrites keyed modifier.
 
-@export var hp_increase_by_level: Array[float] = [1, 2, 3]  # level -> multiplier
+#region Exported (Inspector)
+@export var hp_increase_by_level: Array[float] = [1, 2, 3]
+#endregion
 
 
-func create_instance(owner: Node, level: int):
+#region Public Methods
+func get_description() -> String:
+	return "Increases your max health while equipped. Effect improves with level."
+
+
+func create_instance(owner: Node, level: int) -> ThickSkinInstance:
 	return ThickSkinInstance.new(owner, self, level)
+#endregion

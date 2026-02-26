@@ -1,11 +1,18 @@
 extends PassiveDef
 class_name KeenAwarenessDef
 
-## Reduces Pillar Charge Time while equipped.
-## Non-stacking across levels because it overwrites a keyed modifier.
+## Fog Vision Range Bonus while equipped. Non-stacking; overwrites keyed modifier.
 
-@export var fog_range_bonus_by_level: Array[float] = [20, 40, 60]  # level
+#region Exported (Inspector)
+@export var fog_range_bonus_by_level: Array[float] = [20, 40, 60]
+#endregion
 
 
-func create_instance(owner: Node, level: int):
+#region Public Methods
+func get_description() -> String:
+	return "Increases how far you can see in the fog. Effect improves with level."
+
+
+func create_instance(owner: Node, level: int) -> KeenAwarenessInstance:
 	return KeenAwarenessInstance.new(owner, self, level)
+#endregion

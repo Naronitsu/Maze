@@ -1,60 +1,71 @@
 extends Node
 class_name SkillManager
 
-## Equip/unequip + runtime instances.
-## Place this as a child of an actor (Player) alongside a child node named "Stats" (StatsComponent).
+## Equip/unequip + runtime instances. Child of actor (Player) alongside "Stats" (Stats).
 
-const SkillDefScript = preload("res://scripts/gameplay/skills/system/skill_def.gd")
-const SkillInstanceScript = preload("res://scripts/gameplay/skills/system/skill_instance.gd")
-const PassiveDefScript = preload("res://scripts/gameplay/skills/system/passive_def.gd")
-const ActiveDefScript = preload("res://scripts/gameplay/skills/system/active_def.gd")
-const ActiveInstanceScript = preload("res://scripts/gameplay/skills/system/active_instance.gd")
+#region Constants
+const SkillDefScript: GDScript = preload("res://scripts/gameplay/skills/system/skill_def.gd")
+const SkillInstanceScript: GDScript = preload(
+	"res://scripts/gameplay/skills/system/skill_instance.gd"
+)
+const PassiveDefScript: GDScript = preload("res://scripts/gameplay/skills/system/passive_def.gd")
+const ActiveDefScript: GDScript = preload("res://scripts/gameplay/skills/system/active_def.gd")
+const ActiveInstanceScript: GDScript = preload(
+	"res://scripts/gameplay/skills/system/active_instance.gd"
+)
+#endregion
 
-@export var equipped_passives: Array[PassiveDefScript] = []
-@export var equipped_actives: Array[ActiveDefScript] = []
+#region Exported (Inspector)
+@export var equipped_passives: Array[PassiveDef] = []
+@export var equipped_actives: Array[ActiveDef] = []
+@export var levels: Dictionary = {}  # skill_id (StringName) -> level (int, ZERO-BASED)
+#endregion
 
-# skill_id -> level (ZERO-BASED: 0 = Level 1)
-@export var levels: Dictionary = {}  # { StringName: int }
+#region Public Properties
+var passive_instances: Dictionary = {}
+var active_instances: Dictionary = {}
+#endregion
 
-# skill_id -> instance
-var passive_instances: Dictionary = {}  # { StringName: SkillInstance }
-var active_instances: Dictionary = {}  # { StringName: SkillInstance }
-
-@onready var owner_actor := get_parent()
+#region Onready
+@onready var owner_actor: Node = get_parent()
+#endregion
 
 
+#region Lifecycle
 func _ready() -> void:
 	rebuild_all()
 
 
 func _process(delta: float) -> void:
-	# Tick only actives (cooldowns). Passives can implement tick too.
 	for inst in active_instances.values():
 		(inst as SkillInstance).tick(delta)
 	for inst in passive_instances.values():
 		(inst as SkillInstance).tick(delta)
 
 
+#endregion
+
+
+#region Public Methods
 func get_level(skill_id: StringName) -> int:
-	# ZERO-BASED default: 0 = Level 1
 	return int(levels.get(skill_id, 0))
 
 
 func set_level(skill_id: StringName, new_level: int) -> void:
-	# new_level is ZERO-BASED
 	if new_level < 0:
 		new_level = 0
-
 	levels[skill_id] = new_level
-
 	if passive_instances.has(skill_id):
 		(passive_instances[skill_id] as SkillInstance).set_level(new_level)
 	if active_instances.has(skill_id):
 		(active_instances[skill_id] as SkillInstance).set_level(new_level)
 
 
+func rebuild() -> void:
+	rebuild_all()
+
+
 func rebuild_all() -> void:
-	# Unequip existing
 	for inst in passive_instances.values():
 		(inst as SkillInstance).on_unequip()
 	for inst in active_instances.values():
@@ -62,40 +73,31 @@ func rebuild_all() -> void:
 	passive_instances.clear()
 	active_instances.clear()
 
-	# Equip passives
 	for def in equipped_passives:
 		_equip_def(def, true)
-
-	# Equip actives
 	for def in equipped_actives:
 		_equip_def(def, false)
 
 
-func equip_passive(def: PassiveDefScript, level: int = -1) -> void:
+func equip_passive(def: PassiveDef, level: int = -1) -> void:
 	if def == null:
 		return
-
-	# level is ZERO-BASED; allow 0.
 	if level >= 0:
 		levels[def.id] = level
 	elif not levels.has(def.id):
 		levels[def.id] = 0
-
-	# replace if already equipped
 	unequip(def.id)
 	equipped_passives.append(def)
 	_equip_def(def, true)
 
 
-func equip_active(def: ActiveDefScript, level: int = -1) -> void:
+func equip_active(def: ActiveDef, level: int = -1) -> void:
 	if def == null:
 		return
-
 	if level >= 0:
 		levels[def.id] = level
 	elif not levels.has(def.id):
 		levels[def.id] = 0
-
 	unequip(def.id)
 	equipped_actives.append(def)
 	_equip_def(def, false)
@@ -103,43 +105,38 @@ func equip_active(def: ActiveDefScript, level: int = -1) -> void:
 
 func unequip(skill_id: StringName) -> void:
 	if passive_instances.has(skill_id):
-		(passive_instances[skill_id] as SkillInstance).on_unequip()
+		var inst: SkillInstance = passive_instances[skill_id]
+		inst.on_unequip()
 		passive_instances.erase(skill_id)
-	equipped_passives = equipped_passives.filter(func(d): return d.id != skill_id)
-
 	if active_instances.has(skill_id):
-		(active_instances[skill_id] as SkillInstance).on_unequip()
+		var inst: SkillInstance = active_instances[skill_id]
+		inst.on_unequip()
 		active_instances.erase(skill_id)
-	equipped_actives = equipped_actives.filter(func(d): return d.id != skill_id)
 
 
-func activate(skill_id: StringName, context := {}) -> bool:
-	if not active_instances.has(skill_id):
-		return false
-	var inst := active_instances[skill_id] as ActiveInstance
-	return inst.try_activate(context)
+func on_player_moved(from_cell: Vector2i, to_cell: Vector2i) -> void:
+	var event_data: Variant = {"from": from_cell, "to": to_cell}
+	for skill_id in passive_instances:
+		var inst: SkillInstance = passive_instances[skill_id]
+		var passive_def: PassiveDef = inst.def as PassiveDef
+		if passive_def != null and passive_def.has_method("on_player_moved"):
+			passive_def.on_player_moved(inst, owner_actor, event_data)
 
 
-func _equip_def(def: SkillDefScript, is_passive: bool) -> void:
+#endregion
+
+
+#region Private Methods
+func _equip_def(def: SkillDef, is_passive: bool) -> void:
 	if def == null:
 		return
-	if def.id == StringName():
-		push_warning("SkillDef missing id: %s" % [def.resource_path])
-		return
-
-	# Ensure every equipped skill has a level entry
-	if not levels.has(def.id):
-		levels[def.id] = 0
-
-	var lvl := get_level(def.id)  # ZERO-BASED
-	var inst: SkillInstance = def.create_instance(owner_actor, lvl)
-	if inst == null:
-		push_warning("SkillDef.create_instance returned null for %s" % [String(def.id)])
-		return
-
+	var lvl: int = get_level(def.id)
 	if is_passive:
+		var inst: PassiveInstance = (def as PassiveDef).create_instance(owner_actor, lvl)
+		inst.on_equip()
 		passive_instances[def.id] = inst
 	else:
+		var inst: ActiveInstance = (def as ActiveDef).create_instance(owner_actor, lvl)
+		inst.on_equip()
 		active_instances[def.id] = inst
-
-	inst.on_equip()
+#endregion

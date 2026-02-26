@@ -1,70 +1,59 @@
-# Maze Game - Copilot Instructions
+# Maze Roguelike — Copilot Agent Instructions
 
 ## Project Overview
-A Godot 4.5 roguelike maze game where players navigate procedurally-generated dungeons while being hunted by a pursuing "Presence" enemy. Core systems: procedural maze generation, grid-based movement, FOV/fog-of-war rendering, and AI chase behavior.
+A Godot 4.x roguelike maze game: players navigate procedurally-generated dungeons, hunted by a "Presence" AI. Core systems: procedural maze generation, cell-based movement, FOV/fog-of-war, and event-driven AI chase.
 
 ## Architecture & Data Flow
 
-### Autoload Singletons (Critical)
-Four autoloaded singletons provide global state and configuration. Access them directly—no `get_node()` needed:
-- **EventBus**: Event-driven communication hub. All inter-component messaging uses signals (`level_started`, `player_moved`, `presence_spawned`, etc.)
-- **GameState**: Centralized state machine (`PLAYING`, `TRANSITIONING`, `PAUSED`, `GAME_OVER`). Check `GameState.current` instead of scattered flags
-- **GameConfig**: Tuning knobs for all gameplay values (movement speed, spawn distances, vision range). Single source of truth for balancing
-- **SaveManager**: Persistence layer for level/run progress
+- **Autoload Singletons:**
+  - [scripts/core/event_bus.gd](scripts/core/event_bus.gd): Global event hub. All cross-system communication uses signals (e.g., `level_started`, `player_moved`).
+  - [scripts/core/game_state.gd](scripts/core/game_state.gd): Central state machine (`PLAYING`, `TRANSITIONING`, etc). Use `GameState.current` for state checks.
+  - [scripts/core/game_config.gd](scripts/core/game_config.gd): All gameplay tuning values (movement, vision, spawn distances). Use this for balance/configuration.
+  - [scripts/core/save_manager.gd](scripts/core/save_manager.gd): Run/level persistence.
 
-### Scene Hierarchy
-- **Game.tscn** (root): Orchestrates level progression via EventBus signals
-  - **TileMap/MazeLayer** (`DungeonMazeLayer`): Procedural grid-based maze generator and floor/wall/door tile management
-  - **Player** (`CharacterBody2D`): Cell-based movement, FOV tracking, trail writing to GameController
-  - **GameController**: Central hub for pathfinding, player history, trail decay
-  - **PresenceRW**: AI enemy—chases player, opens doors
-  - **PresenceSpawnManager**: Listens to `level_started` signal, spawns presence after head start
-  - **Overlay/FogOfWarRW**: Vision raycasting + explored memory shader
+- **Scene Hierarchy:**
+  - [scenes/gameplay/game.tscn](scenes/gameplay/game.tscn): Root orchestrator, emits `level_started` and manages progression.
+    - **DungeonMazeLayer** ([scripts/gameplay/tile_map.gd](scripts/gameplay/tile_map.gd)): Maze/door generation, tile state helpers.
+    - **Player** ([scripts/gameplay/player.gd](scripts/gameplay/player.gd)): Cell-based movement, FOV, trail writing.
+    - **GameController** ([scripts/gameplay/game_controller.gd](scripts/gameplay/game_controller.gd)): Pathfinding, player history, trail decay.
+    - **PresenceRW** ([scripts/gameplay/presence_rw.gd](scripts/gameplay/presence_rw.gd)): AI enemy, BFS pathfinding, door logic.
+    - **PresenceSpawnManager** ([scripts/gameplay/presence_spawn_manager.gd](scripts/gameplay/presence_spawn_manager.gd)): Listens for `level_started`, manages spawn delay.
+    - **FogOfWarRW** ([scripts/gameplay/fog_of_war_rw.gd](scripts/gameplay/fog_of_war_rw.gd)): Vision raycasting, explored memory shader.
 
-### Key Responsibilities
+## Project-Specific Patterns & Conventions
 
-| Component | Purpose | Critical Methods |
-|-----------|---------|------------------|
-| `tile_map.gd` (DungeonMazeLayer) | Maze generation, door/floor state | `generate()`, `try_open_door_at()`, `is_door_closed()` |
-| `game_controller.gd` | Pathfinding hub & player tracking | `path_distance()`, `path_distance_presence()`, `is_passable_for_presence()` |
-| `player.gd` | Cell-based movement & vision | `reset_to_cell()`, eyes-closed mechanic |
-| `presence_rw.gd` | Enemy AI with door interaction | `respawn_from_history()`, `_best_step_toward_player()` |
-| `fog_of_war_rw.gd` | FOV rendering + explored memory | Vision polygon raycasting & shader-based darkness |
-| `game.gd` | Level progression orchestrator | Emits `level_started`, waits for intro |
-| `presence_spawn_manager.gd` | Presence spawn logic | Subscribes to `level_started`, handles head start timer |
+- **Event-Driven:** All inter-component communication uses `EventBus` signals. Avoid direct method calls between systems. Example:
+  ```gdscript
+  EventBus.level_started.emit()
+  EventBus.player_moved.connect(_on_player_moved)
+  ```
 
-## Event-Driven Architecture Pattern
-Use EventBus signals for all inter-component communication—avoid direct method calls:
-```gdscript
-# Maze — Copilot / Agent Instructions (concise)
+- **Cell-Based Movement:** Use `GameController.cell_to_world_center()` and `world_to_cell()` for all grid/cell conversions. Do not manipulate TileMap directly.
 
-Purpose: give an AI coding agent the minimal, project-specific facts to be productive here.
+- **AI Pathfinding:** Presence AI uses BFS via `GameController.path_distance_presence()`. Closed doors are considered passable for planning, but Presence opens doors when stepping into them.
 
-- **Core idea:** Godot 4.x roguelike with procedurally generated mazes, cell-based player movement, FOV/fog-of-war, and a pursuing `Presence` AI. Primary orchestration is event-driven.
+- **Door/Tile Conventions:** Doors are atlas tiles (not terrain). Use helpers like `try_open_door_at()` and `is_door_closed()` in `DungeonMazeLayer`.
 
-- **Autoloads (global singletons):** treat these as globally accessible services (no `get_node()`): [scripts/core/event_bus.gd](scripts/core/event_bus.gd#L1), [scripts/core/game_state.gd](scripts/core/game_state.gd#L1), [scripts/core/game_config.gd](scripts/core/game_config.gd#L1), [scripts/core/save_manager.gd](scripts/core/save_manager.gd#L1). Use `EventBus` signals for cross-component coordination.
+- **Config & Tuning:** All gameplay values (speeds, vision, spawn times) are set in `GameConfig`. Do not use scattered `@export` values.
 
-- **Primary scenes / scripts to inspect first:** [scenes/gameplay/game.tscn](scenes/gameplay/game.tscn#L1), [scripts/gameplay/game_controller.gd](scripts/gameplay/game_controller.gd#L1), [scripts/gameplay/player.gd](scripts/gameplay/player.gd#L1), [scripts/gameplay/presence_rw.gd](scripts/gameplay/presence_rw.gd#L1), [scripts/gameplay/presence_spawn_manager.gd](scripts/gameplay/presence_spawn_manager.gd#L1), [scripts/gameplay/fog_of_war_rw.gd](scripts/gameplay/fog_of_war_rw.gd#L1).
+- **Debugging:**
+  - Set `presence.debug_draw` in `presence_rw.gd` to visualize AI paths.
+  - Use `player_history` and `presence_head_start_time` for spawn/debug logic.
 
-- **Event pattern:** components emit and connect to `EventBus` signals (e.g., `level_started`, `player_moved`). Prefer wiring via signals over direct function calls between systems.
+## Developer Workflows
 
-- **Movement & maze model:** movement is cell-based. `GameController` exposes conversions like `cell_to_world_center()` / `world_to_cell()`. Player history is tracked in `GameController.player_history` and drives `Presence` spawn logic.
+- **Run/Test:** Open project root in Godot 4.x editor or run via CLI. Main scenes in `scenes/`, scripts in `scripts/`.
+- **Signals:** When adding new signals, update all listeners. Keep payloads stable.
+- **Balance:** Adjust values only in `GameConfig`.
 
-- **Presence (AI) notes:** Presence uses BFS pathfinding in `game_controller.gd` helpers (see `path_distance_presence()`), treats closed doors as passable for planning, and actively opens doors when stepping into them. Spawn timing is coordinated by `presence_spawn_manager.gd` and tuned by `GameConfig` values.
+## Key Files & Examples
 
-- **Fog / vision:** look at [scripts/gameplay/fog_of_war_rw.gd](scripts/gameplay/fog_of_war_rw.gd#L1) plus shader files in `shaders/` for explored vs current vision layering. Player facing is independent from movement.
+- [scripts/core/event_bus.gd](scripts/core/event_bus.gd): Signal definitions and usage.
+- [scripts/gameplay/game_controller.gd](scripts/gameplay/game_controller.gd): Pathfinding, player history, cell/world conversion.
+- [scripts/gameplay/presence_rw.gd](scripts/gameplay/presence_rw.gd): AI logic, debug draw.
+- [scripts/gameplay/tile_map.gd](scripts/gameplay/tile_map.gd): Maze/door helpers.
+- [shaders/fog_darkness_memory.gdshader](shaders/fog_darkness_memory.gdshader): FOV/fog rendering.
 
-- **Tile & door conventions:** doors are atlas tiles (not terrain). Door state helpers and masks live with the maze layer / tilemap code — search for `door_closed` / `try_open_door_at` when changing door logic.
-
+---
+If you need more detail (e.g., signal payloads, dev checklists, or code snippets), specify the area and request an example.
 - **When editing code:**
-  - Keep signal names and payloads stable (breaking them requires updating all listeners).
-  - Use `GameConfig` for tuning values instead of sprinkling `@export` values.
-  - Respect cell-based APIs on `GameController` rather than manipulating TileMap directly.
-
-- **Useful quick checks / debug knobs:**
-  - `presence.debug_draw` (in `presence_rw.gd`) to visualize behavior.
-  - Search for `player_history` and `presence_head_start_time` to understand spawn sequencing.
-
-- **How to run / test locally:** open the project root in Godot 4.x (editor or headless CLI). Scenes are under `scenes/`; scripts under `scripts/`.
-
-If any of these summaries should be expanded with code snippets or specific examples (e.g., common signal payloads or a short dev checklist), tell me which area and I will add 1–2 concise examples.

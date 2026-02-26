@@ -1,0 +1,8 @@
+[gd_resource type="Resource" format=3]
+
+[ext_resource type="Script" path="res://scripts/gameplay/skills/skillScripts/Player/Agility/Passive/second_wind/second_wind_def.gd" id="1_sw"]
+
+[resource]
+script = ExtResource("1_sw")
+id = &"second_wind"
+display_name = "Second Wind"

@@ -1,7 +1,10 @@
 extends SkillInstance
 class_name PassiveInstance
 
+## Runtime instance for passive skills; apply/remove modifiers on equip/unequip.
 
+
+#region Public Methods
 func on_equip() -> void:
 	apply()
 
@@ -13,12 +16,13 @@ func on_unequip() -> void:
 
 func set_level(new_level: int) -> void:
 	level = new_level
-	apply()  # overwrite (non-stacking)
+	apply()
 
 
 func apply() -> void:
-	pass  # override
+	pass
 
 
 func _disconnect() -> void:
-	pass  # override if you connect to signals
+	pass
+#endregion

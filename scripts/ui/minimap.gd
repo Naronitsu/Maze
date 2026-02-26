@@ -1,12 +1,13 @@
 ## Minimap UI that shows explored areas of the maze.
-##
-## Displays a top-down view of the dungeon scaled to fit in the corner.
-## Only shows areas that have been explored using the fog of war explored texture.
 extends Control
 class_name Minimap
 
+#region Constants
 enum MinimapMode { ZOOMED, FULL, DISABLED }
+const _ZOOM_FACTOR: float = 2.5
+#endregion
 
+#region Exported (Inspector)
 @export_category("Dependencies")
 @export var layer: TileMapLayer
 @export var fog: FogOfWarRW
@@ -21,21 +22,25 @@ enum MinimapMode { ZOOMED, FULL, DISABLED }
 @export var door_open_color: Color = Color("#3f272b")
 @export var player_color: Color = Color("#a62e36")
 @export var unexplored_color: Color = Color(0.0, 0.0, 0.0, 1.0)
-@export var update_interval: float = 0.5  # Update every 0.5 seconds
+@export var update_interval: float = 0.5
+#endregion
 
-const _ZOOM_FACTOR: float = 2.5
-
+#region Private Fields
 var _map_texture: ImageTexture
 var _maze_bounds: Rect2i
 var _cell_size: Vector2  # Size of each cell in the minimap
 var _update_timer: float = 0.0
 var _shader_material: ShaderMaterial
 var _mode: MinimapMode = MinimapMode.DISABLED
+#endregion
 
+#region Onready
 @onready var map_display: TextureRect = $MapDisplay
 @onready var player_marker: Control = $PlayerMarker
+#endregion
 
 
+#region Lifecycle
 func _ready() -> void:
 	# Check if minimap is enabled
 	if not GameConfig.minimap_enabled:
@@ -123,6 +128,10 @@ func _ready() -> void:
 	print("[Minimap] Waiting for level_started signal to initialize map...")
 
 
+#endregion
+
+
+#region Signal Handlers
 func _unhandled_input(event: InputEvent) -> void:
 	if event.is_action_pressed("ui_focus_next"):  # Tab key
 		match _mode:
@@ -136,6 +145,10 @@ func _unhandled_input(event: InputEvent) -> void:
 		print("[Minimap] Mode: %s" % ["ZOOMED", "FULL", "DISABLED"][_mode])
 
 
+#endregion
+
+
+#region Private Methods
 func _set_mode(new_mode: MinimapMode) -> void:
 	_mode = new_mode
 
@@ -511,6 +524,10 @@ func _update_player_marker() -> void:
 	player_marker.modulate = player_color
 
 
+#endregion
+
+
+#region Signal Handlers
 func _on_level_started(_spawn_cell: Vector2i, _maze: DungeonMazeLayer) -> void:
 	# Reinitialize when level starts
 	print("[Minimap] Level started signal received, waiting 0.5s for fog...")
@@ -576,3 +593,4 @@ func _on_door_opened(cell: Vector2i) -> void:
 	# Update texture
 	_map_texture.update(img)
 	print("[Minimap] Door opened at %s, updated" % cell)
+#endregion

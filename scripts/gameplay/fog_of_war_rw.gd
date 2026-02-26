@@ -1,11 +1,9 @@
 ## Fog of war system with vision rendering and explored memory.
-##
-## Uses raycasting to generate vision polygons based on player facing direction.
-## Maintains both current visibility (screen-sized) and explored memory (world-sized)
-## with shader-based darkening. Supports vision suspension (eyes-closed mechanic).
+## Uses raycasting for vision polygons; maintains current visibility and explored memory.
 extends Control
 class_name FogOfWarRW
 
+#region Exported (Inspector)
 @export_category("Dependencies")
 @export var player: Node2D
 @export var cam: Camera2D
@@ -19,8 +17,9 @@ class_name FogOfWarRW
 @export_category("Configuration")
 @export var wall_mask: int = 1 << 0
 @export var show_mask_preview: bool = false
+#endregion
 
-# Current (screen-sized) mask viewport
+#region Onready
 @onready var viewport: SubViewport = $MaskViewport
 @onready var vision_poly: Polygon2D = $MaskViewport/MaskRoot/VisionMask
 @onready var halo_poly: Polygon2D = $MaskViewport/MaskRoot/HaloMask
@@ -32,9 +31,14 @@ class_name FogOfWarRW
 
 @onready var darkness: ColorRect = $Darkness
 @onready var mask_preview: TextureRect = get_node_or_null("MaskPreview") as TextureRect
+#endregion
 
+#region Public Properties
 var facing: Vector2 = Vector2.RIGHT
 var suspended: bool = false
+#endregion
+
+#region Private Fields
 var _awaiting_level_start: bool = true
 var _pending_reveal: bool = false
 var _needs_reset_on_next_start: bool = false
@@ -72,8 +76,10 @@ const HIT_INSET_PX := 2.0
 
 const DOOR_STEP_MIN_PX := 2.0
 const DOOR_STEP_FRACTION_OF_TILE := 0.25
+#endregion
 
 
+#region Lifecycle
 func _ready() -> void:
 	set_anchors_preset(Control.PRESET_FULL_RECT)
 
@@ -141,8 +147,12 @@ func _ready() -> void:
 		_resume_after_level_start()
 
 
-func _on_level_started(_spawn_cell: Vector2i, _maze: DungeonMazeLayer) -> void:
-	_maze = _maze
+#endregion
+
+
+#region Signal Handlers
+func _on_level_started(_spawn_cell: Vector2i, maze_node: DungeonMazeLayer) -> void:
+	_maze = maze_node
 	_room_rects = (
 		_maze.get_room_rects() if _maze != null and _maze.has_method("get_room_rects") else []
 	)
@@ -200,6 +210,10 @@ func _on_player_moved(_from_cell: Vector2i, to_cell: Vector2i) -> void:
 		_update_sticky_polys()
 
 
+#endregion
+
+
+#region Lifecycle (_process)
 func _process(dt: float) -> void:
 	_push_shader_uniforms()
 	_update_explored_decay(dt)
@@ -209,6 +223,10 @@ func _process(dt: float) -> void:
 		_update_sticky_polys()
 
 
+#endregion
+
+
+#region Private Methods (setup / decay)
 func _get_explored_decay_white_tex() -> Texture2D:
 	if _explored_decay_white_tex != null:
 		return _explored_decay_white_tex
@@ -406,7 +424,12 @@ func _update_explored_decay(dt: float) -> void:
 	_explored_decay_mat.set_shader_parameter("amount", amount)
 
 
-func set_facing_cardinal(dir) -> void:
+#region Public Methods
+func set_player_and_presence(p: Node2D, _presence: Node) -> void:
+	player = p
+
+
+func set_facing_cardinal(dir: Variant) -> void:
 	var v: Vector2
 	if dir is Vector2:
 		v = dir
@@ -427,11 +450,10 @@ func reveal_now() -> void:
 	_update_masks()
 
 
-# -------------------------
-# Bounds + viewports
-# -------------------------
+#endregion
 
 
+#region Private Methods (bounds / viewports)
 func _compute_layer_bounds() -> void:
 	if layer == null:
 		push_error("[FogOfWar._compute_layer_bounds] layer is null")
@@ -526,11 +548,7 @@ func _push_shader_uniforms() -> void:
 	mat.set_shader_parameter("maze_size_world", maze_size_world)
 
 
-# -------------------------
-# Masks
-# -------------------------
-
-
+#region Private Methods (masks)
 func _update_masks() -> void:
 	if player == null or cam == null:
 		return
@@ -672,11 +690,7 @@ func _make_circle(center: Vector2, radius: float) -> PackedVector2Array:
 	return pts
 
 
-# -------------------------
-# Helpers
-# -------------------------
-
-
+#region Private Methods (helpers)
 func _wait_for_tiles() -> void:
 	if layer == null:
 		push_error("[FogOfWar._wait_for_tiles] layer is null")
@@ -784,6 +798,7 @@ func _first_closed_door_hit_world(from_world: Vector2, dir: Vector2, max_dist: f
 	return null
 
 
+#region Public Methods (level / save)
 func reset_fog_for_level() -> void:
 	await _wait_for_tiles()
 	_compute_layer_bounds()
@@ -834,6 +849,10 @@ func load_explored_from_file(path: String, expected_size: Vector2i = Vector2i.ZE
 	return true
 
 
+#endregion
+
+
+#region Private Methods (explored base / resume)
 func _ensure_explored_base() -> void:
 	if _explored_base != null and is_instance_valid(_explored_base):
 		return
@@ -870,3 +889,4 @@ func _resume_after_level_start() -> void:
 	suspended = false
 	_pending_reveal = false
 	reveal_now()
+#endregion

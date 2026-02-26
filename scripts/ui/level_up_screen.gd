@@ -1,14 +1,21 @@
 extends Control
 class_name LevelUpPanel
 
-signal choice_chosen(choice: Dictionary)
+## Level-up choice panel: shows three choices and emits choice_chosen.
 
 const ChoiceTooltipPopupScene = preload("res://scenes/ui/choice_tooltip_popup.tscn")
 
+#region Signals
+signal choice_chosen(choice: Dictionary)
+#endregion
+
+#region Onready
 @onready var b1: Button = $Center/VBox/HBox/Choice1
 @onready var b2: Button = $Center/VBox/HBox/Choice2
 @onready var b3: Button = $Center/VBox/HBox/Choice3
+#endregion
 
+#region Private Fields
 var _choices: Array[Dictionary] = []
 var _tooltip: Control  # ChoiceTooltipPopup instance
 
@@ -19,8 +26,10 @@ const STAT_DESCRIPTIONS: Dictionary = {
 	"Resolve": "Durability and grit. Improves max health and survival.",
 	"Composure": "Calm and recovery. Improves health regen and delay.",
 }
+#endregion
 
 
+#region Lifecycle
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
 	hide()
@@ -32,7 +41,6 @@ func _ready() -> void:
 	b1.pressed.connect(func() -> void: _pick(0))
 	b2.pressed.connect(func() -> void: _pick(1))
 	b3.pressed.connect(func() -> void: _pick(2))
-
 	b1.mouse_entered.connect(_on_choice_mouse_entered.bind(0))
 	b2.mouse_entered.connect(_on_choice_mouse_entered.bind(1))
 	b3.mouse_entered.connect(_on_choice_mouse_entered.bind(2))
@@ -41,6 +49,10 @@ func _ready() -> void:
 	b3.mouse_exited.connect(_on_choice_mouse_exited)
 
 
+#endregion
+
+
+#region Public Methods
 func show_choices(choices: Array[Dictionary]) -> void:
 	_choices = choices
 	_set_button(b1, 0)
@@ -52,13 +64,35 @@ func show_choices(choices: Array[Dictionary]) -> void:
 	b1.grab_focus()
 
 
+#endregion
+
+
+#region Private Methods
 func _set_button(btn: Button, idx: int) -> void:
 	if idx >= _choices.size():
 		btn.disabled = true
 		btn.text = ""
+		btn.tooltip_text = ""
 		return
 	btn.disabled = false
-	btn.text = str(_choices[idx].get("text", "???"))
+	var c: Dictionary = _choices[idx]
+	btn.text = str(c.get("text", "???"))
+	btn.tooltip_text = _get_tooltip_for_choice(c)
+
+
+func _get_tooltip_for_choice(c: Dictionary) -> String:
+	var kind: Variant = c.get("kind", "")
+	if kind == "stat":
+		var stat_name: String = String(c.get("stat", ""))
+		var amount: int = int(c.get("amount", 1))
+		return "Permanently increase %s by %d." % [stat_name, amount]
+	if kind == "skill" and c.has("def"):
+		var def: Resource = c.get("def") as Resource
+		if def != null and def.has_method("get_description"):
+			return def.get_description()
+		if def != null and "display_name" in def:
+			return str(def.get("display_name"))
+	return ""
 
 
 func _on_choice_mouse_entered(idx: int) -> void:
@@ -123,6 +157,7 @@ func _pick(idx: int) -> void:
 		return
 	if _tooltip != null:
 		_tooltip.hide_tooltip()
-	var c := _choices[idx]
+	var c: Dictionary = _choices[idx]
 	hide()
 	choice_chosen.emit(c)
+#endregion

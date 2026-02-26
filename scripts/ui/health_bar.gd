@@ -1,17 +1,21 @@
 extends HBoxContainer
 
-## Health UI that shows full, half, and empty hearts based on current/max health (float).
+## Displays player health as hearts (full, half, empty); subscribes to EventBus.player_health_changed.
 
+#region Exported (Inspector)
 @export var heart_texture: Texture2D
 @export var heart_texture_half: Texture2D
 @export var heart_texture_empty: Texture2D
+#endregion
 
+#region Private Fields
 var player: CharacterBody2D
-
 const HEART_SIZE := Vector2(16, 16)
 const EMPTY_MODULATE := Color(0.45, 0.45, 0.45, 0.85)
+#endregion
 
 
+#region Lifecycle
 func _ready() -> void:
 	await get_tree().process_frame
 
@@ -20,16 +24,24 @@ func _ready() -> void:
 		push_warning("Health UI: Player not found.")
 		return
 
-	player.health_changed.connect(_on_health_changed)
+	EventBus.player_health_changed.connect(_on_health_changed)
 	_on_health_changed(player.current_health, player.get_max_health())
 
 
+#endregion
+
+
+#region Signal Handlers
 func _on_health_changed(current: float, max_val: float) -> void:
 	var max_hearts := int(max_val)
 	_ensure_heart_count(max_hearts)
 	_update_heart_states(current, max_hearts)
 
 
+#endregion
+
+
+#region Private Methods
 func _ensure_heart_count(max_hearts: int) -> void:
 	var current_count := get_child_count()
 	if current_count == max_hearts:
@@ -37,9 +49,9 @@ func _ensure_heart_count(max_hearts: int) -> void:
 	# Remove extra
 	if current_count > max_hearts:
 		for i in range(max_hearts, current_count):
-			var heart = get_child(max_hearts)
+			var heart: Control = get_child(max_hearts)
 			if heart:
-				var tween = create_tween()
+				var tween: Tween = create_tween()
 				tween.tween_property(heart, "modulate:a", 0.0, 0.2)
 				tween.tween_callback(Callable(heart, "queue_free"))
 		return
@@ -73,3 +85,4 @@ func _update_heart_states(current: float, max_hearts: int) -> void:
 		else:
 			heart.texture = heart_texture_empty if heart_texture_empty else heart_texture
 			heart.modulate = EMPTY_MODULATE if not heart_texture_empty else Color.WHITE
+#endregion
