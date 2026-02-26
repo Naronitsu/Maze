@@ -21,7 +21,14 @@ var presence_wait_history_max_seconds: float = 6.0
 
 # Player movement
 var player_step_time: float = 0.22
+var player_walk_step_time: float = 0.38
 var player_sprite_scale: float = 0.75
+# Stamina (sprint)
+var player_max_stamina: float = 100.0
+var player_stamina_drain_per_second: float = 25.0
+var player_stamina_regen_per_second: float = 20.0
+var player_stamina_regen_delay_seconds: float = 0.8
+var player_stamina_regen_delay_after_depleted_seconds: float = 1.8
 var player_close_eyes_action: StringName = &"close_eyes"
 var player_run_grace_time: float = 0.20
 var player_interact_action: StringName = &"interact"

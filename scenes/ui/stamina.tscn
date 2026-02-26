@@ -1,0 +1,39 @@
+[gd_scene format=3 uid="uid://cjtvbljevc0lt"]
+
+[ext_resource type="Script" uid="uid://bcgdkqs6xj4rf" path="res://scripts/ui/stamina_bar.gd" id="1_341b6"]
+
+[node name="Stamina" type="Control" unique_id=1881148166]
+custom_minimum_size = Vector2(150, 24)
+layout_mode = 3
+anchors_preset = 2
+anchor_top = 1.0
+anchor_bottom = 1.0
+offset_left = 12.0
+offset_top = -52.0
+offset_right = 212.0
+offset_bottom = -12.0
+grow_vertical = 0
+mouse_filter = 2
+script = ExtResource("1_341b6")
+
+[node name="StaminaProgress" type="ProgressBar" parent="." unique_id=1531591202]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+value = 100.0
+show_percentage = false
+
+[node name="background" type="PanelContainer" parent="." unique_id=1490948179]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = -3.0
+offset_top = -1.0
+offset_right = 3.0
+offset_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2

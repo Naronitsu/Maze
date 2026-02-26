@@ -3,6 +3,8 @@ class_name TransitionController
 ## Centralized level transition orchestration
 ## Sequence: pause → level up (pick) → fade in text → hold → generate → fade out → resume
 
+const SkillOfferLogicScript = preload("res://scripts/gameplay/skills/skill_offer_logic.gd")
+
 enum Phase {
 	IDLE, DOOR_PAUSE, LEVEL_UP, FADE_IN, TEXT_HOLD, GENERATING, FADE_OUT, SETTLING, COMPLETE
 }
@@ -317,47 +319,9 @@ func _apply_upgrade(player: Node, stat_name: String, amount: int) -> void:
 
 
 func _roll_three_skills_for_stat(player: Node, stat_id: StringName) -> Array[Dictionary]:
-	print("[TransitionController] _roll_three_skills_for_stat stat_id:", stat_id)
-	print("[TransitionController] available pools:", _pool_by_stat.keys())
-
-	var pool: SkillPool = _pool_by_stat.get(stat_id, null)
-	if pool == null:
-		return []
-
-	var sm := player.get_node_or_null("SkillManager")
-	if sm == null:
-		return []
-
-	var candidates: Array[Dictionary] = []
-
-	# Passives (add actives later if desired)
-	for def in pool.passives:
-		if def == null:
-			continue
-
-		var id: StringName = def.id
-
-		var owned := false
-		if "passive_instances" in sm:
-			owned = (sm.passive_instances as Dictionary).has(id)
-
-		var cur_level := 0
-		if "levels" in sm:
-			cur_level = int((sm.levels as Dictionary).get(id, 0))  # 0-based
-
-		var label := def.display_name
-		if owned:
-			# cur_level is 0-based; next level (human) is (cur_level+1)+1 = cur_level+2
-			label = "%s (Upgrade → %d)" % [def.display_name, cur_level + 2]
-		else:
-			label = "%s (New)" % def.display_name
-
-		candidates.append(
-			{"kind": "skill", "type": "passive", "skill_id": id, "def": def, "text": label}
-		)
-
-	candidates.shuffle()
-	return candidates.slice(0, min(3, candidates.size()))
+	# New flow: 2 from chosen stat pool, 1 from any pool (synergy-weighted by equipped skills' tags).
+	# Uses stats_component for stat context; SkillOfferLogic handles tags and weighted selection.
+	return SkillOfferLogicScript.get_skill_choices(player, stat_id, _pool_by_stat, skill_pools)
 
 
 func _apply_skill_choice(player: Node, choice: Dictionary) -> void:

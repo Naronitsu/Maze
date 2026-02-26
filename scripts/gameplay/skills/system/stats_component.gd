@@ -11,7 +11,13 @@ class_name Stats
 	"Resolve": 3,  #HP, durability, defense
 	"Composure": 3,  #recovery
 	"Step Time": 0.25,
+	"Walk Step Time": 0.38,
 	"Max Health": 3,
+	"Max Stamina": 100.0,
+	"Stamina Drain Per Second": 25.0,
+	"Stamina Regen Per Second": 20.0,
+	"Stamina Regen Delay Seconds": 0.8,
+	"Stamina Regen Delay After Depleted Seconds": 1.8,
 	"Move Speed": 10.0,
 	"Pillar Charge Time": 12.0,
 	# Fog/vision tuning (per-player scaling)

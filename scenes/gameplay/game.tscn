@@ -4,9 +4,9 @@
 [ext_resource type="Texture2D" uid="uid://bvxffpi0ecbj8" path="res://sprites/urizen_onebit_tileset__v2d0.png" id="1_qxrlw"]
 [ext_resource type="Script" uid="uid://rpjnts3dwysw" path="res://scripts/gameplay/presence_spawn_manager.gd" id="2_1kice"]
 [ext_resource type="Script" uid="uid://5f4rasa4k0ni" path="res://scripts/systems/audio_manager.gd" id="2_ca42v"]
-[ext_resource type="AudioStream" uid="uid://drq41iksxhsvb" path="res://sounds/music/three.mp3" id="2_lupr0"]
 [ext_resource type="Shader" uid="uid://dtp8ym7kbljwb" path="res://shaders/crt_warp.gdshader" id="2_trtic"]
 [ext_resource type="Script" uid="uid://cwnx1sov5ax5p" path="res://scripts/world/tile_map.gd" id="2_wrm1d"]
+[ext_resource type="AudioStream" uid="uid://4ecioqdibqnk" path="res://sounds/music/Silent Voices ingame.ogg" id="2_xjfdk"]
 [ext_resource type="Script" uid="uid://ddr62so3onguo" path="res://scripts/gameplay/level_transition_manager.gd" id="3_5newe"]
 [ext_resource type="Texture2D" uid="uid://c3nbcpu5ut72x" path="res://sprites/Player.png" id="3_trtic"]
 [ext_resource type="PackedScene" uid="uid://4pam0hesbas4" path="res://scenes/gameplay/player.tscn" id="4_3dryh"]
@@ -23,9 +23,8 @@
 [ext_resource type="PackedScene" uid="uid://bm38rhriwppcc" path="res://scenes/gameplay/presence_rw.tscn" id="12_dinhu"]
 [ext_resource type="Script" uid="uid://dy5tva3fep1ra" path="res://scripts/gameplay/game_controller.gd" id="13_kvuet"]
 [ext_resource type="PackedScene" uid="uid://coietdxv61j3y" path="res://scenes/ui/grab_minigame.tscn" id="15_7p87p"]
-[ext_resource type="Script" uid="uid://bi7gvrxa0aexd" path="res://scripts/ui/health_bar.gd" id="16_hp0f2"]
 [ext_resource type="PackedScene" uid="uid://d2s8oq4amw68c" path="res://scenes/ui/pause_menu.tscn" id="16_pause_menu"]
-[ext_resource type="Texture2D" uid="uid://g1rnxb720ddt" path="res://sprites/player/hp.png" id="17_k4ist"]
+[ext_resource type="PackedScene" uid="uid://q7ti7mvgksw0" path="res://scenes/gameplay/HUD.tscn" id="17_k4ist"]
 [ext_resource type="PackedScene" uid="uid://dq4hduqli6xn0" path="res://scenes/ui/pause_settings.tscn" id="17_pause_settings"]
 [ext_resource type="PackedScene" uid="uid://b2qobe4x725sh" path="res://scenes/ui/level_up_screen.tscn" id="18_jb6j8"]
 [ext_resource type="PackedScene" uid="uid://c5h8y7k2n3p4q" path="res://scenes/ui/minimap.tscn" id="18_minimap"]
@@ -7154,7 +7153,7 @@ script = ExtResource("1_3dryh")
 debug_disable_pillar_requirement = true
 
 [node name="IngameMusic" type="AudioStreamPlayer" parent="." unique_id=1178671735]
-stream = ExtResource("2_lupr0")
+stream = ExtResource("2_xjfdk")
 autoplay = true
 
 [node name="PresenceSpawnManager" type="Node" parent="." unique_id=1816880782]
@@ -7224,20 +7223,12 @@ uppercase = true
 [node name="grabMinigame" parent="UI" unique_id=547471924 instance=ExtResource("15_7p87p")]
 visible = false
 
-[node name="HP" type="Control" parent="UI" unique_id=1243594626]
-layout_mode = 3
-anchors_preset = 0
-offset_right = 40.0
-offset_bottom = 40.0
-mouse_filter = 2
-
-[node name="HealthBar" type="HBoxContainer" parent="UI/HP" unique_id=975647203]
-z_index = 100
-layout_mode = 0
-offset_right = 40.0
-offset_bottom = 40.0
-script = ExtResource("16_hp0f2")
-heart_texture = ExtResource("17_k4ist")
+[node name="HUD" parent="UI" unique_id=78418017 instance=ExtResource("17_k4ist")]
+offset_left = 30.0
+offset_top = -110.0
+offset_right = 250.0
+offset_bottom = -30.0
+grow_horizontal = 1
 
 [node name="GameController" type="Node2D" parent="." unique_id=832195990 node_paths=PackedStringArray("player", "presence")]
 script = ExtResource("13_kvuet")

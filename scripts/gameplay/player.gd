@@ -2,6 +2,7 @@ extends CharacterBody2D
 class_name Player
 
 signal health_changed(current: float, max: float)
+signal stamina_changed(current: float, max: float)
 
 # --- State flags ---
 var movement_locked: bool = false
@@ -25,6 +26,7 @@ var _moving: bool = false
 var _from: Vector2
 var _to: Vector2
 var _t: float = 0.0
+var _step_duration: float = 0.22
 
 # --- Vision / eyes ---
 var vision_controller: VisionController = null  # set externally
@@ -38,6 +40,11 @@ var current_health: float = 0.0
 var _regen_timer: float = 0.0
 var _last_max_health: int = 0
 
+# --- Stamina (sprint) ---
+var current_stamina: float = 0.0
+var _is_sprinting: bool = false
+var _stamina_regen_delay: float = 0.0
+
 
 func _ready() -> void:
 	_init_stats_from_config()
@@ -48,6 +55,9 @@ func _ready() -> void:
 	current_health = _get_max_health()
 	_last_max_health = int(_get_max_health())
 	emit_signal("health_changed", current_health, _get_max_health())
+
+	current_stamina = _get_max_stamina()
+	emit_signal("stamina_changed", current_stamina, _get_max_stamina())
 
 	if maze == null:
 		push_error("[Player] Maze reference not found - player movement will not work")
@@ -83,6 +93,7 @@ func _ready() -> void:
 
 func _physics_process(delta: float) -> void:
 	_tick_regen(delta)
+	_tick_stamina(delta)
 
 	if is_grabbed:
 		_play_anim(&"grabbed")
@@ -99,7 +110,7 @@ func _physics_process(delta: float) -> void:
 	if _moving:
 		_play_movement_anim(true, _move_facing)
 
-		_t += delta / _get_step_time()
+		_t += delta / _step_duration
 		if _t >= 1.0:
 			_t = 1.0
 
@@ -135,6 +146,8 @@ func _physics_process(delta: float) -> void:
 
 	if move_dir != Vector2i.ZERO:
 		_try_step(move_dir)
+	else:
+		_is_sprinting = false
 
 
 # ---------------------------
@@ -143,13 +156,17 @@ func _physics_process(delta: float) -> void:
 
 
 func _get_step_time() -> float:
-	# Prefer computed Step Time (base + modifiers)
+	# Walk = slower, Sprint (Ctrl) = run speed when stamina > 0
+	var use_run := _wants_sprint() and current_stamina > 0.0
 	if stats != null and stats.has_method("get_stat"):
-		var t := float(stats.call("get_stat", &"Step Time"))
-		return maxf(0.05, t)  # clamp safety
-
-	# Fallback
-	return float(GameConfig.player_step_time)
+		var t: float
+		if use_run:
+			t = float(stats.call("get_stat", &"Step Time"))  # run step time
+		else:
+			t = float(stats.call("get_stat", &"Walk Step Time"))
+		return maxf(0.05, t)
+	# Fallback from config
+	return float(GameConfig.player_step_time if use_run else GameConfig.player_walk_step_time)
 
 
 func setupPlayer() -> void:
@@ -255,6 +272,8 @@ func _try_step(dir: Vector2i) -> void:
 	_from = global_position
 	_to = target_pos
 	_t = 0.0
+	_step_duration = _get_step_time()
+	_is_sprinting = _wants_sprint() and current_stamina > 0.0
 	_moving = true
 
 	# Footsteps
@@ -263,8 +282,8 @@ func _try_step(dir: Vector2i) -> void:
 		footstep_player.pitch_scale = randf_range(0.85, 1.15)
 		footstep_player.play()
 
-	# Presence trail
-	var is_running := Input.is_action_pressed("run")
+	# Presence trail (sprinting adds more trail)
+	var is_running := _is_sprinting
 	var amount := (
 		GameConfig.controller_trail_add_run if is_running else GameConfig.controller_trail_add_walk
 	)
@@ -420,6 +439,10 @@ func get_max_health() -> float:
 	return stats.get_stat(&"Max Health")
 
 
+func get_max_stamina() -> float:
+	return _get_max_stamina()
+
+
 # ---------------------------
 # Grabbed state hooks
 # ---------------------------
@@ -461,7 +484,17 @@ func _init_stats_from_config() -> void:
 	stats.base[&"Composure"] = GameConfig.default_stats["Composure"]
 
 	stats.base[&"Step Time"] = float(GameConfig.player_step_time)
+	stats.base[&"Walk Step Time"] = float(GameConfig.player_walk_step_time)
 	stats.base[&"Max Health"] = float(GameConfig.player_max_health)
+	stats.base[&"Max Stamina"] = float(GameConfig.player_max_stamina)
+	stats.base[&"Stamina Drain Per Second"] = float(GameConfig.player_stamina_drain_per_second)
+	stats.base[&"Stamina Regen Per Second"] = float(GameConfig.player_stamina_regen_per_second)
+	stats.base[&"Stamina Regen Delay Seconds"] = float(
+		GameConfig.player_stamina_regen_delay_seconds
+	)
+	stats.base[&"Stamina Regen Delay After Depleted Seconds"] = float(
+		GameConfig.player_stamina_regen_delay_after_depleted_seconds
+	)
 	stats.base[&"Pillar Charge Time"] = float(GameConfig.pillar_charge_time_seconds)
 
 
@@ -490,3 +523,35 @@ func _get_max_health() -> float:
 	if stats == null:
 		return 100.0
 	return stats.get_stat(&"Max Health")
+
+
+func _get_max_stamina() -> float:
+	var s := _get_stats()
+	if s == null:
+		return float(GameConfig.player_max_stamina)
+	return s.get_stat(&"Max Stamina")
+
+
+func _wants_sprint() -> bool:
+	return Input.is_action_pressed("sprint")
+
+
+func _tick_stamina(delta: float) -> void:
+	var s := _get_stats()
+	if s == null:
+		return
+	var max_s := _get_max_stamina()
+	if _moving and _is_sprinting and current_stamina > 0.0:
+		var drain := s.get_stat(&"Stamina Drain Per Second") * delta
+		current_stamina = maxf(0.0, current_stamina - drain)
+		_stamina_regen_delay = s.get_stat(&"Stamina Regen Delay Seconds")
+		if current_stamina <= 0.0:
+			_stamina_regen_delay = s.get_stat(&"Stamina Regen Delay After Depleted Seconds")
+		emit_signal("stamina_changed", current_stamina, max_s)
+	else:
+		if _stamina_regen_delay > 0.0:
+			_stamina_regen_delay = maxf(0.0, _stamina_regen_delay - delta)
+		elif current_stamina < max_s:
+			var regen := s.get_stat(&"Stamina Regen Per Second") * delta
+			current_stamina = minf(max_s, current_stamina + regen)
+			emit_signal("stamina_changed", current_stamina, max_s)

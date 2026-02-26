@@ -1,38 +1,58 @@
 [gd_resource type="Theme" format=3 uid="uid://vkyikbobqfb2"]
 
+[ext_resource type="FontFile" uid="uid://c2m7fsp27euky" path="res://fonts/Saga 8.ttf" id="1_2p5to"]
 [ext_resource type="FontFile" uid="uid://cf1fwflgs7j8g" path="res://fonts/PixelifySans-Regular.ttf" id="1_nap7a"]
-[ext_resource type="Texture2D" uid="uid://cq2m4k63ctj1o" path="res://sprites/UI/button_disabled.png" id="2_2p5to"]
-[ext_resource type="Texture2D" uid="uid://cgvvelr4pmgk1" path="res://sprites/UI/button_hover.png" id="3_arykt"]
-[ext_resource type="Texture2D" uid="uid://fg0yldo6y36k" path="res://sprites/UI/button_idle.png" id="3_gqqud"]
-[ext_resource type="Texture2D" uid="uid://dtyhye722e4gw" path="res://sprites/UI/button_pressed.png" id="5_2p5to"]
-[ext_resource type="Texture2D" uid="uid://ce1ildufaxf4i" path="res://sprites/UI/menu_background.png" id="6_arykt"]
+[ext_resource type="Texture2D" uid="uid://down15sjwwnu8" path="res://sprites/UI/Demonic-Dungeon-User-Interface-16x16/Inputs.png" id="2_gqqud"]
+[ext_resource type="Texture2D" uid="uid://pwy82p1pk2v0" path="res://sprites/UI/Demonic-Dungeon-User-Interface-16x16/checkBox_checked.tres" id="3_rdhcj"]
+[ext_resource type="Texture2D" uid="uid://t7atn3iw48fa" path="res://sprites/UI/Demonic-Dungeon-User-Interface-16x16/checkBox_unchecked.tres" id="4_s4vyt"]
+[ext_resource type="Texture2D" uid="uid://3kl2e0c71nuj" path="res://sprites/UI/Demonic-Dungeon-User-Interface-16x16/slider_on.tres" id="5_neim6"]
+[ext_resource type="Texture2D" uid="uid://byb5oh2jicg48" path="res://sprites/UI/Demonic-Dungeon-User-Interface-16x16/slider_off.tres" id="6_21nga"]
+[ext_resource type="Texture2D" uid="uid://cegy3xkiejfti" path="res://sprites/UI/Demonic-Dungeon-User-Interface-16x16/grabber_default.tres" id="7_21nga"]
+[ext_resource type="Texture2D" uid="uid://bcx44f22fdn8j" path="res://sprites/UI/Demonic-Dungeon-User-Interface-16x16/Frames.png" id="7_wwdni"]
+[ext_resource type="Texture2D" uid="uid://vjxnkvxcim17" path="res://sprites/UI/Demonic-Dungeon-User-Interface-16x16/Bars-Sliders-Scrollbars.png" id="8_s4vyt"]
+[ext_resource type="Texture2D" uid="uid://y60ibhvvpmyi" path="res://sprites/UI/Demonic-Dungeon-User-Interface-16x16/tick.tres" id="8_wwdni"]
 
 [sub_resource type="StyleBoxTexture" id="StyleBoxTexture_button_disabled"]
 content_margin_left = 3.0
 content_margin_right = 3.0
-texture = ExtResource("2_2p5to")
-texture_margin_left = 20.0
-texture_margin_right = 20.0
-texture_margin_bottom = 15.0
+texture = ExtResource("2_gqqud")
+texture_margin_left = 4.0
+texture_margin_top = 4.0
+texture_margin_right = 4.0
+texture_margin_bottom = 8.0
+region_rect = Rect2(0, 96, 48, 17)
 
 [sub_resource type="StyleBoxTexture" id="StyleBoxTexture_button_hover"]
-texture = ExtResource("3_arykt")
-texture_margin_left = 20.0
-texture_margin_right = 20.0
-texture_margin_bottom = 15.0
+texture = ExtResource("2_gqqud")
+texture_margin_left = 4.0
+texture_margin_top = 4.0
+texture_margin_right = 4.0
+texture_margin_bottom = 8.0
+region_rect = Rect2(368, 1, 48, 19)
 
 [sub_resource type="StyleBoxTexture" id="StyleBoxTexture_button_normal"]
-texture = ExtResource("3_gqqud")
-texture_margin_left = 20.0
-texture_margin_right = 20.0
-texture_margin_bottom = 15.0
-region_rect = Rect2(0, 0, 96, 32)
+texture = ExtResource("2_gqqud")
+texture_margin_left = 4.0
+texture_margin_top = 4.0
+texture_margin_right = 4.0
+texture_margin_bottom = 8.0
+region_rect = Rect2(304, 0, 48, 20)
 
 [sub_resource type="StyleBoxTexture" id="StyleBoxTexture_button_pressed"]
-texture = ExtResource("5_2p5to")
-texture_margin_left = 20.0
-texture_margin_right = 20.0
-texture_margin_bottom = 15.0
+texture = ExtResource("2_gqqud")
+texture_margin_left = 4.0
+texture_margin_top = 4.0
+texture_margin_right = 4.0
+texture_margin_bottom = 8.0
+region_rect = Rect2(368, 66, 48, 18)
+
+[sub_resource type="StyleBoxTexture" id="StyleBoxTexture_pqrt7"]
+texture = ExtResource("8_s4vyt")
+texture_margin_left = 8.0
+texture_margin_top = 5.0
+texture_margin_right = 8.0
+texture_margin_bottom = 5.0
+region_rect = Rect2(385, 289, 46, 14)
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_arykt"]
 content_margin_left = 4.0
@@ -58,20 +78,71 @@ expand_margin_bottom = 2.0
 [sub_resource type="StyleBoxEmpty" id="StyleBoxEmpty_2p5to"]
 
 [sub_resource type="StyleBoxTexture" id="StyleBoxTexture_2p5to"]
-texture = ExtResource("6_arykt")
-texture_margin_left = 2.0
-texture_margin_top = 2.0
-texture_margin_right = 2.0
+texture = ExtResource("7_wwdni")
+texture_margin_left = 10.0
+texture_margin_top = 10.0
+texture_margin_right = 10.0
+texture_margin_bottom = 10.0
+region_rect = Rect2(439, 327, 34, 34)
+
+[sub_resource type="StyleBoxTexture" id="StyleBoxTexture_ulm4j"]
+texture = ExtResource("7_wwdni")
+texture_margin_left = 10.0
+texture_margin_top = 3.0
+texture_margin_right = 10.0
+texture_margin_bottom = 3.0
+region_rect = Rect2(614, 326, 52, 52)
+
+[sub_resource type="StyleBoxTexture" id="StyleBoxTexture_wwdni"]
+texture = ExtResource("7_wwdni")
+texture_margin_left = 8.0
+texture_margin_top = 8.0
+texture_margin_right = 8.0
+texture_margin_bottom = 8.0
+region_rect = Rect2(438, 135, 35, 34)
+
+[sub_resource type="StyleBoxTexture" id="StyleBoxTexture_rooub"]
+texture = ExtResource("7_wwdni")
+texture_margin_left = 4.0
+texture_margin_top = 3.0
+texture_margin_bottom = 3.0
+region_rect = Rect2(452, 629, 6, 6)
+
+[sub_resource type="StyleBoxTexture" id="StyleBoxTexture_phitq"]
+texture = ExtResource("7_wwdni")
+texture_margin_top = 3.0
+texture_margin_right = 4.0
+texture_margin_bottom = 3.0
+region_rect = Rect2(484, 629, 7, 6)
+
+[sub_resource type="StyleBoxTexture" id="StyleBoxTexture_e2k4y"]
+texture = ExtResource("7_wwdni")
+texture_margin_left = 4.0
+texture_margin_top = 3.0
+texture_margin_right = 4.0
 texture_margin_bottom = 2.0
+region_rect = Rect2(452, 629, 39, 5)
+
+[sub_resource type="StyleBoxTexture" id="StyleBoxTexture_neim6"]
+texture = ExtResource("8_s4vyt")
+texture_margin_top = 2.0
+texture_margin_bottom = 2.0
+axis_stretch_horizontal = 1
+region_rect = Rect2(369, 83, 4, 9)
+
+[sub_resource type="StyleBoxTexture" id="StyleBoxTexture_21nga"]
+texture = ExtResource("8_s4vyt")
+axis_stretch_horizontal = 1
+region_rect = Rect2(376, 100, 4, 7)
 
 [resource]
-default_font = ExtResource("1_nap7a")
+default_font = ExtResource("1_2p5to")
 default_font_size = 16
-Button/colors/font_color = Color(0, 0, 0, 1)
+Button/colors/font_color = Color(1, 1, 1, 1)
 Button/colors/font_disabled_color = Color(1, 1, 1, 0.5)
 Button/constants/h_separation = 4
 Button/font_sizes/font_size = 16
-Button/fonts/font = ExtResource("1_nap7a")
+Button/fonts/font = ExtResource("1_2p5to")
 Button/styles/disabled = SubResource("StyleBoxTexture_button_disabled")
 Button/styles/hover = SubResource("StyleBoxTexture_button_hover")
 Button/styles/hover_pressed = SubResource("StyleBoxTexture_button_hover")
@@ -80,9 +151,20 @@ Button/styles/pressed = SubResource("StyleBoxTexture_button_pressed")
 CheckBox/colors/font_color = Color(0, 0, 0, 1)
 CheckBox/colors/font_disabled_color = Color(1, 1, 1, 0.5)
 CheckBox/font_sizes/font_size = 16
-CheckBox/fonts/font = ExtResource("1_nap7a")
+CheckBox/icons/checked = ExtResource("4_s4vyt")
+CheckBox/icons/radio_checked = ExtResource("4_s4vyt")
+CheckBox/icons/radio_checked_disabled = ExtResource("3_rdhcj")
+CheckBox/icons/unchecked = ExtResource("3_rdhcj")
 CheckButton/colors/font_color = Color(0, 0, 0, 1)
-CheckButton/fonts/font = ExtResource("1_nap7a")
+CheckButton/icons/checked = ExtResource("5_neim6")
+CheckButton/icons/unchecked = ExtResource("6_21nga")
+HSlider/icons/grabber = ExtResource("7_21nga")
+HSlider/icons/grabber_disabled = ExtResource("7_21nga")
+HSlider/icons/grabber_highlight = ExtResource("7_21nga")
+HSlider/icons/tick = ExtResource("8_wwdni")
+HSlider/styles/grabber_area = SubResource("StyleBoxTexture_pqrt7")
+HSlider/styles/grabber_area_highlight = SubResource("StyleBoxTexture_pqrt7")
+HSlider/styles/slider = SubResource("StyleBoxTexture_pqrt7")
 Label/colors/font_color = Color(0, 0, 0, 1)
 Label/colors/font_outline_color = Color(0, 0, 0, 1)
 Label/colors/font_shadow_color = Color(0, 0, 0, 0)
@@ -92,17 +174,31 @@ Label/constants/shadow_offset_x = 1
 Label/constants/shadow_offset_y = 1
 Label/constants/shadow_outline_size = 1
 Label/font_sizes/font_size = 16
-Label/fonts/font = ExtResource("1_nap7a")
 Label/styles/focus = SubResource("StyleBoxFlat_arykt")
 Label/styles/normal = SubResource("StyleBoxEmpty_2p5to")
-MenuButton/fonts/font = ExtResource("1_nap7a")
 OptionButton/colors/font_color = Color(0, 0, 0, 1)
 OptionButton/colors/font_disabled_color = Color(1, 1, 1, 0.5)
 OptionButton/font_sizes/font_size = 16
-OptionButton/fonts/font = ExtResource("1_nap7a")
+OptionButton/icons/arrow = null
 Panel/styles/panel = SubResource("StyleBoxTexture_2p5to")
+PanelContainer/styles/panel = SubResource("StyleBoxTexture_ulm4j")
 PauseLabel/base_type = &"Label"
 PauseLabel/colors/font_color = Color(1, 1, 1, 1)
+PopupMenu/icons/checked = ExtResource("4_s4vyt")
+PopupMenu/icons/checked_disabled = ExtResource("4_s4vyt")
+PopupMenu/icons/radio_checked = ExtResource("4_s4vyt")
+PopupMenu/icons/radio_checked_disabled = ExtResource("4_s4vyt")
+PopupMenu/icons/radio_unchecked = ExtResource("3_rdhcj")
+PopupMenu/icons/radio_unchecked_disabled = ExtResource("3_rdhcj")
+PopupMenu/icons/unchecked = ExtResource("3_rdhcj")
+PopupMenu/icons/unchecked_disabled = ExtResource("3_rdhcj")
+PopupMenu/styles/embedded_border = SubResource("StyleBoxTexture_wwdni")
+PopupMenu/styles/labeled_separator_left = SubResource("StyleBoxTexture_rooub")
+PopupMenu/styles/labeled_separator_right = SubResource("StyleBoxTexture_phitq")
+PopupMenu/styles/panel = SubResource("StyleBoxTexture_wwdni")
+PopupMenu/styles/separator = SubResource("StyleBoxTexture_e2k4y")
+ProgressBar/styles/background = SubResource("StyleBoxTexture_neim6")
+ProgressBar/styles/fill = SubResource("StyleBoxTexture_21nga")
 RichTextLabel/colors/default_color = Color(0, 0, 0, 1)
 RichTextLabel/font_sizes/normal_font_size = 16
 RichTextLabel/fonts/normal_font = ExtResource("1_nap7a")

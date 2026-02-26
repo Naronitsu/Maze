@@ -48,3 +48,14 @@ text = "Loading..."
 
 [node name="ProgressBar" type="ProgressBar" parent="Control/CenterContainer/VBoxContainer" unique_id=1793211637]
 layout_mode = 2
+
+[node name="PanelContainer" type="PanelContainer" parent="Control/CenterContainer/VBoxContainer/ProgressBar" unique_id=1882729263]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = -2.0
+offset_top = -1.0
+offset_right = 2.0
+grow_horizontal = 2
+grow_vertical = 2

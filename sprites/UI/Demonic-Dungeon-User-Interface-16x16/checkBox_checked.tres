@@ -1,0 +1,7 @@
+[gd_resource type="AtlasTexture" format=3 uid="uid://pwy82p1pk2v0"]
+
+[ext_resource type="Texture2D" uid="uid://down15sjwwnu8" path="res://sprites/UI/Demonic-Dungeon-User-Interface-16x16/Inputs.png" id="1_lwcce"]
+
+[resource]
+atlas = ExtResource("1_lwcce")
+region = Rect2(305, 288, 14, 17)

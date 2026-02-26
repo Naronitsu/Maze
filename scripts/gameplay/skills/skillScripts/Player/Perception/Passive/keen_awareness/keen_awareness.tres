@@ -4,6 +4,9 @@
 
 [resource]
 script = ExtResource("1_p4h51")
+stat_affinity = &"Perception"
+tags = Array[StringName]([&"vision", &"awareness"])
+description = "Increases fog vision range so you see further in the dark. Upgrade for a larger bonus."
 id = &"keen_awareness"
 display_name = "Keen Awareness"
 metadata/_custom_type_script = "uid://shvisiw8ut6u"

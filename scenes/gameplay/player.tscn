@@ -219,9 +219,7 @@ texture_scale = 2.0
 
 [node name="AnimatedSprite2D" type="AnimatedSprite2D" parent="." unique_id=291282831]
 sprite_frames = SubResource("SpriteFrames_smehm")
-animation = &"grabbed"
-frame = 1
-frame_progress = 0.55303276
+animation = &"run_down"
 
 [node name="FootstepPlayer" type="AudioStreamPlayer2D" parent="." unique_id=1323730815]
 stream = ExtResource("25_footstep")

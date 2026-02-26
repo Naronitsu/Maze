@@ -2,8 +2,8 @@
 
 [ext_resource type="Script" uid="uid://30gv258vk3sv" path="res://scripts/ui/main_menu.gd" id="1_l6cm7"]
 [ext_resource type="PackedScene" uid="uid://cynmmfn4ux1dd" path="res://scenes/gameplay/game.tscn" id="2_ekxnf"]
+[ext_resource type="AudioStream" uid="uid://dpj6bsp55h62r" path="res://sounds/music/Without a Trace Main menu.ogg" id="3_8g5eo"]
 [ext_resource type="PackedScene" uid="uid://dq4hduqli6xn0" path="res://scenes/ui/pause_settings.tscn" id="3_pause_settings"]
-[ext_resource type="AudioStream" uid="uid://dlp2e2cji2xxe" path="res://sounds/music/4- Arvostus.mp3" id="3_x2yvf"]
 [ext_resource type="Shader" uid="uid://dtp8ym7kbljwb" path="res://shaders/crt_warp.gdshader" id="4_crt_shader"]
 [ext_resource type="Script" uid="uid://l2s0qpu8el66" path="res://scripts/ui/menu_animation.gd" id="4_q85j6"]
 [ext_resource type="Texture2D" uid="uid://1ks1fn3unb8b" path="res://sprites/UI/logo.png" id="4_uhagc"]
@@ -54,7 +54,7 @@ script = ExtResource("1_l6cm7")
 game_scene = ExtResource("2_ekxnf")
 
 [node name="MenuMusic" type="AudioStreamPlayer" parent="." unique_id=730219521]
-stream = ExtResource("3_x2yvf")
+stream = ExtResource("3_8g5eo")
 autoplay = true
 
 [node name="ColorRect" type="ColorRect" parent="." unique_id=702609276]
@@ -105,7 +105,7 @@ size_flags_horizontal = 4
 size_flags_vertical = 4
 
 [node name="Logo" type="Node2D" parent="CenterContainer/MainMenuContainer/UIContainer/Control" unique_id=1845313136]
-position = Vector2(112, 39)
+position = Vector2(112, 30)
 script = ExtResource("4_wb0q5")
 
 [node name="AnimatedSprite2D" type="AnimatedSprite2D" parent="CenterContainer/MainMenuContainer/UIContainer/Control/Logo" unique_id=1845820454]

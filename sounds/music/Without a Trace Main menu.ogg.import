@@ -1,0 +1,19 @@
+[remap]
+
+importer="oggvorbisstr"
+type="AudioStreamOggVorbis"
+uid="uid://dpj6bsp55h62r"
+path="res://.godot/imported/Without a Trace Main menu.ogg-ab99b474ac65a256f162ff0e52e56396.oggvorbisstr"
+
+[deps]
+
+source_file="res://sounds/music/Without a Trace Main menu.ogg"
+dest_files=["res://.godot/imported/Without a Trace Main menu.ogg-ab99b474ac65a256f162ff0e52e56396.oggvorbisstr"]
+
+[params]
+
+loop=true
+loop_offset=0.0
+bpm=0.0
+beat_count=0
+bar_beats=4

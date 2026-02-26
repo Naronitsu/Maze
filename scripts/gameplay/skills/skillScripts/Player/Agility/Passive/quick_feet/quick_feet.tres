@@ -4,6 +4,9 @@
 
 [resource]
 script = ExtResource("1_a0y4v")
+stat_affinity = &"Agility"
+tags = Array[StringName]([&"mobility", &"speed"])
+description = "Reduces step time so you move between tiles faster. Upgrade to improve the effect."
 id = &"quick_feet"
 display_name = "Quick Feet"
 metadata/_custom_type_script = "uid://cnl4pbh7hx0gp"

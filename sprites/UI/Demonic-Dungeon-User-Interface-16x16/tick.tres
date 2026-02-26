@@ -1,0 +1,7 @@
+[gd_resource type="AtlasTexture" format=3 uid="uid://y60ibhvvpmyi"]
+
+[ext_resource type="Texture2D" uid="uid://vjxnkvxcim17" path="res://sprites/UI/Demonic-Dungeon-User-Interface-16x16/Bars-Sliders-Scrollbars.png" id="1_42udc"]
+
+[resource]
+atlas = ExtResource("1_42udc")
+region = Rect2(403, 276, 1, 8)

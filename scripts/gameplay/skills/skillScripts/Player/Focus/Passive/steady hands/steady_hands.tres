@@ -4,6 +4,9 @@
 
 [resource]
 script = ExtResource("1_mb8sy")
+stat_affinity = &"Focus"
+tags = Array[StringName]([&"pillar", &"concentration"])
+description = "Reduces pillar charge time so you can complete shrines faster. Upgrade for a larger reduction."
 id = &"steady_hands"
 display_name = "Steady Hands"
 metadata/_custom_type_script = "uid://bvpjtcnim7dxu"

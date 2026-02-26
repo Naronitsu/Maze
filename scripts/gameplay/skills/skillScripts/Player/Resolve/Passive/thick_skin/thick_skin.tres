@@ -4,6 +4,9 @@
 
 [resource]
 script = ExtResource("1_iynjn")
+stat_affinity = &"Resolve"
+tags = Array[StringName]([&"defense", &"survival"])
+description = "Increases your max health. Upgrade to gain more HP per level."
 id = &"thick_skin"
 display_name = "Thick Skin"
 metadata/_custom_type_script = "uid://c84tbwb327ptw"

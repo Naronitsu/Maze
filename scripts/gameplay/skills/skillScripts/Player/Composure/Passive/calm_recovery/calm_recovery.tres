@@ -4,6 +4,9 @@
 
 [resource]
 script = ExtResource("1_8hxir")
+stat_affinity = &"Composure"
+tags = Array[StringName]([&"recovery", &"regen"])
+description = "Improves health regen: shortens the delay before regen starts and increases regen speed. Upgrade for stronger recovery."
 id = &"calm_recovery"
 display_name = "Calm Recovery"
 metadata/_custom_type_script = "uid://k5hlflc25nnx"
