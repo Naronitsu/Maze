@@ -1,11 +1,13 @@
 extends PassiveDef
 class_name SteadyHandsDef
 
-## Reduces Pillar Charge Time while equipped.
-## Non-stacking across levels because it overwrites a keyed modifier.
+## Reduces Pillar Charge Time while equipped. Non-stacking; overwrites keyed modifier.
 
-@export var pillar_charge_time_reduction_by_level: Array[float] = [-2, -4, -6]  # level -> multiplier
+#region Exported (Inspector)
+@export var pillar_charge_time_reduction_by_level: Array[float] = [-2, -4, -6]
+#endregion
 
-
-func create_instance(owner: Node, level: int):
+#region Public Methods
+func create_instance(owner: Node, level: int) -> SteadyHandsInstance:
 	return SteadyHandsInstance.new(owner, self, level)
+#endregion

@@ -1,7 +1,9 @@
 extends Node
-## SceneReferences autoload - centralized node path management
-## Caches all critical scene references and validates them at runtime
 
+## SceneReferences autoload - centralized node path management.
+## Caches critical scene references; call validate_all() from game._ready().
+
+#region Public Properties
 var game: Node2D
 var maze: Node
 var player: Node2D
@@ -13,19 +15,17 @@ var ui_layer: CanvasLayer
 var level_intro_panel: ColorRect
 var level_intro_text: Label
 var level_up_panel: LevelUpPanel
+#endregion
 
-
+#region Lifecycle
 func _ready() -> void:
-	# This autoload runs BEFORE game.gd _ready() completes
-	# We don't validate here; validation happens via validate_all()
 	pass
+#endregion
 
-
-## Call this from game._ready() once all nodes are guaranteed to exist
+#region Public Methods
+## Call from game._ready() once all nodes exist.
 func validate_all(scene_root: Node2D) -> bool:
 	game = scene_root
-
-	# Cache references
 	maze = game.get_node_or_null("TileMap/MazeLayer")
 	player = game.get_node_or_null("Player")
 	presence = game.get_node_or_null("PresenceRW")
@@ -37,9 +37,7 @@ func validate_all(scene_root: Node2D) -> bool:
 	level_intro_text = game.get_node_or_null("UI/LevelIntro/Text")
 	level_up_panel = game.get_node_or_null("UI/LevelUpPanel")
 
-	# Validate critical references
 	var errors: PackedStringArray = []
-
 	if maze == null:
 		errors.append("maze (TileMap/MazeLayer)")
 	if player == null:
@@ -69,7 +67,7 @@ func validate_all(scene_root: Node2D) -> bool:
 	return true
 
 
-## Safe getter - returns null if not found
+## Safe getter by name; returns null if unknown.
 func get_safe(node_name: String) -> Node:
 	match node_name:
 		"game":
@@ -95,3 +93,4 @@ func get_safe(node_name: String) -> Node:
 		_:
 			push_warning("[SceneReferences] Unknown node: " + node_name)
 			return null
+#endregion

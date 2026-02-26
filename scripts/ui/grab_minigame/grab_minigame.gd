@@ -1,10 +1,13 @@
 extends Control
 class_name GrabMinigame
 
+#region Signals
 signal escaped
 signal failed
+#endregion
 
-@export var gravity := 900.0  # px/s^2
+#region Exported (Inspector)
+@export var gravity: float = 900.0
 @export var lift_accel := 1400.0  # px/s^2 while holding Q
 @export var max_speed := 900.0  # clamp vertical speed
 
@@ -15,9 +18,22 @@ signal failed
 @export var trail_point_every := 0.03
 
 @export var head_offset := Vector2(0, -60)
-@export var clamp_margin := 12.0
+@export var clamp_margin: float = 12.0
+@export var min_gap: float = 40.0
 
-# Difficulty: bounds slowly close in over time
+@export var shake_start_dist := 80.0
+@export var shake_max_px := 10.0
+@export var shake_freq := 28.0
+@export var shake_smooth: float = 18.0
+@export var scroll_speed: float = 140.0  # px/s, how fast the “graph” moves
+@export var pixel_x: float = 110.0
+@export var trail_width: float = 2.0
+@export var time_to_reach_min_gap: float = 6.0
+
+@export var materialize_time: float = 0.35
+#endregion
+
+#region Onready
 @onready var viewport: SubViewport = $UIViewport
 @onready var mg: Control = $UIViewport/Root/minigame
 @onready var pixel: Control = $UIViewport/Root/minigame/pixel
@@ -25,46 +41,28 @@ signal failed
 @onready var lower: Control = $UIViewport/Root/minigame/lowerBound
 @onready var trail: Line2D = $UIViewport/Root/minigame/trail
 @onready var status_label: Label = $UIViewport/Root/Panel/StatusLabel
-
 @onready var pixel_rain: GPUParticles2D = $PixelRain
-
 @onready var output: TextureRect = $UIOutput
+#endregion
 
-@export var min_gap := 40.0
-
-@export var shake_start_dist := 80.0
-@export var shake_max_px := 10.0
-@export var shake_freq := 28.0
-@export var shake_smooth := 18.0
-
-var _mg_base_pos := Vector2.ZERO
-var _shake_time := 0.0
-var _shake_offset := Vector2.ZERO
-
+#region Private Fields
+var _mg_base_pos: Vector2 = Vector2.ZERO
+var _shake_time: float = 0.0
+var _shake_offset: Vector2 = Vector2.ZERO
 var _target: Node2D = null
-
-var active := false
-var vy := 0.0
-var safe_time := 0.0
-var _trail_timer := 0.0
-var _difficulty_t := 0.0
-
-@export var scroll_speed := 140.0  # px/s, how fast the “graph” moves
-@export var pixel_x := 110.0  # where the dot lives inside the minigame area
-@export var trail_width := 2.0
-
-@export var time_to_reach_min_gap := 6.0  # seconds to go from start gap -> min_gap (linear)
-
-@export var materialize_time := 0.35
-
-var _start_upper_h := 0.0
-var _start_lower_h := 0.0
-var _start_lower_y := 0.0
-var _start_gap := 0.0
-
+var active: bool = false
+var vy: float = 0.0
+var safe_time: float = 0.0
+var _trail_timer: float = 0.0
+var _difficulty_t: float = 0.0
+var _start_upper_h: float = 0.0
+var _start_lower_h: float = 0.0
+var _start_lower_y: float = 0.0
+var _start_gap: float = 0.0
 var _mat_tween: Tween
+#endregion
 
-
+#region Lifecycle
 func _ready() -> void:
 	visible = false
 	set_process(false)
@@ -74,11 +72,12 @@ func _ready() -> void:
 	viewport.size = size
 
 
-func _notification(what):
+func _notification(what: int) -> void:
 	if what == NOTIFICATION_RESIZED:
 		viewport.size = size
+#endregion
 
-
+#region Public Methods
 func start() -> void:
 	active = true
 	visible = true
@@ -118,8 +117,9 @@ func stop() -> void:
 	visible = false
 	set_process(false)
 	mg.position = _mg_base_pos
+#endregion
 
-
+#region Private Methods
 func _process(delta: float) -> void:
 	_follow_target()
 
@@ -301,6 +301,9 @@ func _apply_shake(delta: float, top_limit: float, bottom_limit: float) -> void:
 	mg.position = _mg_base_pos + _shake_offset
 
 
+#endregion
+
+#region Public Methods
 func materialize() -> void:
 	visible = true
 	set_process(true)
@@ -329,8 +332,9 @@ func materialize() -> void:
 func play_spawn_fx() -> void:
 	materialize()
 	_play_pixel_rain()
+#endregion
 
-
+#region Private Methods
 func _play_pixel_rain() -> void:
 	if pixel_rain == null:
 		return
@@ -351,3 +355,4 @@ func _play_pixel_rain() -> void:
 	pixel_rain.emitting = false
 	pixel_rain.restart()
 	pixel_rain.emitting = true
+#endregion

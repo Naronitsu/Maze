@@ -1,6 +1,6 @@
 [gd_scene format=3 uid="uid://iyfu4xufuufw"]
 
-[ext_resource type="Script" uid="uid://b2yhbuh17pu3v" path="res://scripts/core/transition_controller.gd" id="1_m84lx"]
+[ext_resource type="Script" uid="uid://b2yhbuh17pu3v" path="res://scripts/utils/transition_controller.gd" id="1_m84lx"]
 [ext_resource type="Script" uid="uid://btwdoxqpknn1w" path="res://scripts/gameplay/skills/skill_pool.gd" id="2_x72up"]
 [ext_resource type="Resource" uid="uid://bf5e67lalblb5" path="res://scripts/gameplay/skills/pools/agility_pool.tres" id="3_qo0ib"]
 [ext_resource type="Resource" uid="uid://ckeegadsismnw" path="res://scripts/gameplay/skills/pools/focus_pool.tres" id="4_eotu1"]
