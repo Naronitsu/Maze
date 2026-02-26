@@ -1,0 +1,8 @@
+[gd_resource type="Resource" format=3]
+
+[ext_resource type="Script" path="res://scripts/gameplay/skills/skillScripts/Player/Composure/Passive/steady_breath/steady_breath_def.gd" id="1_sb"]
+
+[resource]
+script = ExtResource("1_sb")
+id = &"steady_breath"
+display_name = "Steady Breath"

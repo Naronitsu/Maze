@@ -1,0 +1,8 @@
+[gd_resource type="Resource" format=3]
+
+[ext_resource type="Script" path="res://scripts/gameplay/skills/skillScripts/Player/Perception/Passive/wide_eyed/wide_eyed_def.gd" id="1_we"]
+
+[resource]
+script = ExtResource("1_we")
+id = &"wide_eyed"
+display_name = "Wide Eyed"

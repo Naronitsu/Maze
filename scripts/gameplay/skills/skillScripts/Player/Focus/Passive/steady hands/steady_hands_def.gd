@@ -8,6 +8,10 @@ class_name SteadyHandsDef
 #endregion
 
 #region Public Methods
+func get_description() -> String:
+	return "Reduces how long you need to charge the pillar. Effect improves with level."
+
+
 func create_instance(owner: Node, level: int) -> SteadyHandsInstance:
 	return SteadyHandsInstance.new(owner, self, level)
 #endregion

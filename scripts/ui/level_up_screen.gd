@@ -44,9 +44,27 @@ func _set_button(btn: Button, idx: int) -> void:
 	if idx >= _choices.size():
 		btn.disabled = true
 		btn.text = ""
+		btn.tooltip_text = ""
 		return
 	btn.disabled = false
-	btn.text = str(_choices[idx].get("text", "???"))
+	var c: Dictionary = _choices[idx]
+	btn.text = str(c.get("text", "???"))
+	btn.tooltip_text = _get_tooltip_for_choice(c)
+
+
+func _get_tooltip_for_choice(c: Dictionary) -> String:
+	var kind: Variant = c.get("kind", "")
+	if kind == "stat":
+		var stat_name: String = String(c.get("stat", ""))
+		var amount: int = int(c.get("amount", 1))
+		return "Permanently increase %s by %d." % [stat_name, amount]
+	if kind == "skill" and c.has("def"):
+		var def: Resource = c.get("def") as Resource
+		if def != null and def.has_method("get_description"):
+			return def.get_description()
+		if def != null and "display_name" in def:
+			return str(def.get("display_name"))
+	return ""
 
 
 func _pick(idx: int) -> void:

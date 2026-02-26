@@ -1,0 +1,8 @@
+[gd_resource type="Resource" format=3]
+
+[ext_resource type="Script" path="res://scripts/gameplay/skills/skillScripts/Player/Agility/Passive/quick_exit/quick_exit_def.gd" id="1_qe"]
+
+[resource]
+script = ExtResource("1_qe")
+id = &"quick_exit"
+display_name = "Quick Exit"

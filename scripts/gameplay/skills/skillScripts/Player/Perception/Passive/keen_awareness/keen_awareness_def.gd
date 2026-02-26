@@ -8,6 +8,10 @@ class_name KeenAwarenessDef
 #endregion
 
 #region Public Methods
+func get_description() -> String:
+	return "Increases how far you can see in the fog. Effect improves with level."
+
+
 func create_instance(owner: Node, level: int) -> KeenAwarenessInstance:
 	return KeenAwarenessInstance.new(owner, self, level)
 #endregion

@@ -11,6 +11,10 @@ class_name SkillDef
 #endregion
 
 #region Public Methods
+func get_description() -> String:
+	return display_name if display_name else String(id)
+
+
 func create_instance(_owner: Node, _level: int) -> SkillInstance:
 	return null
 #endregion

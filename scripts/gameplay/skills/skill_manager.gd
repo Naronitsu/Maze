@@ -104,6 +104,15 @@ func unequip(skill_id: StringName) -> void:
 		var inst: SkillInstance = active_instances[skill_id]
 		inst.on_unequip()
 		active_instances.erase(skill_id)
+
+
+func on_player_moved(from_cell: Vector2i, to_cell: Vector2i) -> void:
+	var event_data: Variant = {"from": from_cell, "to": to_cell}
+	for skill_id in passive_instances:
+		var inst: SkillInstance = passive_instances[skill_id]
+		var passive_def: PassiveDef = inst.def as PassiveDef
+		if passive_def != null and passive_def.has_method("on_player_moved"):
+			passive_def.on_player_moved(inst, owner_actor, event_data)
 #endregion
 
 #region Private Methods

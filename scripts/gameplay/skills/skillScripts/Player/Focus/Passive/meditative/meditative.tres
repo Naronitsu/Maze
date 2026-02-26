@@ -1,0 +1,8 @@
+[gd_resource type="Resource" format=3]
+
+[ext_resource type="Script" path="res://scripts/gameplay/skills/skillScripts/Player/Focus/Passive/meditative/meditative_def.gd" id="1_med"]
+
+[resource]
+script = ExtResource("1_med")
+id = &"meditative"
+display_name = "Meditative"

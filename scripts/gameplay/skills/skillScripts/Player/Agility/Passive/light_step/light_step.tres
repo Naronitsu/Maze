@@ -1,0 +1,8 @@
+[gd_resource type="Resource" format=3]
+
+[ext_resource type="Script" path="res://scripts/gameplay/skills/skillScripts/Player/Agility/Passive/light_step/light_step_def.gd" id="1_ls"]
+
+[resource]
+script = ExtResource("1_ls")
+id = &"light_step"
+display_name = "Light Step"

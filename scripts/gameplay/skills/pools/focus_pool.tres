@@ -4,8 +4,11 @@
 [ext_resource type="Script" uid="uid://ggkv2oom1raw" path="res://scripts/gameplay/skills/system/passive_def.gd" id="2_dw1np"]
 [ext_resource type="Script" uid="uid://btwdoxqpknn1w" path="res://scripts/gameplay/skills/skill_pool.gd" id="3_244d8"]
 [ext_resource type="Resource" uid="uid://d3dcr4wyx63pu" path="res://scripts/gameplay/skills/skillScripts/Player/Focus/Passive/steady hands/steady_hands.tres" id="3_dw1np"]
+[ext_resource type="Resource" path="res://scripts/gameplay/skills/skillScripts/Player/Focus/Passive/concentration/concentration.tres" id="4_conc"]
+[ext_resource type="Resource" path="res://scripts/gameplay/skills/skillScripts/Player/Focus/Passive/meditative/meditative.tres" id="5_med"]
+[ext_resource type="Resource" path="res://scripts/gameplay/skills/skillScripts/Player/Focus/Passive/focused_charge/focused_charge.tres" id="6_fc"]
 
 [resource]
 script = ExtResource("3_244d8")
 stat_id = &"Focus"
-passives = Array[ExtResource("2_dw1np")]([ExtResource("3_dw1np")])
+passives = Array[ExtResource("2_dw1np")]([ExtResource("3_dw1np"), ExtResource("4_conc"), ExtResource("5_med"), ExtResource("6_fc")])

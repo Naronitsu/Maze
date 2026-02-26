@@ -8,6 +8,10 @@ class_name ThickSkinDef
 #endregion
 
 #region Public Methods
+func get_description() -> String:
+	return "Increases your max health while equipped. Effect improves with level."
+
+
 func create_instance(owner: Node, level: int) -> ThickSkinInstance:
 	return ThickSkinInstance.new(owner, self, level)
 #endregion

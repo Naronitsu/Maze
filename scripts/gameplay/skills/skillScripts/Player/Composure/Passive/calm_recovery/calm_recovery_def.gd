@@ -9,6 +9,10 @@ class_name CalmRecoveryDef
 #endregion
 
 #region Public Methods
+func get_description() -> String:
+	return "Reduces delay before health regen starts and increases regen speed. Effect improves with level."
+
+
 func create_instance(owner: Node, level: int) -> CalmRecoveryInstance:
 	return CalmRecoveryInstance.new(owner, self, level)
 #endregion

@@ -8,6 +8,10 @@ class_name QuickFeetDef
 #endregion
 
 #region Public Methods
+func get_description() -> String:
+	return "Reduces the time between steps so you move faster. Effect improves with level."
+
+
 func create_instance(owner: Node, level: int) -> QuickFeetInstance:
 	return QuickFeetInstance.new(owner, self, level)
 #endregion
