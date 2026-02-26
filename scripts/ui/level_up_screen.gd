@@ -109,25 +109,20 @@ func _on_choice_mouse_entered(idx: int) -> void:
 		affinity = str(choice.get("stat", "—"))
 		desc = STAT_DESCRIPTIONS.get(str(choice.get("stat", "")), "No description.")
 	elif kind == "skill":
-		var def = choice.get("def", null)
+		var def: Variant = choice.get("def", null)
 		if def != null:
 			title = def.display_name if "display_name" in def else str(choice.get("text", "?"))
-			affinity = (
-				String(def.get("stat_affinity", &""))
-				if String(def.get("stat_affinity", &"")) != ""
-				else "—"
-			)
-			var tags_arr: Array = def.get("tags", []) as Array
+			var aff: Variant = def.get("stat_affinity") if "stat_affinity" in def else null
+			affinity = "—" if aff == null or str(aff) == "" else str(aff)
+			var tags_val: Variant = def.get("tags") if "tags" in def else null
+			var tags_arr: Array = (tags_val as Array) if tags_val is Array else []
 			if tags_arr.size() > 0:
 				var parts: Array[String] = []
 				for t in tags_arr:
 					parts.append(String(t))
 				tags = ", ".join(parts)
-			desc = (
-				str(def.get("description", ""))
-				if str(def.get("description", "")) != ""
-				else "No description."
-			)
+			var desc_val: Variant = def.get("description") if "description" in def else null
+			desc = "No description." if desc_val == null or str(desc_val) == "" else str(desc_val)
 		else:
 			title = str(choice.get("text", "?"))
 	else:

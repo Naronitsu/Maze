@@ -1,14 +1,18 @@
 [gd_scene format=3 uid="uid://bqx7tooltip01"]
 
-[ext_resource type="Script" path="res://scripts/ui/choice_tooltip_popup.gd" id="1_tip"]
+[ext_resource type="Script" uid="uid://c0gdi02fqlsid" path="res://scripts/ui/choice_tooltip_popup.gd" id="1_tip"]
+[ext_resource type="Theme" uid="uid://vkyikbobqfb2" path="res://themes/global_theme.tres" id="2_ct1uc"]
+
+[sub_resource type="Theme" id="Theme_st6n7"]
 
 [node name="ChoiceTooltipPopup" type="Control" unique_id=556183800]
+custom_minimum_size = Vector2(260, 120)
 layout_mode = 3
 anchors_preset = 0
-custom_minimum_size = Vector2(260, 120)
 offset_right = 260.0
 offset_bottom = 120.0
 mouse_filter = 1
+theme = SubResource("Theme_st6n7")
 script = ExtResource("1_tip")
 
 [node name="Panel" type="PanelContainer" parent="." unique_id=556183801]
@@ -16,11 +20,11 @@ layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
-offset_right = 0.0
-offset_bottom = 0.0
 grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 1
+theme = ExtResource("2_ct1uc")
+theme_type_variation = &"popupPanelContainer"
 
 [node name="Margin" type="MarginContainer" parent="Panel" unique_id=556183809]
 layout_mode = 2
@@ -28,33 +32,35 @@ theme_override_constants/margin_left = 10
 theme_override_constants/margin_top = 8
 theme_override_constants/margin_right = 10
 theme_override_constants/margin_bottom = 8
-mouse_filter = 1
 
 [node name="VBox" type="VBoxContainer" parent="Panel/Margin" unique_id=556183810]
 layout_mode = 2
 theme_override_constants/separation = 4
-mouse_filter = 1
 
 [node name="Title" type="Label" parent="Panel/Margin/VBox" unique_id=556183811]
 layout_mode = 2
+mouse_filter = 1
+theme_type_variation = &"PauseLabel"
 text = "Name"
 autowrap_mode = 2
-mouse_filter = 1
 
 [node name="Affinity" type="Label" parent="Panel/Margin/VBox" unique_id=556183812]
 layout_mode = 2
+mouse_filter = 1
+theme_type_variation = &"PauseLabel"
 text = "Affinity: —"
 autowrap_mode = 2
-mouse_filter = 1
 
 [node name="Tags" type="Label" parent="Panel/Margin/VBox" unique_id=556183813]
 layout_mode = 2
+mouse_filter = 1
+theme_type_variation = &"PauseLabel"
 text = "Tags: —"
 autowrap_mode = 2
-mouse_filter = 1
 
 [node name="Desc" type="Label" parent="Panel/Margin/VBox" unique_id=556183814]
 layout_mode = 2
+mouse_filter = 1
+theme_type_variation = &"PauseLabel"
 text = "Description"
 autowrap_mode = 3
-mouse_filter = 1

@@ -3,10 +3,10 @@
 [ext_resource type="Script" uid="uid://cq8h62iibduhs" path="res://scripts/gameplay/skills/system/active_def.gd" id="1_lw0d3"]
 [ext_resource type="Script" uid="uid://ggkv2oom1raw" path="res://scripts/gameplay/skills/system/passive_def.gd" id="2_syifa"]
 [ext_resource type="Resource" uid="uid://cke0brdoy8c7c" path="res://scripts/gameplay/skills/skillScripts/Player/Agility/Passive/quick_feet/quick_feet.tres" id="3_syifa"]
+[ext_resource type="Script" uid="uid://btwdoxqpknn1w" path="res://scripts/gameplay/skills/skill_pool.gd" id="3_t4l6g"]
 [ext_resource type="Resource" path="res://scripts/gameplay/skills/skillScripts/Player/Agility/Passive/quick_exit/quick_exit.tres" id="4_qe"]
 [ext_resource type="Resource" path="res://scripts/gameplay/skills/skillScripts/Player/Agility/Passive/light_step/light_step.tres" id="5_ls"]
 [ext_resource type="Resource" path="res://scripts/gameplay/skills/skillScripts/Player/Agility/Passive/second_wind/second_wind.tres" id="6_sw"]
-[ext_resource type="Script" uid="uid://btwdoxqpknn1w" path="res://scripts/gameplay/skills/skill_pool.gd" id="3_t4l6g"]
 
 [resource]
 script = ExtResource("3_t4l6g")

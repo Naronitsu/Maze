@@ -135,6 +135,14 @@ texture = ExtResource("8_s4vyt")
 axis_stretch_horizontal = 1
 region_rect = Rect2(376, 100, 4, 7)
 
+[sub_resource type="StyleBoxTexture" id="StyleBoxTexture_liqg1"]
+texture = ExtResource("7_wwdni")
+texture_margin_left = 2.0
+texture_margin_top = 2.0
+texture_margin_right = 2.0
+texture_margin_bottom = 2.0
+region_rect = Rect2(440, 327, 33, 35)
+
 [resource]
 default_font = ExtResource("1_2p5to")
 default_font_size = 16
@@ -202,3 +210,5 @@ ProgressBar/styles/fill = SubResource("StyleBoxTexture_21nga")
 RichTextLabel/colors/default_color = Color(0, 0, 0, 1)
 RichTextLabel/font_sizes/normal_font_size = 16
 RichTextLabel/fonts/normal_font = ExtResource("1_nap7a")
+popupPanelContainer/base_type = &"PanelContainer"
+popupPanelContainer/styles/panel = SubResource("StyleBoxTexture_liqg1")

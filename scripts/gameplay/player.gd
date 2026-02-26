@@ -166,6 +166,10 @@ func get_max_health() -> float:
 	return stats.get_stat(&"Max Health")
 
 
+func get_max_stamina() -> float:
+	return _get_max_stamina()
+
+
 func get_stat(stat_name: StringName) -> float:
 	return float(stats.get_stat(stat_name))
 
